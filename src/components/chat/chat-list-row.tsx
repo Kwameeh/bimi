@@ -85,7 +85,8 @@ export function ChatListRow({
       style={({ pressed }) => [
         styles.row,
         { backgroundColor: pressed ? theme.backgroundSelected : 'transparent' },
-      ]}>
+      ]}
+    >
       <Avatar
         name={displayName}
         isGroup={isGroup}
@@ -101,14 +102,13 @@ export function ChatListRow({
           <ThemedText
             type={hasUnread ? 'smallBold' : 'small'}
             style={styles.name}
-            numberOfLines={1}>
+            numberOfLines={1}
+          >
             {displayName}
           </ThemedText>
           <Text
-            style={[
-              styles.timestamp,
-              { color: hasUnread ? theme.primary : theme.textSecondary },
-            ]}>
+            style={[styles.timestamp, { color: hasUnread ? theme.primary : theme.textSecondary }]}
+          >
             {formatChatTimestamp(lastMessage?.timestamp)}
           </Text>
         </View>
@@ -124,7 +124,8 @@ export function ChatListRow({
               styles.preview,
               { color: hasUnread ? theme.text : theme.textSecondary },
               hasUnread && { fontWeight: '500' },
-            ]}>
+            ]}
+          >
             {participantPrefix}
             {preview}
           </Text>

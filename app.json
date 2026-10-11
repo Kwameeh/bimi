@@ -69,9 +69,7 @@
         {
           "microphonePermission": "Allow Bimi to listen when you talk to it.",
           "speechRecognitionPermission": "Allow Bimi to understand what you say.",
-          "androidSpeechServicePackages": [
-            "com.google.android.googlequicksearchbox"
-          ]
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
         }
       ]
     ],

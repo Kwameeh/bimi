@@ -1,5 +1,13 @@
 import React from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -61,10 +69,8 @@ export function SelectionBar({
 
   return (
     <View
-      style={[
-        styles.bar,
-        { backgroundColor: theme.backgroundElement, borderColor: theme.border },
-      ]}>
+      style={[styles.bar, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+    >
       <Pressable onPress={onCancel} hitSlop={8} disabled={busy}>
         <Text style={[styles.action, { color: theme.text }]}>Cancel</Text>
       </Pressable>
@@ -74,11 +80,7 @@ export function SelectionBar({
       </Text>
 
       <Pressable onPress={onSelectAll} hitSlop={8} disabled={busy || total === 0}>
-        <Text
-          style={[
-            styles.action,
-            { color: total === 0 ? theme.textSecondary : theme.primary },
-          ]}>
+        <Text style={[styles.action, { color: total === 0 ? theme.textSecondary : theme.primary }]}>
           {allSelected ? 'None' : 'All'}
         </Text>
       </Pressable>
@@ -101,15 +103,14 @@ export function SelectionBar({
             backgroundColor: count === 0 ? 'transparent' : theme.danger,
             borderColor: count === 0 ? theme.border : theme.danger,
           },
-        ]}>
+        ]}
+      >
         {busy ? (
           <ActivityIndicator size="small" color="#FFFFFF" />
         ) : (
           <Text
-            style={[
-              styles.deleteText,
-              { color: count === 0 ? theme.textSecondary : '#FFFFFF' },
-            ]}>
+            style={[styles.deleteText, { color: count === 0 ? theme.textSecondary : '#FFFFFF' }]}
+          >
             Delete
           </Text>
         )}
@@ -131,11 +132,7 @@ export function SelectButton({
   const theme = useTheme();
   return (
     <Pressable onPress={onPress} hitSlop={8} disabled={disabled}>
-      <Text
-        style={[
-          styles.action,
-          { color: disabled ? theme.textSecondary : theme.primary },
-        ]}>
+      <Text style={[styles.action, { color: disabled ? theme.textSecondary : theme.primary }]}>
         {label}
       </Text>
     </Pressable>
@@ -154,7 +151,8 @@ export function SelectionCheck({ checked }: { checked: boolean }) {
         styles.check,
         { borderColor: theme.border },
         checked && { backgroundColor: theme.primary, borderColor: theme.primary },
-      ]}>
+      ]}
+    >
       {checked ? (
         <Text style={{ color: theme.primaryText, fontWeight: '800', fontSize: 13 }}>✓</Text>
       ) : null}

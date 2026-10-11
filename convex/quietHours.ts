@@ -1,4 +1,4 @@
-import type { Doc } from "./_generated/dataModel";
+import type { Doc } from './_generated/dataModel';
 
 export type QuietHoursPrefs = {
   quietHoursEnabled?: boolean;
@@ -27,18 +27,18 @@ function parseHHmm(s: string | undefined | null): number | null {
 function localMinutes(nowMs: number, tz: string | undefined | null): number {
   const date = new Date(nowMs);
   try {
-    const fmt = new Intl.DateTimeFormat("en-US", {
-      timeZone: tz && tz.length > 0 ? tz : "UTC",
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz && tz.length > 0 ? tz : 'UTC',
       hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
+      hour: '2-digit',
+      minute: '2-digit',
     });
     const parts = fmt.formatToParts(date);
     let h = 0;
     let m = 0;
     for (const p of parts) {
-      if (p.type === "hour") h = Number(p.value);
-      else if (p.type === "minute") m = Number(p.value);
+      if (p.type === 'hour') h = Number(p.value);
+      else if (p.type === 'minute') m = Number(p.value);
     }
     // Intl can render "24" for midnight in some locales — normalise to 0.
     if (h === 24) h = 0;
@@ -61,20 +61,17 @@ export function isInQuietHoursNow(
   const cur = localMinutes(nowMs, prefs.quietHoursTimezone);
 
   // Wrap-over-midnight window (e.g. 22:00 → 07:00) vs same-day window.
-  const active =
-    start < end
-      ? cur >= start && cur < end
-      : cur >= start || cur < end;
+  const active = start < end ? cur >= start && cur < end : cur >= start || cur < end;
   return { active };
 }
 
 export function contactBypassesQuietHours(
-  contact: Pick<Doc<"contacts">, "priority" | "relationship"> | null | undefined,
+  contact: Pick<Doc<'contacts'>, 'priority' | 'relationship'> | null | undefined,
   prefs: QuietHoursPrefs | null | undefined,
 ): boolean {
   if (!contact) return false;
   if (prefs?.quietHoursAllowVip !== true) return false;
-  if (contact.priority === "urgent") return true;
-  if (contact.relationship === "vip") return true;
+  if (contact.priority === 'urgent') return true;
+  if (contact.relationship === 'vip') return true;
   return false;
 }

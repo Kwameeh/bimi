@@ -95,10 +95,7 @@ export function useVoiceSession({
   const submitChoice = useAction(api.assistant.submitChoice);
   const submitAnswers = useAction(api.assistant.submitAnswers);
 
-  const messages = useQuery(
-    api.assistant.listMessages,
-    threadId ? { threadId } : 'skip',
-  );
+  const messages = useQuery(api.assistant.listMessages, threadId ? { threadId } : 'skip');
 
   const [phase, setPhase] = useState<VoicePhase>('idle');
   const [lastUtterance, setLastUtterance] = useState('');
@@ -115,16 +112,10 @@ export function useVoiceSession({
 
   const rows = useMemo(() => messages ?? [], [messages]);
 
-  const pendingRow = useMemo(
-    () => [...rows].reverse().find((r) => isAwaiting(r)) ?? null,
-    [rows],
-  );
+  const pendingRow = useMemo(() => [...rows].reverse().find((r) => isAwaiting(r)) ?? null, [rows]);
 
   const runningRow = useMemo(
-    () =>
-      [...rows]
-        .reverse()
-        .find((r) => r.role === 'assistant' && r.status === 'running') ?? null,
+    () => [...rows].reverse().find((r) => r.role === 'assistant' && r.status === 'running') ?? null,
     [rows],
   );
 
@@ -296,9 +287,7 @@ export function useVoiceSession({
 
   const enqueueSpeech = useCallback(
     (text: string) => {
-      speakQueueRef.current = speakQueueRef.current
-        .then(() => tts.speak(text))
-        .catch(() => {});
+      speakQueueRef.current = speakQueueRef.current.then(() => tts.speak(text)).catch(() => {});
       return speakQueueRef.current;
     },
     [tts],
@@ -445,12 +434,9 @@ export function useVoiceSession({
     finishSpeaking();
   }, [finishSpeaking, requestCancelTurn, runningRow, tts]);
 
-  const sendText = useCallback(
-    (text: string) => {
-      void handleUtteranceRef.current(text);
-    },
-    [],
-  );
+  const sendText = useCallback((text: string) => {
+    void handleUtteranceRef.current(text);
+  }, []);
 
   // Close the mic when the screen goes away.
   useEffect(

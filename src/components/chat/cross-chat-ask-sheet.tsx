@@ -21,17 +21,51 @@ import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 type LiveSections = {
-  urgent: Array<{ messageId: Id<'messages'>; contactId: Id<'contacts'>; contactName?: string; preview: string }>;
-  needsReply: Array<{ messageId: Id<'messages'>; contactId: Id<'contacts'>; contactName?: string; preview: string }>;
-  meetings: Array<{ messageId: Id<'messages'>; contactId: Id<'contacts'>; contactName?: string; preview: string }>;
-  documents: Array<{ messageId: Id<'messages'>; contactId: Id<'contacts'>; contactName?: string; fileName?: string }>;
-  autoReplied: Array<{ messageId: Id<'messages'>; contactId: Id<'contacts'>; contactName?: string; preview: string }>;
-  fyi: Array<{ messageId: Id<'messages'>; contactId: Id<'contacts'>; contactName?: string; preview: string }>;
+  urgent: {
+    messageId: Id<'messages'>;
+    contactId: Id<'contacts'>;
+    contactName?: string;
+    preview: string;
+  }[];
+  needsReply: {
+    messageId: Id<'messages'>;
+    contactId: Id<'contacts'>;
+    contactName?: string;
+    preview: string;
+  }[];
+  meetings: {
+    messageId: Id<'messages'>;
+    contactId: Id<'contacts'>;
+    contactName?: string;
+    preview: string;
+  }[];
+  documents: {
+    messageId: Id<'messages'>;
+    contactId: Id<'contacts'>;
+    contactName?: string;
+    fileName?: string;
+  }[];
+  autoReplied: {
+    messageId: Id<'messages'>;
+    contactId: Id<'contacts'>;
+    contactName?: string;
+    preview: string;
+  }[];
+  fyi: {
+    messageId: Id<'messages'>;
+    contactId: Id<'contacts'>;
+    contactName?: string;
+    preview: string;
+  }[];
 };
 
 type PresetKey = 'missed_today' | 'since_opened' | 'needs_reply' | 'deadlines' | 'trends';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+function getOneDayAgo(): number {
+  return Date.now() - DAY_MS;
+}
 
 type Props = {
   instance: string;
@@ -62,29 +96,29 @@ export function CrossChatAskSheet({ instance, visible, onClose }: Props) {
     onClose();
   }, [onClose]);
 
-  const openChat = (contactId: Id<'contacts'>) => {
+  const handleOpenChat = (contactId: Id<'contacts'>) => {
     close();
     router.push({ pathname: '/chat/[contactId]', params: { contactId } });
   };
 
-  const runPreset = async (key: PresetKey) => {
+  const handleRunPreset = async (key: PresetKey) => {
     if (busy) return;
     setBusy(key);
     try {
       if (key === 'missed_today') {
         const data = (await askMissed({
           instance,
-          sinceMs: Date.now() - DAY_MS,
+          sinceMs: getOneDayAgo(),
         })) as LiveSections;
-        setMode({ kind: 'sections', title: "What you missed today", data });
+        setMode({ kind: 'sections', title: 'What you missed today', data });
       } else if (key === 'since_opened') {
-        const sinceMs = pref?.lastOpenedAt ?? Date.now() - DAY_MS;
+        const sinceMs = pref?.lastOpenedAt ?? getOneDayAgo();
         const data = (await askMissed({ instance, sinceMs })) as LiveSections;
         setMode({ kind: 'sections', title: 'Since you last opened', data });
       } else if (key === 'needs_reply') {
         const data = (await askMissed({
           instance,
-          sinceMs: Date.now() - DAY_MS,
+          sinceMs: getOneDayAgo(),
         })) as LiveSections;
         setMode({
           kind: 'sections',
@@ -101,7 +135,7 @@ export function CrossChatAskSheet({ instance, visible, onClose }: Props) {
       } else if (key === 'deadlines') {
         const data = (await askMissed({
           instance,
-          sinceMs: Date.now() - DAY_MS,
+          sinceMs: getOneDayAgo(),
         })) as LiveSections;
         setMode({
           kind: 'sections',
@@ -129,7 +163,7 @@ export function CrossChatAskSheet({ instance, visible, onClose }: Props) {
     }
   };
 
-  const submitQuestion = async () => {
+  const handleSubmitQuestion = async () => {
     const q = question.trim();
     if (q.length === 0 || busy) return;
     setBusy('free');
@@ -145,7 +179,10 @@ export function CrossChatAskSheet({ instance, visible, onClose }: Props) {
   };
 
   const renderSections = (data: LiveSections) => {
-    const groups: Array<{ title: string; rows: LiveSections['needsReply'] | LiveSections['documents'] }> = [
+    const groups: {
+      title: string;
+      rows: LiveSections['needsReply'] | LiveSections['documents'];
+    }[] = [
       { title: 'Urgent', rows: data.urgent },
       { title: 'Needs reply', rows: data.needsReply },
       { title: 'Meetings', rows: data.meetings },
@@ -169,17 +206,19 @@ export function CrossChatAskSheet({ instance, visible, onClose }: Props) {
             {g.rows.map((r) => (
               <Pressable
                 key={r.messageId}
-                onPress={() => openChat(r.contactId)}
+                onPress={() => handleOpenChat(r.contactId)}
                 style={({ pressed }) => [
                   styles.row,
                   { borderTopColor: theme.border, opacity: pressed ? 0.7 : 1 },
-                ]}>
+                ]}
+              >
                 <Text style={[styles.rowTitle, { color: theme.text }]} numberOfLines={1}>
                   {r.contactName ?? 'Unknown'}
                 </Text>
                 <Text
                   style={[styles.rowSubtitle, { color: theme.textSecondary }]}
-                  numberOfLines={2}>
+                  numberOfLines={2}
+                >
                   {'preview' in r ? r.preview : r.fileName}
                 </Text>
               </Pressable>
@@ -194,109 +233,108 @@ export function CrossChatAskSheet({ instance, visible, onClose }: Props) {
     <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
       <KeyboardAvoidingContainer style={{ flex: 1 }}>
         <Pressable style={styles.backdrop} onPress={close}>
-        <Pressable
-          style={[styles.sheet, { backgroundColor: theme.background, borderColor: theme.border }]}
-          onPress={(e) => e.stopPropagation()}>
-          {mode.kind === 'ask' ? (
-            <View>
-              <ThemedText type="smallBold" style={styles.title}>
-                Ask Bimi about all your chats
-              </ThemedText>
-              <View style={styles.chipRow}>
-                {[
-                  { key: 'missed_today' as const, label: 'What did I miss today?' },
-                  { key: 'since_opened' as const, label: 'Since I last opened' },
-                  { key: 'needs_reply' as const, label: 'What needs my reply?' },
-                  { key: 'deadlines' as const, label: 'Deadlines today' },
-                  { key: 'trends' as const, label: 'Trends' },
-                ].map((p) => (
+          <Pressable
+            style={[styles.sheet, { backgroundColor: theme.background, borderColor: theme.border }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {mode.kind === 'ask' ? (
+              <View>
+                <ThemedText type="smallBold" style={styles.title}>
+                  Ask Bimi about all your chats
+                </ThemedText>
+                <View style={styles.chipRow}>
+                  {[
+                    { key: 'missed_today' as const, label: 'What did I miss today?' },
+                    { key: 'since_opened' as const, label: 'Since I last opened' },
+                    { key: 'needs_reply' as const, label: 'What needs my reply?' },
+                    { key: 'deadlines' as const, label: 'Deadlines today' },
+                    { key: 'trends' as const, label: 'Trends' },
+                  ].map((p) => (
+                    <Pressable
+                      key={p.key}
+                      onPress={() => handleRunPreset(p.key)}
+                      disabled={busy !== null}
+                      style={[
+                        styles.chip,
+                        { borderColor: theme.border, backgroundColor: theme.backgroundElement },
+                        busy && { opacity: 0.5 },
+                      ]}
+                    >
+                      {busy === p.key ? (
+                        <ActivityIndicator size="small" color={theme.text} />
+                      ) : (
+                        <Text style={[styles.chipText, { color: theme.text }]}>{p.label}</Text>
+                      )}
+                    </Pressable>
+                  ))}
+                </View>
+                <TextInput
+                  placeholder="Or ask anything about recent messages…"
+                  placeholderTextColor={theme.textSecondary}
+                  value={question}
+                  onChangeText={setQuestion}
+                  multiline
+                  style={[
+                    styles.input,
+                    {
+                      color: theme.text,
+                      backgroundColor: theme.backgroundElement,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                  autoFocus
+                />
+                <View style={styles.actionsRow}>
+                  <Pressable onPress={close} style={[styles.btn, { borderColor: theme.border }]}>
+                    <Text style={{ color: theme.text }}>Close</Text>
+                  </Pressable>
                   <Pressable
-                    key={p.key}
-                    onPress={() => runPreset(p.key)}
-                    disabled={busy !== null}
+                    onPress={handleSubmitQuestion}
+                    disabled={busy !== null || question.trim().length === 0}
                     style={[
-                      styles.chip,
-                      { borderColor: theme.border, backgroundColor: theme.backgroundElement },
-                      busy && { opacity: 0.5 },
-                    ]}>
-                    {busy === p.key ? (
-                      <ActivityIndicator size="small" color={theme.text} />
+                      styles.btn,
+                      styles.btnPrimary,
+                      { backgroundColor: theme.primary },
+                      (busy !== null || question.trim().length === 0) && { opacity: 0.5 },
+                    ]}
+                  >
+                    {busy === 'free' ? (
+                      <ActivityIndicator color={theme.primaryText} size="small" />
                     ) : (
-                      <Text style={[styles.chipText, { color: theme.text }]}>{p.label}</Text>
+                      <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Ask</Text>
                     )}
                   </Pressable>
-                ))}
+                </View>
               </View>
-              <TextInput
-                placeholder="Or ask anything about recent messages…"
-                placeholderTextColor={theme.textSecondary}
-                value={question}
-                onChangeText={setQuestion}
-                multiline
-                style={[
-                  styles.input,
-                  {
-                    color: theme.text,
-                    backgroundColor: theme.backgroundElement,
-                    borderColor: theme.border,
-                  },
-                ]}
-                autoFocus
-              />
-              <View style={styles.actionsRow}>
-                <Pressable
-                  onPress={close}
-                  style={[styles.btn, { borderColor: theme.border }]}>
-                  <Text style={{ color: theme.text }}>Close</Text>
-                </Pressable>
-                <Pressable
-                  onPress={submitQuestion}
-                  disabled={busy !== null || question.trim().length === 0}
-                  style={[
-                    styles.btn,
-                    styles.btnPrimary,
-                    { backgroundColor: theme.primary },
-                    (busy !== null || question.trim().length === 0) && { opacity: 0.5 },
-                  ]}>
-                  {busy === 'free' ? (
-                    <ActivityIndicator color={theme.primaryText} size="small" />
+            ) : (
+              <View style={{ flex: 1 }}>
+                <ThemedText type="smallBold" style={styles.title}>
+                  {mode.title}
+                </ThemedText>
+                <ScrollView style={styles.resultScroll}>
+                  {mode.kind === 'text' ? (
+                    <Text style={[styles.resultBody, { color: theme.text }]}>{mode.answer}</Text>
                   ) : (
-                    <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Ask</Text>
+                    renderSections(mode.data)
                   )}
-                </Pressable>
+                </ScrollView>
+                <View style={styles.actionsRow}>
+                  <Pressable
+                    onPress={() => setMode({ kind: 'ask' })}
+                    style={[styles.btn, { borderColor: theme.border }]}
+                  >
+                    <Text style={{ color: theme.text }}>Ask again</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={close}
+                    style={[styles.btn, styles.btnPrimary, { backgroundColor: theme.primary }]}
+                  >
+                    <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Done</Text>
+                  </Pressable>
+                </View>
               </View>
-            </View>
-          ) : (
-            <View style={{ flex: 1 }}>
-              <ThemedText type="smallBold" style={styles.title}>
-                {mode.title}
-              </ThemedText>
-              <ScrollView style={styles.resultScroll}>
-                {mode.kind === 'text' ? (
-                  <Text style={[styles.resultBody, { color: theme.text }]}>{mode.answer}</Text>
-                ) : (
-                  renderSections(mode.data)
-                )}
-              </ScrollView>
-              <View style={styles.actionsRow}>
-                <Pressable
-                  onPress={() => setMode({ kind: 'ask' })}
-                  style={[styles.btn, { borderColor: theme.border }]}>
-                  <Text style={{ color: theme.text }}>Ask again</Text>
-                </Pressable>
-                <Pressable
-                  onPress={close}
-                  style={[
-                    styles.btn,
-                    styles.btnPrimary,
-                    { backgroundColor: theme.primary },
-                  ]}>
-                  <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Done</Text>
-                </Pressable>
-              </View>
-            </View>
-          )}
-        </Pressable>
+            )}
+          </Pressable>
         </Pressable>
       </KeyboardAvoidingContainer>
     </Modal>

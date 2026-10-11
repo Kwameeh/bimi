@@ -96,7 +96,8 @@ export default function MediaViewerScreen() {
             {mediaInfo.url ? (
               <Pressable
                 onPress={() => WebBrowser.openBrowserAsync(mediaInfo.url!)}
-                style={({ pressed }) => [styles.openButton, pressed && { opacity: 0.85 }]}>
+                style={({ pressed }) => [styles.openButton, pressed && { opacity: 0.85 }]}
+              >
                 <AppIcon name="external" tintColor="#FFFFFF" size={18} />
                 <Text style={styles.openButtonText}>Open document</Text>
               </Pressable>
@@ -140,7 +141,8 @@ function AudioPanel({ url }: { url: string | null }) {
       <Pressable
         onPress={handleToggle}
         disabled={!url}
-        style={({ pressed }) => [styles.playButton, pressed && { opacity: 0.85 }]}>
+        style={({ pressed }) => [styles.playButton, pressed && { opacity: 0.85 }]}
+      >
         {!url ? (
           <ActivityIndicator color="#000000" />
         ) : (

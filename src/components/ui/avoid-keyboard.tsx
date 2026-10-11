@@ -10,8 +10,7 @@ import Animated, {
 type Props = { offset?: number; duration?: number };
 
 export const AvoidKeyboard = ({ offset = 0, duration = 0 }: Props) => {
-  const { keyboardHeight, isKeyboardVisible, keyboardAnimationDuration } =
-    useKeyboardHeight();
+  const { keyboardHeight, isKeyboardVisible, keyboardAnimationDuration } = useKeyboardHeight();
 
   // Shared value for the keyboard padding animation
   const keyboardValue = useSharedValue(0);
@@ -36,6 +35,7 @@ export const AvoidKeyboard = ({ offset = 0, duration = 0 }: Props) => {
     isKeyboardVisible,
     offset,
     duration,
+    keyboardValue,
   ]);
 
   // Animated style

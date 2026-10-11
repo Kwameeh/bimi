@@ -29,7 +29,7 @@ function badgeStyles(theme: ReturnType<typeof useTheme>): Record<keyof ChatBadge
   };
 }
 
-const ORDER: Array<keyof ChatBadges> = [
+const ORDER: (keyof ChatBadges)[] = [
   'urgent',
   'mentioned',
   'needsReply',

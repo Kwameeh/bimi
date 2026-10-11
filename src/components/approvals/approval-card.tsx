@@ -27,7 +27,7 @@ type QueueItem = {
 
 type Variant = 'regenerate' | 'shorter' | 'professional' | 'friendly';
 
-const VARIANT_LABELS: Array<{ key: Variant; label: string }> = [
+const VARIANT_LABELS: { key: Variant; label: string }[] = [
   { key: 'regenerate', label: 'Regenerate' },
   { key: 'shorter', label: 'Shorter' },
   { key: 'professional', label: 'Professional' },
@@ -66,7 +66,7 @@ function humanizeReason(reason: string | undefined): string {
   if (reason === 'group_chat_safety') return 'Group chat — safer to confirm';
   if (reason === 'low_confidence') return 'AI was unsure — needs confirmation';
   if (reason === 'long_message') return 'Long message — review recommended';
-  if (reason === 'semi_auto_not_allowed') return 'Not on this contact\'s allow-list';
+  if (reason === 'semi_auto_not_allowed') return "Not on this contact's allow-list";
   if (reason === 'action_request') return 'Looks like a request for action';
   if (reason === 'empty_text') return 'Empty source message';
   if (reason.startsWith('keyword:')) {
@@ -135,17 +135,13 @@ export function ApprovalCard({ item }: { item: QueueItem }) {
   const priorityKey = (draft.priority ?? 'normal') as keyof typeof PRIORITY_STYLE;
   const priorityStyle = PRIORITY_STYLE[priorityKey] ?? PRIORITY_STYLE.normal;
   const confidencePct =
-    typeof draft.confidence === 'number'
-      ? `${Math.round(draft.confidence * 100)}%`
-      : '—';
+    typeof draft.confidence === 'number' ? `${Math.round(draft.confidence * 100)}%` : '—';
   const goalGate = humanizeGoalGate(draft.style);
 
   return (
     <View
-      style={[
-        styles.card,
-        { backgroundColor: theme.backgroundElement, borderColor: theme.border },
-      ]}>
+      style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+    >
       <View style={styles.headerRow}>
         <Avatar
           name={item.contactDisplayName ?? undefined}
@@ -209,9 +205,7 @@ export function ApprovalCard({ item }: { item: QueueItem }) {
           Reason: {humanizeReason(draft.reason)}
         </Text>
         {goalGate ? (
-          <Text style={[styles.metaText, { color: theme.textSecondary }]}>
-            Held: {goalGate}
-          </Text>
+          <Text style={[styles.metaText, { color: theme.textSecondary }]}>Held: {goalGate}</Text>
         ) : null}
         <Text style={[styles.metaText, { color: theme.textSecondary }]}>
           Confidence: {confidencePct}
@@ -223,15 +217,14 @@ export function ApprovalCard({ item }: { item: QueueItem }) {
           {VARIANT_LABELS.map((v) => (
             <Pressable
               key={v.key}
-              onPress={() =>
-                run(v.key, () => regenerate({ draftId, variant: v.key }))
-              }
+              onPress={() => run(v.key, () => regenerate({ draftId, variant: v.key }))}
               disabled={busy !== null}
               style={[
                 styles.chip,
                 { borderColor: theme.border },
                 busy !== null && { opacity: 0.5 },
-              ]}>
+              ]}
+            >
               {busy === v.key ? (
                 <ActivityIndicator size="small" color={theme.text} />
               ) : (
@@ -250,7 +243,8 @@ export function ApprovalCard({ item }: { item: QueueItem }) {
                 setEditing(false);
                 setEditText(draft.text);
               }}
-              style={[styles.btn, { borderColor: theme.border }]}>
+              style={[styles.btn, { borderColor: theme.border }]}
+            >
               <Text style={{ color: theme.text }}>Cancel</Text>
             </Pressable>
             <Pressable
@@ -261,7 +255,8 @@ export function ApprovalCard({ item }: { item: QueueItem }) {
                 })
               }
               disabled={busy !== null}
-              style={[styles.btn, styles.btnPrimary, { backgroundColor: theme.primary }]}>
+              style={[styles.btn, styles.btnPrimary, { backgroundColor: theme.primary }]}
+            >
               {busy === 'save' ? (
                 <ActivityIndicator size="small" color={theme.primaryText} />
               ) : (
@@ -274,25 +269,29 @@ export function ApprovalCard({ item }: { item: QueueItem }) {
             <Pressable
               onPress={() => run('reject', () => rejectAndClear({ draftId }))}
               disabled={busy !== null}
-              style={[styles.btn, { borderColor: theme.border }]}>
+              style={[styles.btn, { borderColor: theme.border }]}
+            >
               <Text style={{ color: theme.danger ?? '#EF4444' }}>Reject</Text>
             </Pressable>
             <Pressable
               onPress={() => run('ignore', () => ignoreDraft({ draftId }))}
               disabled={busy !== null}
-              style={[styles.btn, { borderColor: theme.border }]}>
+              style={[styles.btn, { borderColor: theme.border }]}
+            >
               <Text style={{ color: theme.text }}>Ignore</Text>
             </Pressable>
             <Pressable
               onPress={() => setEditing(true)}
               disabled={busy !== null}
-              style={[styles.btn, { borderColor: theme.border }]}>
+              style={[styles.btn, { borderColor: theme.border }]}
+            >
               <Text style={{ color: theme.text }}>Edit</Text>
             </Pressable>
             <Pressable
               onPress={() => run('send', () => sendDraft({ draftId }))}
               disabled={busy !== null}
-              style={[styles.btn, styles.btnPrimary, { backgroundColor: theme.primary }]}>
+              style={[styles.btn, styles.btnPrimary, { backgroundColor: theme.primary }]}
+            >
               {busy === 'send' ? (
                 <ActivityIndicator size="small" color={theme.primaryText} />
               ) : (

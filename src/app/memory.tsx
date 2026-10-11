@@ -19,11 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
-import {
-  SelectButton,
-  SelectionBar,
-  SelectionCheck,
-} from '@/components/ui/selection-bar';
+import { SelectButton, SelectionBar, SelectionCheck } from '@/components/ui/selection-bar';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { deleteInChunks, useSelection } from '@/hooks/use-selection';
@@ -33,12 +29,7 @@ import { api } from '../../convex/_generated/api';
 import type { Doc, Id } from '../../convex/_generated/dataModel';
 
 type SubTab = 'mine' | 'contacts' | 'chats' | 'pending';
-type MemType =
-  | 'fact'
-  | 'preference'
-  | 'commitment'
-  | 'ongoing'
-  | 'relationship';
+type MemType = 'fact' | 'preference' | 'commitment' | 'ongoing' | 'relationship';
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: 'mine', label: 'Mine' },
@@ -47,13 +38,7 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: 'pending', label: 'Pending' },
 ];
 
-const TYPES: MemType[] = [
-  'fact',
-  'preference',
-  'commitment',
-  'ongoing',
-  'relationship',
-];
+const TYPES: MemType[] = ['fact', 'preference', 'commitment', 'ongoing', 'relationship'];
 
 const TYPE_COLOR: Record<MemType, string> = {
   fact: '#2563EB',
@@ -86,9 +71,7 @@ export default function MemoryScreen() {
   const [typeFilter, setTypeFilter] = useState<MemType | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [editing, setEditing] = useState<
-    | Doc<'memories'>
-    | { _new: true; scope: 'user' | 'contact' | 'chat' }
-    | null
+    Doc<'memories'> | { _new: true; scope: 'user' | 'contact' | 'chat' } | null
   >(null);
   const [actionTarget, setActionTarget] = useState<Doc<'memories'> | null>(null);
   const removeMany = useMutation(api.memories.removeMany);
@@ -169,10 +152,7 @@ export default function MemoryScreen() {
   const startAdd = () =>
     setEditing({
       _new: true,
-      scope:
-        subTab === 'pending'
-          ? 'user'
-          : (scopeFor[subTab] as 'user' | 'contact' | 'chat'),
+      scope: subTab === 'pending' ? 'user' : (scopeFor[subTab] as 'user' | 'contact' | 'chat'),
     });
 
   return (
@@ -208,16 +188,15 @@ export default function MemoryScreen() {
                   leaveSelection();
                   setSubTab(t.id);
                 }}
-                style={[
-                  styles.segment,
-                  active && { backgroundColor: theme.primary },
-                ]}>
+                style={[styles.segment, active && { backgroundColor: theme.primary }]}
+              >
                 <Text
                   style={{
                     color: active ? theme.primaryText : theme.text,
                     fontSize: 13,
                     fontWeight: '600',
-                  }}>
+                  }}
+                >
                   {t.label}
                 </Text>
               </Pressable>
@@ -243,10 +222,7 @@ export default function MemoryScreen() {
               ]}
             />
             {search.length > 0 ? (
-              <Pressable
-                onPress={() => setSearch('')}
-                hitSlop={10}
-                style={styles.searchClear}>
+              <Pressable onPress={() => setSearch('')} hitSlop={10} style={styles.searchClear}>
                 <Text style={{ color: theme.textSecondary, fontSize: 18 }}>×</Text>
               </Pressable>
             ) : null}
@@ -257,7 +233,8 @@ export default function MemoryScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.typeRow}>
+            contentContainerStyle={styles.typeRow}
+          >
             <Pressable
               onPress={() => {
                 leaveSelection();
@@ -269,10 +246,9 @@ export default function MemoryScreen() {
                 typeFilter === null && {
                   backgroundColor: theme.backgroundSelected,
                 },
-              ]}>
-              <Text style={{ color: theme.text, fontSize: 12, fontWeight: '600' }}>
-                All
-              </Text>
+              ]}
+            >
+              <Text style={{ color: theme.text, fontSize: 12, fontWeight: '600' }}>All</Text>
             </Pressable>
             {TYPES.map((t) => (
               <Pressable
@@ -285,12 +261,10 @@ export default function MemoryScreen() {
                   styles.typeChip,
                   { borderColor: theme.border },
                   typeFilter === t && { backgroundColor: theme.backgroundSelected },
-                ]}>
+                ]}
+              >
                 <View style={[styles.typeDot, { backgroundColor: TYPE_COLOR[t] }]} />
-                <Text
-                  style={{ color: theme.text, fontSize: 12, fontWeight: '600' }}>
-                  {t}
-                </Text>
+                <Text style={{ color: theme.text, fontSize: 12, fontWeight: '600' }}>{t}</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -307,7 +281,8 @@ export default function MemoryScreen() {
                 onRefresh={onRefresh}
                 tintColor={theme.primary}
               />
-            }>
+            }
+          >
             <Text style={styles.emptyIcon}>🧠</Text>
             <ThemedText type="smallBold" style={{ marginTop: 8 }}>
               {subTab === 'pending' ? 'No proposals waiting' : 'Nothing here yet'}
@@ -315,7 +290,8 @@ export default function MemoryScreen() {
             <ThemedText
               type="small"
               themeColor="textSecondary"
-              style={{ textAlign: 'center', marginTop: 4, paddingHorizontal: 28 }}>
+              style={{ textAlign: 'center', marginTop: 4, paddingHorizontal: 28 }}
+            >
               {subTab === 'pending'
                 ? "Bimi will queue proposals here when it isn't confident enough to write directly."
                 : 'Bimi will fill this in as you chat. You can also tap + to add an entry yourself.'}
@@ -337,19 +313,13 @@ export default function MemoryScreen() {
               <MemoryCard
                 row={item}
                 contactName={
-                  item.contactId
-                    ? contactNameById.get(item.contactId as string)
-                    : undefined
+                  item.contactId ? contactNameById.get(item.contactId as string) : undefined
                 }
                 selectMode={selection.active}
                 selected={selection.isSelected(item._id)}
-                onTap={() =>
-                  selection.active ? selection.toggle(item._id) : setEditing(item)
-                }
+                onTap={() => (selection.active ? selection.toggle(item._id) : setEditing(item))}
                 onLongPress={() =>
-                  selection.active
-                    ? selection.toggle(item._id)
-                    : setActionTarget(item)
+                  selection.active ? selection.toggle(item._id) : setActionTarget(item)
                 }
                 onOpenChat={(cid) =>
                   router.push({
@@ -369,7 +339,8 @@ export default function MemoryScreen() {
             styles.fab,
             { backgroundColor: theme.primary, shadowColor: theme.text },
             pressed && { opacity: 0.85 },
-          ]}>
+          ]}
+        >
           <Text style={[styles.fabPlus, { color: theme.primaryText }]}>+</Text>
         </Pressable>
 
@@ -382,11 +353,14 @@ export default function MemoryScreen() {
           }}
         />
 
-        <MemoryEditor
-          instance={instance}
-          entry={editing}
-          onClose={() => setEditing(null)}
-        />
+        {editing ? (
+          <MemoryEditor
+            key={'_id' in editing ? editing._id : `new-${editing.scope}`}
+            instance={instance}
+            entry={editing}
+            onClose={() => setEditing(null)}
+          />
+        ) : null}
       </SafeAreaView>
     </ThemedView>
   );
@@ -431,7 +405,8 @@ function MemoryCard({
             backgroundColor: theme.backgroundSelected,
           },
         pressed && { opacity: 0.7 },
-      ]}>
+      ]}
+    >
       <View style={styles.cardTop}>
         {selectMode ? (
           <View style={{ marginRight: 2 }}>
@@ -443,9 +418,7 @@ function MemoryCard({
         </View>
         {row.pinned ? <Text style={styles.pinIcon}>📌</Text> : null}
         {contactName ? (
-          <Text
-            style={[styles.contactName, { color: theme.text }]}
-            numberOfLines={1}>
+          <Text style={[styles.contactName, { color: theme.text }]} numberOfLines={1}>
             {contactName}
           </Text>
         ) : null}
@@ -464,13 +437,9 @@ function MemoryCard({
             onOpenChat(row.contactId!);
           }}
           hitSlop={8}
-          style={({ pressed }) => [
-            styles.openChatRow,
-            pressed && { opacity: 0.6 },
-          ]}>
-          <Text style={[styles.openChatText, { color: theme.primary }]}>
-            ↗ Open chat
-          </Text>
+          style={({ pressed }) => [styles.openChatRow, pressed && { opacity: 0.6 }]}
+        >
+          <Text style={[styles.openChatText, { color: theme.primary }]}>↗ Open chat</Text>
         </Pressable>
       ) : null}
 
@@ -478,32 +447,26 @@ function MemoryCard({
         <View style={styles.pendingRow}>
           <Pressable
             onPress={() =>
-              reject({ memoryId: row._id }).catch((e) =>
-                Alert.alert('Failed', String(e)),
-              )
+              reject({ memoryId: row._id }).catch((e) => Alert.alert('Failed', String(e)))
             }
-            style={[styles.pendingBtn, { borderColor: theme.border }]}>
+            style={[styles.pendingBtn, { borderColor: theme.border }]}
+          >
             <Text style={{ color: theme.text, fontWeight: '600' }}>Reject</Text>
           </Pressable>
-          <Pressable
-            onPress={onTap}
-            style={[styles.pendingBtn, { borderColor: theme.border }]}>
+          <Pressable onPress={onTap} style={[styles.pendingBtn, { borderColor: theme.border }]}>
             <Text style={{ color: theme.text, fontWeight: '600' }}>Edit</Text>
           </Pressable>
           <Pressable
             onPress={() =>
-              approve({ memoryId: row._id }).catch((e) =>
-                Alert.alert('Failed', String(e)),
-              )
+              approve({ memoryId: row._id }).catch((e) => Alert.alert('Failed', String(e)))
             }
             style={[
               styles.pendingBtn,
               styles.pendingBtnPrimary,
               { backgroundColor: theme.primary },
-            ]}>
-            <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
-              Approve
-            </Text>
+            ]}
+          >
+            <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Approve</Text>
           </Pressable>
         </View>
       ) : null}
@@ -535,9 +498,7 @@ function MemoryActionsSheet({
     },
     {
       label: row.pinned ? 'Unpin' : 'Pin',
-      sub: row.pinned
-        ? "Allow expiry to apply again"
-        : "Prevent decay and load into every prompt",
+      sub: row.pinned ? 'Allow expiry to apply again' : 'Prevent decay and load into every prompt',
       onPress: () => {
         void pin({ memoryId: row._id, pinned: !row.pinned });
         onClose();
@@ -579,10 +540,12 @@ function MemoryActionsSheet({
             styles.actionsSheet,
             { backgroundColor: theme.background, borderColor: theme.border },
           ]}
-          onPress={(e) => e.stopPropagation()}>
+          onPress={(e) => e.stopPropagation()}
+        >
           <Text
             style={[styles.actionsSheetTitle, { color: theme.textSecondary }]}
-            numberOfLines={2}>
+            numberOfLines={2}
+          >
             {row.content}
           </Text>
           {items.map((it, i) => (
@@ -591,29 +554,25 @@ function MemoryActionsSheet({
               onPress={it.onPress}
               style={({ pressed }) => [
                 styles.actionRow,
-                i < items.length - 1 && { borderBottomColor: theme.border, borderBottomWidth: StyleSheet.hairlineWidth },
+                i < items.length - 1 && {
+                  borderBottomColor: theme.border,
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                },
                 pressed && { opacity: 0.6 },
-              ]}>
-              <Text
-                style={[
-                  styles.actionLabel,
-                  { color: it.danger ? '#B91C1C' : theme.text },
-                ]}>
+              ]}
+            >
+              <Text style={[styles.actionLabel, { color: it.danger ? '#B91C1C' : theme.text }]}>
                 {it.label}
               </Text>
               {it.sub ? (
-                <Text style={[styles.actionSub, { color: theme.textSecondary }]}>
-                  {it.sub}
-                </Text>
+                <Text style={[styles.actionSub, { color: theme.textSecondary }]}>{it.sub}</Text>
               ) : null}
             </Pressable>
           ))}
           <Pressable
             onPress={onClose}
-            style={[
-              styles.cancelBtn,
-              { backgroundColor: theme.backgroundElement },
-            ]}>
+            style={[styles.cancelBtn, { backgroundColor: theme.backgroundElement }]}
+          >
             <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
           </Pressable>
         </Pressable>
@@ -628,10 +587,7 @@ function MemoryEditor({
   onClose,
 }: {
   instance: string;
-  entry:
-    | Doc<'memories'>
-    | { _new: true; scope: 'user' | 'contact' | 'chat' }
-    | null;
+  entry: Doc<'memories'> | { _new: true; scope: 'user' | 'contact' | 'chat' };
   onClose: () => void;
 }) {
   const theme = useTheme();
@@ -639,26 +595,12 @@ function MemoryEditor({
   const update = useMutation(api.memories.update);
   const approve = useMutation(api.memories.approve);
 
-  const [type, setType] = useState<MemType>('fact');
-  const [content, setContent] = useState('');
-  const [pinned, setPinned] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (entry && '_new' in entry) {
-      setType('fact');
-      setContent('');
-      setPinned(false);
-    } else if (entry) {
-      setType(entry.type as MemType);
-      setContent(entry.content);
-      setPinned(entry.pinned === true);
-    }
-  }, [entry]);
-
-  if (!entry) return null;
   const isNew = '_new' in entry;
   const isPending = !isNew && entry.status === 'proposed';
+  const [type, setType] = useState<MemType>(isNew ? 'fact' : (entry.type as MemType));
+  const [content, setContent] = useState(isNew ? '' : entry.content);
+  const [pinned, setPinned] = useState(isNew ? false : entry.pinned === true);
+  const [busy, setBusy] = useState(false);
 
   const onSave = async () => {
     if (busy) return;
@@ -714,131 +656,129 @@ function MemoryEditor({
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingContainer style={{ flex: 1 }}>
         <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable
-          style={[
-            styles.editorSheet,
-            { backgroundColor: theme.background, borderColor: theme.border },
-          ]}
-          onPress={(e) => e.stopPropagation()}>
-          <View style={styles.editorGrabber} />
-          <ThemedText type="smallBold">
-            {isNew ? 'New memory' : isPending ? 'Review proposal' : 'Edit memory'}
-          </ThemedText>
-
-          <Text style={[styles.editorLabel, { color: theme.textSecondary }]}>
-            Type
-          </Text>
-          <View style={styles.typeGrid}>
-            {TYPES.map((t) => (
-              <Pressable
-                key={t}
-                onPress={() => setType(t)}
-                style={[
-                  styles.typeChipBig,
-                  { borderColor: theme.border, backgroundColor: theme.backgroundElement },
-                  type === t && {
-                    backgroundColor: theme.primary,
-                    borderColor: theme.primary,
-                  },
-                ]}>
-                <View
-                  style={[
-                    styles.typeDot,
-                    { backgroundColor: type === t ? theme.primaryText : TYPE_COLOR[t] },
-                  ]}
-                />
-                <Text
-                  style={{
-                    color: type === t ? theme.primaryText : theme.text,
-                    fontSize: 13,
-                    fontWeight: '600',
-                  }}>
-                  {t}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Text style={[styles.editorLabel, { color: theme.textSecondary }]}>
-            Memory
-          </Text>
-          <TextInput
-            value={content}
-            onChangeText={setContent}
-            placeholder="One short sentence — e.g. 'Sarah works at Wartech as the backend lead.'"
-            placeholderTextColor={theme.textSecondary}
-            multiline
-            autoFocus={isNew}
-            style={[
-              styles.editorInput,
-              {
-                color: theme.text,
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundElement,
-              },
-            ]}
-          />
-
           <Pressable
-            onPress={() => setPinned((p) => !p)}
             style={[
-              styles.pinToggle,
-              { borderColor: theme.border },
-              pinned && {
-                backgroundColor: theme.backgroundSelected,
-                borderColor: theme.primary,
-              },
-            ]}>
-            <Text style={{ color: theme.text, fontSize: 14, fontWeight: '600' }}>
-              {pinned ? '📌 Pinned — loaded every turn' : '📍 Pin to load every turn'}
-            </Text>
-          </Pressable>
+              styles.editorSheet,
+              { backgroundColor: theme.background, borderColor: theme.border },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.editorGrabber} />
+            <ThemedText type="smallBold">
+              {isNew ? 'New memory' : isPending ? 'Review proposal' : 'Edit memory'}
+            </ThemedText>
 
-          <View style={styles.editorActions}>
+            <Text style={[styles.editorLabel, { color: theme.textSecondary }]}>Type</Text>
+            <View style={styles.typeGrid}>
+              {TYPES.map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => setType(t)}
+                  style={[
+                    styles.typeChipBig,
+                    { borderColor: theme.border, backgroundColor: theme.backgroundElement },
+                    type === t && {
+                      backgroundColor: theme.primary,
+                      borderColor: theme.primary,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.typeDot,
+                      { backgroundColor: type === t ? theme.primaryText : TYPE_COLOR[t] },
+                    ]}
+                  />
+                  <Text
+                    style={{
+                      color: type === t ? theme.primaryText : theme.text,
+                      fontSize: 13,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {t}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={[styles.editorLabel, { color: theme.textSecondary }]}>Memory</Text>
+            <TextInput
+              value={content}
+              onChangeText={setContent}
+              placeholder="One short sentence — e.g. 'Sarah works at Wartech as the backend lead.'"
+              placeholderTextColor={theme.textSecondary}
+              multiline
+              autoFocus={isNew}
+              style={[
+                styles.editorInput,
+                {
+                  color: theme.text,
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundElement,
+                },
+              ]}
+            />
+
             <Pressable
-              onPress={onClose}
-              style={[styles.bigBtn, { borderColor: theme.border }]}>
-              <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
+              onPress={() => setPinned((p) => !p)}
+              style={[
+                styles.pinToggle,
+                { borderColor: theme.border },
+                pinned && {
+                  backgroundColor: theme.backgroundSelected,
+                  borderColor: theme.primary,
+                },
+              ]}
+            >
+              <Text style={{ color: theme.text, fontSize: 14, fontWeight: '600' }}>
+                {pinned ? '📌 Pinned — loaded every turn' : '📍 Pin to load every turn'}
+              </Text>
             </Pressable>
-            {isPending ? (
-              <Pressable
-                onPress={onEditAndApprove}
-                disabled={busy}
-                style={[
-                  styles.bigBtn,
-                  styles.bigBtnPrimary,
-                  { backgroundColor: theme.primary },
-                  busy && { opacity: 0.5 },
-                ]}>
-                {busy ? (
-                  <ActivityIndicator color={theme.primaryText} size="small" />
-                ) : (
-                  <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
-                    Edit & approve
-                  </Text>
-                )}
+
+            <View style={styles.editorActions}>
+              <Pressable onPress={onClose} style={[styles.bigBtn, { borderColor: theme.border }]}>
+                <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
               </Pressable>
-            ) : (
-              <Pressable
-                onPress={onSave}
-                disabled={busy}
-                style={[
-                  styles.bigBtn,
-                  styles.bigBtnPrimary,
-                  { backgroundColor: theme.primary },
-                  busy && { opacity: 0.5 },
-                ]}>
-                {busy ? (
-                  <ActivityIndicator color={theme.primaryText} size="small" />
-                ) : (
-                  <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
-                    Save
-                  </Text>
-                )}
-              </Pressable>
-            )}
-          </View>
-        </Pressable>
+              {isPending ? (
+                <Pressable
+                  onPress={onEditAndApprove}
+                  disabled={busy}
+                  style={[
+                    styles.bigBtn,
+                    styles.bigBtnPrimary,
+                    { backgroundColor: theme.primary },
+                    busy && { opacity: 0.5 },
+                  ]}
+                >
+                  {busy ? (
+                    <ActivityIndicator color={theme.primaryText} size="small" />
+                  ) : (
+                    <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
+                      Edit & approve
+                    </Text>
+                  )}
+                </Pressable>
+              ) : (
+                <Pressable
+                  onPress={onSave}
+                  disabled={busy}
+                  style={[
+                    styles.bigBtn,
+                    styles.bigBtnPrimary,
+                    { backgroundColor: theme.primary },
+                    busy && { opacity: 0.5 },
+                  ]}
+                >
+                  {busy ? (
+                    <ActivityIndicator color={theme.primaryText} size="small" />
+                  ) : (
+                    <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Save</Text>
+                  )}
+                </Pressable>
+              )}
+            </View>
+          </Pressable>
         </Pressable>
       </KeyboardAvoidingContainer>
     </Modal>

@@ -36,7 +36,8 @@ export default function RootLayout() {
                   animationDuration: 240,
                   headerShown: false,
                   contentStyle: { backgroundColor: 'transparent' },
-                }}>
+                }}
+              >
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="chat/[contactId]" />
                 <Stack.Screen name="contact/[contactId]" />

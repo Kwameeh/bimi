@@ -1,7 +1,7 @@
-import { v } from "convex/values";
-import { action } from "./_generated/server";
-import { transcribeAudio } from "./providers/transcription";
-import { synthesizeSpeech, TTS_MAX_CHARS } from "./providers/processing";
+import { v } from 'convex/values';
+import { action } from './_generated/server';
+import { transcribeAudio } from './providers/transcription';
+import { synthesizeSpeech, TTS_MAX_CHARS } from './providers/processing';
 
 /**
  * Synthesize a spoken version of an assistant reply.
@@ -15,10 +15,7 @@ export const speak = action({
     text: v.string(),
     lang: v.optional(v.string()),
   },
-  handler: async (
-    _ctx,
-    args,
-  ): Promise<{ base64: string; mimeType: string } | null> => {
+  handler: async (_ctx, args): Promise<{ base64: string; mimeType: string } | null> => {
     const text = args.text.trim();
     if (text.length === 0) return null;
     try {
@@ -27,7 +24,7 @@ export const speak = action({
         lang: args.lang,
       });
     } catch (err) {
-      console.warn("[voice.speak] synthesis failed", {
+      console.warn('[voice.speak] synthesis failed', {
         err: err instanceof Error ? err.message : String(err),
         textLength: text.length,
       });
@@ -46,7 +43,7 @@ export const speak = action({
 export const transcribe = action({
   args: { base64: v.string(), mimeType: v.optional(v.string()) },
   handler: async (_ctx, args): Promise<string> => {
-    if (args.base64.length === 0) return "";
+    if (args.base64.length === 0) return '';
     return await transcribeAudio({ base64: args.base64, mimeType: args.mimeType });
   },
 });

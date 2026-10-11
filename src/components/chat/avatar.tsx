@@ -30,16 +30,12 @@ function colorForName(name: string | undefined): string {
 
 export function Avatar({ name, size = 48, isGroup, isAi, imageUrl, onImageError }: Props) {
   const theme = useTheme();
-  // A URL that just failed should fall back to initials for the rest of this
-  // render, rather than leaving a blank circle until the refetch lands.
-  const [failed, setFailed] = React.useState(false);
-
-  React.useEffect(() => {
-    setFailed(false);
-  }, [imageUrl]);
+  // Track the URL that failed to load so a new URL immediately clears failure
+  // without needing an effect.
+  const [failedUrl, setFailedUrl] = React.useState<string | null>(null);
 
   const bg = isGroup ? theme.backgroundSelected : colorForName(name);
-  const showImage = imageUrl !== undefined && !failed;
+  const showImage = imageUrl !== undefined && failedUrl !== imageUrl;
 
   return (
     <View
@@ -53,7 +49,8 @@ export function Avatar({ name, size = 48, isGroup, isAi, imageUrl, onImageError 
           borderWidth: isAi ? 2 : 0,
           borderColor: isAi ? theme.aiAccent : 'transparent',
         },
-      ]}>
+      ]}
+    >
       {showImage ? (
         <Image
           source={{ uri: imageUrl }}
@@ -64,7 +61,7 @@ export function Avatar({ name, size = 48, isGroup, isAi, imageUrl, onImageError 
           cachePolicy="memory-disk"
           transition={120}
           onError={() => {
-            setFailed(true);
+            setFailedUrl(imageUrl ?? null);
             onImageError?.();
           }}
         />
@@ -74,7 +71,8 @@ export function Avatar({ name, size = 48, isGroup, isAi, imageUrl, onImageError 
             color: isGroup ? theme.text : '#FFFFFF',
             fontSize: size * 0.4,
             fontWeight: '600',
-          }}>
+          }}
+        >
           {isGroup ? '#' : initialsFor(name)}
         </ThemedText>
       )}

@@ -6,27 +6,27 @@
 // the stored row is identical to the one computed from source, so a missed
 // refresh hook shows up as a failure rather than a stale badge in the app.
 /// <reference types="vite/client" />
-import { convexTest } from "convex-test";
-import { describe, expect, test, vi } from "vitest";
-import schema from "./schema";
-import { api, internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import { convexTest } from 'convex-test';
+import { describe, expect, test, vi } from 'vitest';
+import schema from './schema';
+import { api, internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 
-const modules = import.meta.glob("./**/*.ts");
+const modules = import.meta.glob('./**/*.ts');
 
-vi.mock("./providers/evolution", () => ({
+vi.mock('./providers/evolution', () => ({
   sendText: vi.fn(),
   fetchMediaBase64: vi.fn(),
   fetchGroupInfo: vi.fn(),
 }));
-vi.mock("./providers/processing", () => ({
+vi.mock('./providers/processing', () => ({
   generateReply: vi.fn(),
   generateText: vi.fn(),
 }));
-vi.mock("./providers/aiSdk", () => ({ runJsonExtraction: vi.fn() }));
+vi.mock('./providers/aiSdk', () => ({ runJsonExtraction: vi.fn() }));
 
-const INSTANCE = "chat-state-test";
-const JID = "233200000001@s.whatsapp.net";
+const INSTANCE = 'chat-state-test';
+const JID = '233200000001@s.whatsapp.net';
 
 type Ctx = ReturnType<typeof convexTest>;
 
@@ -35,21 +35,21 @@ let seq = 0;
 async function ingest(
   t: Ctx,
   overrides: Record<string, unknown> = {},
-): Promise<{ contactId: Id<"contacts">; messageId: Id<"messages"> }> {
+): Promise<{ contactId: Id<'contacts'>; messageId: Id<'messages'> }> {
   seq += 1;
   const result = await t.mutation(internal.messages.ingestMessage, {
     instance: INSTANCE,
     remoteJid: JID,
     messageId: `wamid-${seq}`,
     fromMe: false,
-    messageType: "conversation",
+    messageType: 'conversation',
     text: `message ${seq}`,
-    status: "ready",
+    status: 'ready',
     timestamp: 1_000 + seq,
     ...overrides,
   });
   if (result.messageId === null) {
-    throw new Error("Test message was unexpectedly ignored");
+    throw new Error('Test message was unexpectedly ignored');
   }
   return { contactId: result.contactId, messageId: result.messageId };
 }
@@ -63,7 +63,7 @@ async function listChats(t: Ctx) {
  * way it did before denormalization and the way it still does for contacts that
  * predate the backfill.
  */
-async function clearStoredState(t: Ctx, contactId: Id<"contacts">) {
+async function clearStoredState(t: Ctx, contactId: Id<'contacts'>) {
   await t.run(async (ctx) => {
     await ctx.db.patch(contactId, {
       chatStateVersion: undefined,
@@ -83,7 +83,7 @@ async function clearStoredState(t: Ctx, contactId: Id<"contacts">) {
  * The core invariant: the stored row and the computed-from-source row match.
  * Returns the row so callers can assert on it directly.
  */
-async function expectStoredMatchesComputed(t: Ctx, contactId: Id<"contacts">) {
+async function expectStoredMatchesComputed(t: Ctx, contactId: Id<'contacts'>) {
   const stored = await listChats(t);
 
   await clearStoredState(t, contactId);
@@ -95,39 +95,39 @@ async function expectStoredMatchesComputed(t: Ctx, contactId: Id<"contacts">) {
   return stored[0];
 }
 
-describe("denormalized chat list", () => {
-  test("reports unread count and last-message preview", async () => {
+describe('denormalized chat list', () => {
+  test('reports unread count and last-message preview', async () => {
     const t = convexTest(schema, modules);
-    const { contactId } = await ingest(t, { text: "first" });
-    await ingest(t, { text: "second" });
+    const { contactId } = await ingest(t, { text: 'first' });
+    await ingest(t, { text: 'second' });
 
     const row = await expectStoredMatchesComputed(t, contactId);
     expect(row.unreadCount).toBe(2);
-    expect(row.lastMessage?.text).toBe("second");
+    expect(row.lastMessage?.text).toBe('second');
     expect(row.lastMessage?.fromMe).toBe(false);
   });
 
-  test("outgoing messages update the preview but do not count as unread", async () => {
+  test('outgoing messages update the preview but do not count as unread', async () => {
     const t = convexTest(schema, modules);
-    const { contactId } = await ingest(t, { text: "from them" });
+    const { contactId } = await ingest(t, { text: 'from them' });
 
     await t.mutation(internal.messages.recordOutgoing, {
       instance: INSTANCE,
       remoteJid: JID,
       contactId,
-      messageId: "wamid-out-1",
-      text: "from me",
+      messageId: 'wamid-out-1',
+      text: 'from me',
       sentByAi: false,
     });
 
     const row = await expectStoredMatchesComputed(t, contactId);
-    expect(row.lastMessage?.text).toBe("from me");
+    expect(row.lastMessage?.text).toBe('from me');
     expect(row.lastMessage?.fromMe).toBe(true);
     // The inbound message is still unread; ours is not counted.
     expect(row.unreadCount).toBe(1);
   });
 
-  test("markRead clears the unread count and its badges", async () => {
+  test('markRead clears the unread count and its badges', async () => {
     const t = convexTest(schema, modules);
     const { contactId, messageId } = await ingest(t);
     await t.mutation(internal.messageActions.setFlagsInternal, {
@@ -150,7 +150,7 @@ describe("denormalized chat list", () => {
     expect(row.lastMessage).not.toBeNull();
   });
 
-  test("flags set after ingest surface as badges", async () => {
+  test('flags set after ingest surface as badges', async () => {
     const t = convexTest(schema, modules);
     const { contactId, messageId } = await ingest(t);
 
@@ -169,7 +169,7 @@ describe("denormalized chat list", () => {
     expect(row.badges.mentioned).toBe(true);
   });
 
-  test("clearing a flag clears its badge", async () => {
+  test('clearing a flag clears its badge', async () => {
     const t = convexTest(schema, modules);
     const { contactId, messageId } = await ingest(t);
     await t.mutation(internal.messageActions.setFlagsInternal, {
@@ -184,14 +184,14 @@ describe("denormalized chat list", () => {
     expect(row.badges.urgent).toBe(false);
   });
 
-  test("a pending draft raises the draft badge and resolving it lowers it", async () => {
+  test('a pending draft raises the draft badge and resolving it lowers it', async () => {
     const t = convexTest(schema, modules);
     const { contactId } = await ingest(t);
 
     const draftId = await t.mutation(internal.drafts.insertDraftInternal, {
       instance: INSTANCE,
       contactId,
-      text: "suggested reply",
+      text: 'suggested reply',
     });
     expect((await listChats(t))[0].badges.draftReady).toBe(true);
 
@@ -201,13 +201,13 @@ describe("denormalized chat list", () => {
     expect(row.badges.draftReady).toBe(false);
   });
 
-  test("deleting a draft lowers the draft badge", async () => {
+  test('deleting a draft lowers the draft badge', async () => {
     const t = convexTest(schema, modules);
     const { contactId } = await ingest(t);
     const draftId = await t.mutation(internal.drafts.insertDraftInternal, {
       instance: INSTANCE,
       contactId,
-      text: "suggested reply",
+      text: 'suggested reply',
     });
 
     await t.mutation(api.drafts.remove, { draftId });
@@ -223,40 +223,40 @@ describe("denormalized chat list", () => {
       instance: INSTANCE,
       remoteJid: JID,
       contactId,
-      messageId: "wamid-out-2",
-      text: "from me",
+      messageId: 'wamid-out-2',
+      text: 'from me',
       sentByAi: false,
     });
 
     await t.mutation(internal.messages.updateDeliveryStatus, {
       instance: INSTANCE,
-      messageId: "wamid-out-2",
-      deliveryStatus: "read",
+      messageId: 'wamid-out-2',
+      deliveryStatus: 'read',
     });
 
     const row = await expectStoredMatchesComputed(t, contactId);
-    expect(row.lastMessage?.deliveryStatus).toBe("read");
+    expect(row.lastMessage?.deliveryStatus).toBe('read');
   });
 
-  test("transcribing a voice note updates the stored preview text", async () => {
+  test('transcribing a voice note updates the stored preview text', async () => {
     const t = convexTest(schema, modules);
     const { contactId, messageId } = await ingest(t, {
-      messageType: "audioMessage",
-      text: "",
-      status: "processing",
+      messageType: 'audioMessage',
+      text: '',
+      status: 'processing',
     });
 
     await t.mutation(internal.messages.setProcessingResult, {
       messageId,
-      status: "ready",
-      text: "transcribed content",
+      status: 'ready',
+      text: 'transcribed content',
     });
 
     const row = await expectStoredMatchesComputed(t, contactId);
-    expect(row.lastMessage?.text).toBe("transcribed content");
+    expect(row.lastMessage?.text).toBe('transcribed content');
   });
 
-  test("the backfill stamps contacts that predate the stored state", async () => {
+  test('the backfill stamps contacts that predate the stored state', async () => {
     const t = convexTest(schema, modules);
     const { contactId } = await ingest(t);
     await clearStoredState(t, contactId);
@@ -275,10 +275,10 @@ describe("denormalized chat list", () => {
     });
   });
 
-  test("chats are ordered by most recent message", async () => {
+  test('chats are ordered by most recent message', async () => {
     const t = convexTest(schema, modules);
-    await ingest(t, { remoteJid: "233200000002@s.whatsapp.net", timestamp: 5_000 });
-    await ingest(t, { remoteJid: "233200000003@s.whatsapp.net", timestamp: 9_000 });
+    await ingest(t, { remoteJid: '233200000002@s.whatsapp.net', timestamp: 5_000 });
+    await ingest(t, { remoteJid: '233200000003@s.whatsapp.net', timestamp: 9_000 });
 
     const rows = await listChats(t);
     expect(rows).toHaveLength(2);

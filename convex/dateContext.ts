@@ -14,31 +14,31 @@
  */
 export function formatDateContext(timezone?: string | null): string {
   const now = new Date();
-  let tz = timezone && timezone.trim().length > 0 ? timezone.trim() : "UTC";
+  let tz = timezone && timezone.trim().length > 0 ? timezone.trim() : 'UTC';
   let parts: Intl.DateTimeFormatPart[];
   try {
     parts = dateParts(now, tz);
   } catch {
-    tz = "UTC";
+    tz = 'UTC';
     parts = dateParts(now, tz);
   }
-  const get = (type: Intl.DateTimeFormatPart["type"]) =>
-    parts.find((p) => p.type === type)?.value ?? "";
-  const offset = get("timeZoneName"); // e.g. "GMT+01:00"
-  return `${get("weekday")}, ${get("year")}-${get("month")}-${get("day")} ${get("hour")}:${get("minute")} ${offset} (${tz})`;
+  const get = (type: Intl.DateTimeFormatPart['type']) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  const offset = get('timeZoneName'); // e.g. "GMT+01:00"
+  return `${get('weekday')}, ${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')} ${offset} (${tz})`;
 }
 
 function dateParts(now: Date, tz: string): Intl.DateTimeFormatPart[] {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat('en-US', {
     timeZone: tz,
-    weekday: "long",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-    timeZoneName: "longOffset",
+    weekday: 'long',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZoneName: 'longOffset',
   }).formatToParts(now);
 }
 
@@ -47,4 +47,4 @@ function dateParts(now: Date, tz: string): Intl.DateTimeFormatPart[] {
  * them into the correct instant.
  */
 export const ISO_OFFSET_NOTE =
-  "When outputting an ISO datetime, include the UTC offset shown above (e.g. 2026-06-05T17:00:00+01:00).";
+  'When outputting an ISO datetime, include the UTC offset shown above (e.g. 2026-06-05T17:00:00+01:00).';

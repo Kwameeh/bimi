@@ -1,32 +1,27 @@
-import { v } from "convex/values";
-import {
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from "./_generated/server";
+import { v } from 'convex/values';
+import { internalMutation, internalQuery, mutation, query } from './_generated/server';
 
 const toneValidator = v.union(
-  v.literal("casual"),
-  v.literal("professional"),
-  v.literal("friendly"),
-  v.literal("concise"),
-  v.literal("custom"),
+  v.literal('casual'),
+  v.literal('professional'),
+  v.literal('friendly'),
+  v.literal('concise'),
+  v.literal('custom'),
 );
 
 const aiModeValidator = v.union(
-  v.literal("manual"),
-  v.literal("semi_auto"),
-  v.literal("full_auto"),
-  v.literal("silent"),
+  v.literal('manual'),
+  v.literal('semi_auto'),
+  v.literal('full_auto'),
+  v.literal('silent'),
 );
 
 export const get = query({
   args: { instance: v.string() },
   handler: async (ctx, args) => {
     const pref = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
     return pref;
   },
@@ -40,22 +35,22 @@ export const setDefaultTone = mutation({
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
 
     if (existing) {
       await ctx.db.patch(existing._id, {
         defaultTone: args.tone,
-        customTone: args.tone === "custom" ? args.customTone : undefined,
+        customTone: args.tone === 'custom' ? args.customTone : undefined,
       });
       return existing._id;
     }
 
-    return await ctx.db.insert("userPreferences", {
+    return await ctx.db.insert('userPreferences', {
       instance: args.instance,
       defaultTone: args.tone,
-      customTone: args.tone === "custom" ? args.customTone : undefined,
+      customTone: args.tone === 'custom' ? args.customTone : undefined,
     });
   },
 });
@@ -67,8 +62,8 @@ export const setReplyStyleLearning = mutation({
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
     if (existing) {
       await ctx.db.patch(existing._id, {
@@ -76,9 +71,9 @@ export const setReplyStyleLearning = mutation({
       });
       return existing._id;
     }
-    return await ctx.db.insert("userPreferences", {
+    return await ctx.db.insert('userPreferences', {
       instance: args.instance,
-      defaultTone: "casual",
+      defaultTone: 'casual',
       replyStyleLearningEnabled: args.enabled,
     });
   },
@@ -88,8 +83,8 @@ export const getInternal = internalQuery({
   args: { instance: v.string() },
   handler: async (ctx, args) => {
     const pref = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
     return pref;
   },
@@ -102,8 +97,8 @@ export const setDefaultAiMode = mutation({
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
 
     if (existing) {
@@ -111,9 +106,9 @@ export const setDefaultAiMode = mutation({
       return existing._id;
     }
 
-    return await ctx.db.insert("userPreferences", {
+    return await ctx.db.insert('userPreferences', {
       instance: args.instance,
-      defaultTone: "casual",
+      defaultTone: 'casual',
       defaultAiMode: args.aiMode,
     });
   },
@@ -127,8 +122,8 @@ export const setOwnerProfile = mutation({
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
     const patch: Record<string, unknown> = {};
     if (args.ownerName !== undefined) patch.ownerName = args.ownerName;
@@ -139,9 +134,9 @@ export const setOwnerProfile = mutation({
       return existing._id;
     }
 
-    return await ctx.db.insert("userPreferences", {
+    return await ctx.db.insert('userPreferences', {
       instance: args.instance,
-      defaultTone: "casual",
+      defaultTone: 'casual',
       ownerName: args.ownerName,
       ownerAliases: args.ownerAliases,
     });
@@ -155,8 +150,8 @@ export const registerPushToken = mutation({
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
 
     if (existing) {
@@ -165,9 +160,9 @@ export const registerPushToken = mutation({
       return existing._id;
     }
 
-    return await ctx.db.insert("userPreferences", {
+    return await ctx.db.insert('userPreferences', {
       instance: args.instance,
-      defaultTone: "casual",
+      defaultTone: 'casual',
       pushToken: args.token,
     });
   },
@@ -177,17 +172,17 @@ export const markAppOpened = mutation({
   args: { instance: v.string() },
   handler: async (ctx, args) => {
     const existing = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
     const now = Date.now();
     if (existing) {
       await ctx.db.patch(existing._id, { lastOpenedAt: now });
       return existing._id;
     }
-    return await ctx.db.insert("userPreferences", {
+    return await ctx.db.insert('userPreferences', {
       instance: args.instance,
-      defaultTone: "casual",
+      defaultTone: 'casual',
       lastOpenedAt: now,
     });
   },
@@ -212,16 +207,16 @@ export const setQuietHours = mutation({
     if (args.allowVip !== undefined) patch.quietHoursAllowVip = args.allowVip;
 
     const existing = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
     if (existing) {
       await ctx.db.patch(existing._id, patch);
       return existing._id;
     }
-    return await ctx.db.insert("userPreferences", {
+    return await ctx.db.insert('userPreferences', {
       instance: args.instance,
-      defaultTone: "casual",
+      defaultTone: 'casual',
       ...patch,
     });
   },
@@ -230,24 +225,20 @@ export const setQuietHours = mutation({
 export const setMemoryWriteMode = mutation({
   args: {
     instance: v.string(),
-    mode: v.union(
-      v.literal("auto"),
-      v.literal("approval"),
-      v.literal("off"),
-    ),
+    mode: v.union(v.literal('auto'), v.literal('approval'), v.literal('off')),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
     if (existing) {
       await ctx.db.patch(existing._id, { memoryWriteMode: args.mode });
       return existing._id;
     }
-    return await ctx.db.insert("userPreferences", {
+    return await ctx.db.insert('userPreferences', {
       instance: args.instance,
-      defaultTone: "casual",
+      defaultTone: 'casual',
       memoryWriteMode: args.mode,
     });
   },
@@ -269,16 +260,16 @@ export const setMemoryExtractionSchedule = mutation({
     if (args.timezone !== undefined) patch.memoryExtractionTimezone = args.timezone;
 
     const existing = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
     if (existing) {
       await ctx.db.patch(existing._id, patch);
       return existing._id;
     }
-    return await ctx.db.insert("userPreferences", {
+    return await ctx.db.insert('userPreferences', {
       instance: args.instance,
-      defaultTone: "casual",
+      defaultTone: 'casual',
       ...patch,
     });
   },
@@ -288,16 +279,16 @@ export const setAutoExtractTasks = mutation({
   args: { instance: v.string(), enabled: v.boolean() },
   handler: async (ctx, args) => {
     const existing = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
     if (existing) {
       await ctx.db.patch(existing._id, { autoExtractTasks: args.enabled });
       return existing._id;
     }
-    return await ctx.db.insert("userPreferences", {
+    return await ctx.db.insert('userPreferences', {
       instance: args.instance,
-      defaultTone: "casual",
+      defaultTone: 'casual',
       autoExtractTasks: args.enabled,
     });
   },
@@ -312,8 +303,8 @@ export const autoDetectOwnerInternal = internalMutation({
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
 
     if (existing) {
@@ -326,9 +317,9 @@ export const autoDetectOwnerInternal = internalMutation({
       return existing._id;
     }
 
-    return await ctx.db.insert("userPreferences", {
+    return await ctx.db.insert('userPreferences', {
       instance: args.instance,
-      defaultTone: "casual",
+      defaultTone: 'casual',
       ownerJid: args.ownerJid,
       ownerPhone: args.ownerPhone,
       ownerName: args.ownerName,
@@ -339,10 +330,8 @@ export const autoDetectOwnerInternal = internalMutation({
 export const setVoicePreferences = mutation({
   args: {
     instance: v.string(),
-    mode: v.optional(
-      v.union(v.literal("push_to_talk"), v.literal("conversational")),
-    ),
-    ttsEngine: v.optional(v.union(v.literal("device"), v.literal("bimi"))),
+    mode: v.optional(v.union(v.literal('push_to_talk'), v.literal('conversational'))),
+    ttsEngine: v.optional(v.union(v.literal('device'), v.literal('bimi'))),
     autoSpeak: v.optional(v.boolean()),
     locale: v.optional(v.string()),
   },
@@ -354,16 +343,16 @@ export const setVoicePreferences = mutation({
     if (args.locale !== undefined) patch.voiceLocale = args.locale;
 
     const existing = await ctx.db
-      .query("userPreferences")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .unique();
     if (existing) {
       await ctx.db.patch(existing._id, patch);
       return existing._id;
     }
-    return await ctx.db.insert("userPreferences", {
+    return await ctx.db.insert('userPreferences', {
       instance: args.instance,
-      defaultTone: "casual",
+      defaultTone: 'casual',
       ...patch,
     });
   },

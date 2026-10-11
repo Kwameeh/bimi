@@ -128,7 +128,14 @@ export function useTts(engine: TtsEngine, locale = 'en-US'): Tts {
           resolve();
         };
         const subscription = player.addListener('playbackStatusUpdate', (status) => {
-          if (status.didJustFinish || (status.isLoaded && !status.playing && status.currentTime > 0 && status.duration > 0 && status.currentTime >= status.duration)) {
+          if (
+            status.didJustFinish ||
+            (status.isLoaded &&
+              !status.playing &&
+              status.currentTime > 0 &&
+              status.duration > 0 &&
+              status.currentTime >= status.duration)
+          ) {
             finish();
           }
         });

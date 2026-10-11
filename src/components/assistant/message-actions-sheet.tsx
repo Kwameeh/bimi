@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 
@@ -16,12 +16,7 @@ type Props = {
   onClose: () => void;
 };
 
-export function MessageActionsSheet({
-  visible,
-  role,
-  onSelect,
-  onClose,
-}: Props) {
+export function MessageActionsSheet({ visible, role, onSelect, onClose }: Props) {
   const theme = useTheme();
 
   const items: { label: string; sub?: string; action: MessageAction }[] =
@@ -49,18 +44,12 @@ export function MessageActionsSheet({
         ];
 
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="fade"
-      onRequestClose={onClose}>
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable
-          style={[
-            styles.sheet,
-            { backgroundColor: theme.background, borderColor: theme.border },
-          ]}
-          onPress={(e) => e.stopPropagation()}>
+          style={[styles.sheet, { backgroundColor: theme.background, borderColor: theme.border }]}
+          onPress={(e) => e.stopPropagation()}
+        >
           {items.map((it) => (
             <Pressable
               key={it.label}
@@ -72,14 +61,11 @@ export function MessageActionsSheet({
                 styles.row,
                 { borderBottomColor: theme.border },
                 pressed && { opacity: 0.6 },
-              ]}>
-              <Text style={[styles.label, { color: theme.text }]}>
-                {it.label}
-              </Text>
+              ]}
+            >
+              <Text style={[styles.label, { color: theme.text }]}>{it.label}</Text>
               {it.sub ? (
-                <Text style={[styles.sub, { color: theme.textSecondary }]}>
-                  {it.sub}
-                </Text>
+                <Text style={[styles.sub, { color: theme.textSecondary }]}>{it.sub}</Text>
               ) : null}
             </Pressable>
           ))}
@@ -89,7 +75,8 @@ export function MessageActionsSheet({
               styles.cancel,
               { backgroundColor: theme.backgroundElement },
               pressed && { opacity: 0.6 },
-            ]}>
+            ]}
+          >
             <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
           </Pressable>
         </Pressable>

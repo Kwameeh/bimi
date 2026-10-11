@@ -17,7 +17,8 @@ export function FollowUps({ suggestions, onPick, disabled }: Props) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.row}>
+      contentContainerStyle={styles.row}
+    >
       {suggestions.map((s) => (
         <Pressable
           key={s}
@@ -30,7 +31,8 @@ export function FollowUps({ suggestions, onPick, disabled }: Props) {
               backgroundColor: theme.backgroundElement,
             },
             (disabled || pressed) && { opacity: 0.6 },
-          ]}>
+          ]}
+        >
           <Text style={[styles.chipText, { color: theme.text }]} numberOfLines={1}>
             {s}
           </Text>

@@ -74,7 +74,8 @@ export default function ChatsTabScreen() {
                   backgroundColor: theme.aiAccent,
                   opacity: pressed ? 0.85 : 1,
                 },
-              ]}>
+              ]}
+            >
               <Text style={styles.sparkleText}>✦</Text>
             </Pressable>
             <Pressable
@@ -82,7 +83,8 @@ export default function ChatsTabScreen() {
               accessibilityLabel="Search chats"
               onPress={() => router.push('/search')}
               hitSlop={12}
-              style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.6 }]}>
+              style={({ pressed }) => [styles.iconButton, pressed && { opacity: 0.6 }]}
+            >
               <AppIcon name="search" tintColor={theme.text} size={22} />
             </Pressable>
           </View>
@@ -142,7 +144,8 @@ export default function ChatsTabScreen() {
             styles.fab,
             { backgroundColor: theme.primary },
             pressed && { opacity: 0.88 },
-          ]}>
+          ]}
+        >
           <AppIcon name="compose" tintColor={theme.primaryText} size={23} />
         </Pressable>
       </SafeAreaView>

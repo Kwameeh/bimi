@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v } from 'convex/values';
 import {
   action,
   internalAction,
@@ -6,23 +6,23 @@ import {
   internalQuery,
   mutation,
   query,
-} from "./_generated/server";
-import { internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
-import type { ActionCtx } from "./_generated/server";
+} from './_generated/server';
+import { internal } from './_generated/api';
+import type { Doc, Id } from './_generated/dataModel';
+import type { ActionCtx } from './_generated/server';
 import {
   computeChatState,
   hasCurrentChatState,
   readChatState,
   refreshChatStateFor,
   type ChatState,
-} from "./chatState";
+} from './chatState';
 
 const syncStatusValidator = v.union(
-  v.literal("synced"),
-  v.literal("pending_phone_create"),
-  v.literal("pending_cloud_import"),
-  v.literal("failed"),
+  v.literal('synced'),
+  v.literal('pending_phone_create'),
+  v.literal('pending_cloud_import'),
+  v.literal('failed'),
 );
 
 const deviceContactValidator = v.object({
@@ -32,11 +32,14 @@ const deviceContactValidator = v.object({
 });
 
 function normalizePhone(value: string): string | undefined {
-  const phone = value.replace(/\D/g, "");
+  const phone = value.replace(/\D/g, '');
   return phone && phone.length >= 7 ? phone : undefined;
 }
 
-function getPrimaryPhone(phoneNumbers: string[]): { phoneNumber?: string; normalizedPhone?: string } {
+function getPrimaryPhone(phoneNumbers: string[]): {
+  phoneNumber?: string;
+  normalizedPhone?: string;
+} {
   for (const phoneNumber of phoneNumbers) {
     const normalizedPhone = normalizePhone(phoneNumber);
     if (normalizedPhone) {
@@ -46,8 +49,12 @@ function getPrimaryPhone(phoneNumbers: string[]): { phoneNumber?: string; normal
   return {};
 }
 
-function contactLabel(args: { name?: string; phoneNumber?: string; normalizedPhone?: string }): string {
-  return args.name ?? args.phoneNumber ?? args.normalizedPhone ?? "Unknown contact";
+function contactLabel(args: {
+  name?: string;
+  phoneNumber?: string;
+  normalizedPhone?: string;
+}): string {
+  return args.name ?? args.phoneNumber ?? args.normalizedPhone ?? 'Unknown contact';
 }
 
 export const listContacts = query({
@@ -57,8 +64,8 @@ export const listContacts = query({
   },
   handler: async (ctx, args) => {
     const rows = await ctx.db
-      .query("contacts")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('contacts')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .take(args.limit ?? 200);
     return rows.map(withGroupView);
   },
@@ -67,7 +74,7 @@ export const listContacts = query({
 export const listInstances = query({
   args: {},
   handler: async (ctx) => {
-    const contacts = await ctx.db.query("contacts").take(100);
+    const contacts = await ctx.db.query('contacts').take(100);
     return Array.from(new Set(contacts.map((contact) => contact.instance))).sort();
   },
 });
@@ -81,16 +88,16 @@ export const listSyncCandidates = query({
   handler: async (ctx, args) => {
     if (args.status) {
       return await ctx.db
-        .query("contacts")
-        .withIndex("by_instance_and_syncStatus", (q) =>
-          q.eq("instance", args.instance).eq("syncStatus", args.status),
+        .query('contacts')
+        .withIndex('by_instance_and_syncStatus', (q) =>
+          q.eq('instance', args.instance).eq('syncStatus', args.status),
         )
         .take(args.limit ?? 100);
     }
 
     return await ctx.db
-      .query("contacts")
-      .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+      .query('contacts')
+      .withIndex('by_instance', (q) => q.eq('instance', args.instance))
       .take(args.limit ?? 200);
   },
 });
@@ -104,13 +111,13 @@ export const createContact = mutation({
   handler: async (ctx, args) => {
     const normalizedPhone = normalizePhone(args.phoneNumber);
     if (!normalizedPhone) {
-      throw new Error("A valid phone number is required.");
+      throw new Error('A valid phone number is required.');
     }
 
     const existing = await ctx.db
-      .query("contacts")
-      .withIndex("by_instance_and_normalizedPhone", (q) =>
-        q.eq("instance", args.instance).eq("normalizedPhone", normalizedPhone),
+      .query('contacts')
+      .withIndex('by_instance_and_normalizedPhone', (q) =>
+        q.eq('instance', args.instance).eq('normalizedPhone', normalizedPhone),
       )
       .first();
 
@@ -126,21 +133,21 @@ export const createContact = mutation({
         displayName,
         phoneNumber: args.phoneNumber,
         normalizedPhone,
-        source: existing.source ?? "bimi",
-        syncStatus: existing.deviceContactId ? "synced" : "pending_phone_create",
+        source: existing.source ?? 'bimi',
+        syncStatus: existing.deviceContactId ? 'synced' : 'pending_phone_create',
         syncUpdatedAt: now,
       });
       return existing._id;
     }
 
-    return await ctx.db.insert("contacts", {
+    return await ctx.db.insert('contacts', {
       instance: args.instance,
       remoteJid: `bimi:${normalizedPhone}`,
       phoneNumber: args.phoneNumber,
       normalizedPhone,
       displayName,
-      source: "bimi",
-      syncStatus: "pending_phone_create",
+      source: 'bimi',
+      syncStatus: 'pending_phone_create',
       syncUpdatedAt: now,
     });
   },
@@ -165,9 +172,9 @@ export const upsertFromDeviceBatch = mutation({
       }
 
       const existingByDeviceId = await ctx.db
-        .query("contacts")
-        .withIndex("by_instance_and_deviceContactId", (q) =>
-          q.eq("instance", args.instance).eq("deviceContactId", contact.deviceContactId),
+        .query('contacts')
+        .withIndex('by_instance_and_deviceContactId', (q) =>
+          q.eq('instance', args.instance).eq('deviceContactId', contact.deviceContactId),
         )
         .first();
 
@@ -175,9 +182,9 @@ export const upsertFromDeviceBatch = mutation({
         existingByDeviceId || !normalizedPhone
           ? null
           : await ctx.db
-              .query("contacts")
-              .withIndex("by_instance_and_normalizedPhone", (q) =>
-                q.eq("instance", args.instance).eq("normalizedPhone", normalizedPhone),
+              .query('contacts')
+              .withIndex('by_instance_and_normalizedPhone', (q) =>
+                q.eq('instance', args.instance).eq('normalizedPhone', normalizedPhone),
               )
               .first();
 
@@ -191,15 +198,15 @@ export const upsertFromDeviceBatch = mutation({
           deviceContactName: contact.name,
           phoneNumber,
           normalizedPhone,
-          source: existing.source ?? "device",
-          syncStatus: "synced",
+          source: existing.source ?? 'device',
+          syncStatus: 'synced',
           lastDeviceSeenAt: now,
           lastDeviceSyncedAt: now,
           syncUpdatedAt: now,
         });
         updated += 1;
       } else {
-        await ctx.db.insert("contacts", {
+        await ctx.db.insert('contacts', {
           instance: args.instance,
           remoteJid: `device:${contact.deviceContactId}`,
           displayName,
@@ -207,8 +214,8 @@ export const upsertFromDeviceBatch = mutation({
           deviceContactName: contact.name,
           phoneNumber,
           normalizedPhone,
-          source: "device",
-          syncStatus: "synced",
+          source: 'device',
+          syncStatus: 'synced',
           lastDeviceSeenAt: now,
           lastDeviceSyncedAt: now,
           syncUpdatedAt: now,
@@ -223,7 +230,7 @@ export const upsertFromDeviceBatch = mutation({
 
 export const markExportedToDevice = mutation({
   args: {
-    contactId: v.id("contacts"),
+    contactId: v.id('contacts'),
     deviceContactId: v.string(),
     deviceContactName: v.optional(v.string()),
   },
@@ -232,7 +239,7 @@ export const markExportedToDevice = mutation({
     await ctx.db.patch(args.contactId, {
       deviceContactId: args.deviceContactId,
       deviceContactName: args.deviceContactName,
-      syncStatus: "synced",
+      syncStatus: 'synced',
       lastDeviceSeenAt: now,
       lastDeviceSyncedAt: now,
       syncUpdatedAt: now,
@@ -243,12 +250,12 @@ export const markExportedToDevice = mutation({
 
 export const markSyncFailed = mutation({
   args: {
-    contactId: v.id("contacts"),
+    contactId: v.id('contacts'),
     syncError: v.string(),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.contactId, {
-      syncStatus: "failed",
+      syncStatus: 'failed',
       syncError: args.syncError.slice(0, 500),
       syncUpdatedAt: Date.now(),
     });
@@ -257,7 +264,7 @@ export const markSyncFailed = mutation({
 });
 
 function isGroupJid(remoteJid: string): boolean {
-  return remoteJid.endsWith("@g.us");
+  return remoteJid.endsWith('@g.us');
 }
 
 /**
@@ -267,7 +274,7 @@ function isGroupJid(remoteJid: string): boolean {
  * round-trip. "none" is retried rarely — the contact simply has no picture, but
  * they may add one. "failed" backs off enough to survive a provider outage.
  */
-const AVATAR_RECHECK_MS: Record<"ready" | "none" | "failed", number> = {
+const AVATAR_RECHECK_MS: Record<'ready' | 'none' | 'failed', number> = {
   ready: 24 * 60 * 60 * 1000,
   none: 7 * 24 * 60 * 60 * 1000,
   failed: 6 * 60 * 60 * 1000,
@@ -285,22 +292,22 @@ const AVATAR_SWEEP_STAGGER_MS = 400;
  * device or created in-app have no WhatsApp identity until they are messaged, so
  * they fall back to a phone number and are skipped when there isn't one.
  */
-function profileLookupKey(contact: Doc<"contacts">): string | null {
-  if (contact.remoteJid.includes("@")) return contact.remoteJid;
+function profileLookupKey(contact: Doc<'contacts'>): string | null {
+  if (contact.remoteJid.includes('@')) return contact.remoteJid;
   return contact.normalizedPhone ?? null;
 }
 
-function isAvatarDue(contact: Doc<"contacts">, nowMs: number): boolean {
+function isAvatarDue(contact: Doc<'contacts'>, nowMs: number): boolean {
   if (contact.avatarCheckedAt === undefined) return true;
-  const status = contact.avatarStatus ?? "failed";
+  const status = contact.avatarStatus ?? 'failed';
   return nowMs - contact.avatarCheckedAt >= AVATAR_RECHECK_MS[status];
 }
 
 export const applyAvatarInternal = internalMutation({
   args: {
-    contactId: v.id("contacts"),
+    contactId: v.id('contacts'),
     avatarUrl: v.optional(v.string()),
-    status: v.union(v.literal("ready"), v.literal("none"), v.literal("failed")),
+    status: v.union(v.literal('ready'), v.literal('none'), v.literal('failed')),
   },
   handler: async (ctx, args) => {
     // avatarUrl is always written, so an absent value clears a URL that has
@@ -324,40 +331,38 @@ export const applyAvatarInternal = internalMutation({
  */
 export const refreshAvatarInternal = internalAction({
   args: {
-    contactId: v.id("contacts"),
+    contactId: v.id('contacts'),
     force: v.optional(v.boolean()),
   },
   handler: async (
     ctx,
     args,
-  ): Promise<{ status: "ready" | "none" | "failed" | "skipped"; rotated: boolean }> => {
-    const contact: Doc<"contacts"> | null = await ctx.runQuery(
+  ): Promise<{ status: 'ready' | 'none' | 'failed' | 'skipped'; rotated: boolean }> => {
+    const contact: Doc<'contacts'> | null = await ctx.runQuery(
       internal.contacts.getContactInternal,
       { contactId: args.contactId },
     );
-    if (!contact) return { status: "skipped", rotated: false };
+    if (!contact) return { status: 'skipped', rotated: false };
 
     const lookup = profileLookupKey(contact);
     if (!lookup) {
       await ctx.runMutation(internal.contacts.applyAvatarInternal, {
         contactId: args.contactId,
-        status: "none",
+        status: 'none',
       });
-      return { status: "none", rotated: false };
+      return { status: 'none', rotated: false };
     }
 
-    const { fetchProfilePictureUrl, isProfilePictureAlive } = await import(
-      "./providers/evolution"
-    );
+    const { fetchProfilePictureUrl, isProfilePictureAlive } = await import('./providers/evolution');
 
     if (args.force !== true && contact.avatarUrl) {
       if (await isProfilePictureAlive(contact.avatarUrl)) {
         await ctx.runMutation(internal.contacts.applyAvatarInternal, {
           contactId: args.contactId,
           avatarUrl: contact.avatarUrl,
-          status: "ready",
+          status: 'ready',
         });
-        return { status: "ready", rotated: false };
+        return { status: 'ready', rotated: false };
       }
     }
 
@@ -369,11 +374,11 @@ export const refreshAvatarInternal = internalAction({
       await ctx.runMutation(internal.contacts.applyAvatarInternal, {
         contactId: args.contactId,
         avatarUrl: pictureUrl ?? undefined,
-        status: pictureUrl ? "ready" : "none",
+        status: pictureUrl ? 'ready' : 'none',
       });
-      return { status: pictureUrl ? "ready" : "none", rotated: true };
+      return { status: pictureUrl ? 'ready' : 'none', rotated: true };
     } catch (err) {
-      console.warn("refreshAvatar failed", {
+      console.warn('refreshAvatar failed', {
         contactId: args.contactId,
         error: err instanceof Error ? err.message : String(err),
       });
@@ -382,9 +387,9 @@ export const refreshAvatarInternal = internalAction({
         // Keep showing the old picture while the provider is unhappy; it may
         // still render even though the check could not confirm it.
         avatarUrl: contact.avatarUrl,
-        status: "failed",
+        status: 'failed',
       });
-      return { status: "failed", rotated: false };
+      return { status: 'failed', rotated: false };
     }
   },
 });
@@ -398,7 +403,7 @@ export const sweepAvatarsInternal = internalMutation({
   args: {},
   handler: async (ctx): Promise<{ scheduled: number }> => {
     const now = Date.now();
-    const contacts = await ctx.db.query("contacts").take(AVATAR_SWEEP_SCAN);
+    const contacts = await ctx.db.query('contacts').take(AVATAR_SWEEP_SCAN);
     const due = contacts
       .filter((c) => c.lastMessageAt !== undefined && isAvatarDue(c, now))
       .sort((a, b) => (b.lastMessageAt ?? 0) - (a.lastMessageAt ?? 0))
@@ -421,7 +426,7 @@ export const sweepAvatarsInternal = internalMutation({
  * because a list re-render can report the same broken picture many times.
  */
 export const reportAvatarBroken = mutation({
-  args: { contactId: v.id("contacts") },
+  args: { contactId: v.id('contacts') },
   handler: async (ctx, args) => {
     const contact = await ctx.db.get(args.contactId);
     if (!contact) return null;
@@ -441,11 +446,11 @@ export const reportAvatarBroken = mutation({
   },
 });
 
-function withGroupView(contact: Doc<"contacts">) {
+function withGroupView(contact: Doc<'contacts'>) {
   const isGroup = contact.isGroup ?? isGroupJid(contact.remoteJid);
   const displayName = isGroup
-    ? contact.groupSubject ?? contact.displayName ?? contact.remoteJid
-    : contact.displayName ?? contact.pushName ?? contact.normalizedPhone ?? contact.remoteJid;
+    ? (contact.groupSubject ?? contact.displayName ?? contact.remoteJid)
+    : (contact.displayName ?? contact.pushName ?? contact.normalizedPhone ?? contact.remoteJid);
   return { ...contact, isGroup, displayName };
 }
 
@@ -457,15 +462,15 @@ function withGroupView(contact: Doc<"contacts">) {
  * the wire for all 100-200 rows. The list screen only needs identity and grouping,
  * so send only that.
  */
-function chatListContactView(contact: Doc<"contacts">) {
+function chatListContactView(contact: Doc<'contacts'>) {
   const isGroup = contact.isGroup ?? isGroupJid(contact.remoteJid);
   return {
     _id: contact._id,
     remoteJid: contact.remoteJid,
     isGroup,
     displayName: isGroup
-      ? contact.groupSubject ?? contact.displayName ?? contact.remoteJid
-      : contact.displayName ?? contact.pushName ?? contact.normalizedPhone ?? contact.remoteJid,
+      ? (contact.groupSubject ?? contact.displayName ?? contact.remoteJid)
+      : (contact.displayName ?? contact.pushName ?? contact.normalizedPhone ?? contact.remoteJid),
     groupSubject: contact.groupSubject,
     // groupPictureUrl is a leftover from findGroupInfos and is not liveness
     // checked, so it only stands in until the avatar sweep reaches this group.
@@ -473,7 +478,7 @@ function chatListContactView(contact: Doc<"contacts">) {
   };
 }
 
-function chatListRow(contact: Doc<"contacts">, state: ChatState) {
+function chatListRow(contact: Doc<'contacts'>, state: ChatState) {
   const latest = state.lastMessagePreview;
   const recentAutoReply =
     contact.lastAutoReplyAt !== undefined &&
@@ -506,7 +511,7 @@ function chatListRow(contact: Doc<"contacts">, state: ChatState) {
       autoReplied: recentAutoReply,
       mentioned: state.unreadMentioned,
     },
-    priority: contact.priority ?? "normal",
+    priority: contact.priority ?? 'normal',
   };
 }
 
@@ -518,9 +523,9 @@ export const listChats = query({
   handler: async (ctx, args) => {
     const limit = Math.min(args.limit ?? 100, 200);
     const candidates = await ctx.db
-      .query("contacts")
-      .withIndex("by_instance_and_lastMessageAt", (q) => q.eq("instance", args.instance))
-      .order("desc")
+      .query('contacts')
+      .withIndex('by_instance_and_lastMessageAt', (q) => q.eq('instance', args.instance))
+      .order('desc')
       .take(limit);
     const withChats = candidates.filter((c) => c.lastMessageAt !== undefined);
 
@@ -542,7 +547,7 @@ export const listChats = query({
 });
 
 export const getContact = query({
-  args: { contactId: v.id("contacts") },
+  args: { contactId: v.id('contacts') },
   handler: async (ctx, args) => {
     const contact = await ctx.db.get(args.contactId);
     if (!contact) return null;
@@ -551,8 +556,8 @@ export const getContact = query({
 });
 
 export const getContactInternal = internalQuery({
-  args: { contactId: v.id("contacts") },
-  handler: async (ctx, args): Promise<Doc<"contacts"> | null> => {
+  args: { contactId: v.id('contacts') },
+  handler: async (ctx, args): Promise<Doc<'contacts'> | null> => {
     return await ctx.db.get(args.contactId);
   },
 });
@@ -564,9 +569,9 @@ export const findByName = query({
     if (trimmed.length === 0) return [];
     const limit = Math.min(args.limit ?? 5, 20);
     const rows = await ctx.db
-      .query("contacts")
-      .withSearchIndex("search_name", (q) =>
-        q.search("displayName", trimmed).eq("instance", args.instance),
+      .query('contacts')
+      .withSearchIndex('search_name', (q) =>
+        q.search('displayName', trimmed).eq('instance', args.instance),
       )
       .take(limit);
     return rows.map((c) => ({
@@ -581,7 +586,7 @@ export const findByName = query({
 
 export const markRead = mutation({
   args: {
-    contactId: v.id("contacts"),
+    contactId: v.id('contacts'),
     readAtSeconds: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -596,7 +601,7 @@ export const markRead = mutation({
 });
 
 export const setMemoryEnabled = mutation({
-  args: { contactId: v.id("contacts"), enabled: v.boolean() },
+  args: { contactId: v.id('contacts'), enabled: v.boolean() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.contactId, { memoryEnabled: args.enabled });
     return null;
@@ -613,9 +618,9 @@ export const searchContacts = query({
     if (args.queryText.trim().length === 0) return [];
     const limit = Math.min(args.limit ?? 30, 100);
     const results = await ctx.db
-      .query("contacts")
-      .withSearchIndex("search_name", (q) =>
-        q.search("displayName", args.queryText).eq("instance", args.instance),
+      .query('contacts')
+      .withSearchIndex('search_name', (q) =>
+        q.search('displayName', args.queryText).eq('instance', args.instance),
       )
       .take(limit);
     return results.map(withGroupView);
@@ -624,7 +629,7 @@ export const searchContacts = query({
 
 export const applyGroupInfo = internalMutation({
   args: {
-    contactId: v.id("contacts"),
+    contactId: v.id('contacts'),
     subject: v.optional(v.string()),
     description: v.optional(v.string()),
     size: v.optional(v.number()),
@@ -665,17 +670,16 @@ export const applyGroupInfo = internalMutation({
 
 async function refreshGroupInfoForContact(
   ctx: ActionCtx,
-  contactId: Id<"contacts">,
+  contactId: Id<'contacts'>,
 ): Promise<{ ok: boolean; participants: number; subject?: string }> {
-  const contact: Doc<"contacts"> | null = await ctx.runQuery(
-    internal.contacts.getContactInternal,
-    { contactId },
-  );
-  if (!contact) throw new Error("Contact not found");
+  const contact: Doc<'contacts'> | null = await ctx.runQuery(internal.contacts.getContactInternal, {
+    contactId,
+  });
+  if (!contact) throw new Error('Contact not found');
   if (!(contact.isGroup ?? isGroupJid(contact.remoteJid))) {
-    throw new Error("Contact is not a group");
+    throw new Error('Contact is not a group');
   }
-  const { fetchGroupInfo } = await import("./providers/evolution");
+  const { fetchGroupInfo } = await import('./providers/evolution');
   const info = await fetchGroupInfo({
     instance: contact.instance,
     groupJid: contact.remoteJid,
@@ -694,18 +698,15 @@ async function refreshGroupInfoForContact(
 }
 
 export const refreshGroupInfoInternal = internalAction({
-  args: { contactId: v.id("contacts") },
+  args: { contactId: v.id('contacts') },
   handler: async (ctx, args) => {
     return await refreshGroupInfoForContact(ctx, args.contactId);
   },
 });
 
 export const refreshGroupInfo = action({
-  args: { contactId: v.id("contacts") },
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{ ok: boolean; participants: number; subject?: string }> => {
+  args: { contactId: v.id('contacts') },
+  handler: async (ctx, args): Promise<{ ok: boolean; participants: number; subject?: string }> => {
     return await refreshGroupInfoForContact(ctx, args.contactId);
   },
 });
@@ -726,18 +727,15 @@ export const backfillChatState = internalMutation({
     after: v.optional(v.number()),
     batchSize: v.optional(v.number()),
   },
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{ scanned: number; updated: number; isDone: boolean }> => {
+  handler: async (ctx, args): Promise<{ scanned: number; updated: number; isDone: boolean }> => {
     const batchSize = Math.min(args.batchSize ?? 25, 100);
     const after = args.after;
     const rows = await ctx.db
-      .query("contacts")
-      .withIndex("by_creation_time", (q) =>
-        after === undefined ? q : q.gt("_creationTime", after),
+      .query('contacts')
+      .withIndex('by_creation_time', (q) =>
+        after === undefined ? q : q.gt('_creationTime', after),
       )
-      .order("asc")
+      .order('asc')
       .take(batchSize);
 
     let updated = 0;

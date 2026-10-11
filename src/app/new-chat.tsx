@@ -91,7 +91,8 @@ export default function NewChatScreen() {
                 style={({ pressed }) => [
                   styles.row,
                   pressed && { backgroundColor: theme.backgroundSelected },
-                ]}>
+                ]}
+              >
                 <Avatar
                   name={item.displayName}
                   isGroup={item.remoteJid.endsWith('@g.us')}

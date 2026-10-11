@@ -1,5 +1,5 @@
-import type { Doc, Id } from "./_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { Doc, Id } from './_generated/dataModel';
+import type { MutationCtx, QueryCtx } from './_generated/server';
 
 /**
  * Denormalized chat-list state.
@@ -40,19 +40,13 @@ const UNREAD_SCAN_CAP = 50;
 const DRAFT_SCAN_CAP = 5;
 
 export type LastMessagePreview = {
-  messageId: Id<"messages">;
+  messageId: Id<'messages'>;
   text: string;
   fromMe: boolean;
   sentByAi: boolean;
   timestamp?: number;
   messageType: string;
-  deliveryStatus?:
-    | "pending"
-    | "sent"
-    | "delivered"
-    | "read"
-    | "played"
-    | "error";
+  deliveryStatus?: 'pending' | 'sent' | 'delivered' | 'read' | 'played' | 'error';
   participant?: string;
   participantPushName?: string;
 };
@@ -69,7 +63,7 @@ export type ChatState = {
   chatStateVersion: number;
 };
 
-function toPreview(message: Doc<"messages">): LastMessagePreview {
+function toPreview(message: Doc<'messages'>): LastMessagePreview {
   return {
     messageId: message._id,
     text: message.text,
@@ -89,15 +83,15 @@ function toPreview(message: Doc<"messages">): LastMessagePreview {
  */
 export async function computeChatState(
   ctx: QueryCtx,
-  contact: Doc<"contacts">,
+  contact: Doc<'contacts'>,
 ): Promise<ChatState> {
   const unreadStart = contact.lastReadAt ?? 0;
   const unreadBatch = await ctx.db
-    .query("messages")
-    .withIndex("by_contact_and_timestamp", (q) =>
-      q.eq("contactId", contact._id).gt("timestamp", unreadStart),
+    .query('messages')
+    .withIndex('by_contact_and_timestamp', (q) =>
+      q.eq('contactId', contact._id).gt('timestamp', unreadStart),
     )
-    .order("desc")
+    .order('desc')
     .take(UNREAD_SCAN_CAP);
 
   // Anything newer than lastReadAt outranks everything older, so when the unread
@@ -106,17 +100,17 @@ export async function computeChatState(
   const latest =
     unreadBatch[0] ??
     (await ctx.db
-      .query("messages")
-      .withIndex("by_contact_and_timestamp", (q) => q.eq("contactId", contact._id))
-      .order("desc")
+      .query('messages')
+      .withIndex('by_contact_and_timestamp', (q) => q.eq('contactId', contact._id))
+      .order('desc')
       .first());
 
   const unreadIncoming = unreadBatch.filter((m) => !m.fromMe);
 
   const pendingDrafts = await ctx.db
-    .query("drafts")
-    .withIndex("by_contact_and_status", (q) =>
-      q.eq("contactId", contact._id).eq("status", "pending"),
+    .query('drafts')
+    .withIndex('by_contact_and_status', (q) =>
+      q.eq('contactId', contact._id).eq('status', 'pending'),
     )
     .take(DRAFT_SCAN_CAP);
 
@@ -134,7 +128,7 @@ export async function computeChatState(
 }
 
 /** Read state already stored on a contact. Only valid at the current version. */
-export function readChatState(contact: Doc<"contacts">): ChatState {
+export function readChatState(contact: Doc<'contacts'>): ChatState {
   return {
     unreadCount: contact.unreadCount ?? 0,
     unreadUrgent: contact.unreadUrgent === true,
@@ -148,7 +142,7 @@ export function readChatState(contact: Doc<"contacts">): ChatState {
   };
 }
 
-export function hasCurrentChatState(contact: Doc<"contacts">): boolean {
+export function hasCurrentChatState(contact: Doc<'contacts'>): boolean {
   return contact.chatStateVersion === CHAT_STATE_VERSION;
 }
 
@@ -160,10 +154,7 @@ export function hasCurrentChatState(contact: Doc<"contacts">): boolean {
  *
  * Safe to call with a stale or deleted contact id — it no-ops.
  */
-export async function refreshChatState(
-  ctx: MutationCtx,
-  contactId: Id<"contacts">,
-): Promise<void> {
+export async function refreshChatState(ctx: MutationCtx, contactId: Id<'contacts'>): Promise<void> {
   const contact = await ctx.db.get(contactId);
   if (!contact) return;
   await ctx.db.patch(contactId, await computeChatState(ctx, contact));
@@ -175,7 +166,7 @@ export async function refreshChatState(
  */
 export async function refreshChatStateFor(
   ctx: MutationCtx,
-  contact: Doc<"contacts">,
+  contact: Doc<'contacts'>,
 ): Promise<void> {
   await ctx.db.patch(contact._id, await computeChatState(ctx, contact));
 }
@@ -189,7 +180,7 @@ export async function refreshChatStateFor(
  */
 export async function refreshChatStateIfLatest(
   ctx: MutationCtx,
-  message: Doc<"messages">,
+  message: Doc<'messages'>,
 ): Promise<void> {
   const contact = await ctx.db.get(message.contactId);
   if (!contact) return;

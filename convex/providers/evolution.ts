@@ -1,4 +1,4 @@
-import { canonicalWhatsAppJid } from "../whatsappJid";
+import { canonicalWhatsAppJid } from '../whatsappJid';
 
 function getEnv(name: string): string | null {
   const value = process.env[name];
@@ -6,7 +6,7 @@ function getEnv(name: string): string | null {
 }
 
 function extractNumber(jidOrNumber: string): string {
-  const digits = jidOrNumber.split("@")[0]?.replace(/\D/g, "") ?? "";
+  const digits = jidOrNumber.split('@')[0]?.replace(/\D/g, '') ?? '';
   return digits;
 }
 
@@ -33,12 +33,12 @@ export type FetchMediaResult = {
 };
 
 function findMessageRecords(payload: unknown): Array<Record<string, any>> {
-  if (typeof payload !== "object" || payload === null) return [];
+  if (typeof payload !== 'object' || payload === null) return [];
   const root = payload as Record<string, any>;
   const records = root.messages?.records ?? root.records;
   return Array.isArray(records)
     ? records.filter((record): record is Record<string, any> => {
-        return typeof record === "object" && record !== null;
+        return typeof record === 'object' && record !== null;
       })
     : [];
 }
@@ -46,12 +46,11 @@ function findMessageRecords(payload: unknown): Array<Record<string, any>> {
 export function findAlternativeJid(payload: unknown, remoteJid: string): string | null {
   for (const record of findMessageRecords(payload)) {
     const key =
-      typeof record.key === "object" && record.key !== null
+      typeof record.key === 'object' && record.key !== null
         ? (record.key as Record<string, any>)
         : null;
     if (key?.remoteJid !== remoteJid) continue;
-    const alternative =
-      typeof key.remoteJidAlt === "string" ? key.remoteJidAlt : undefined;
+    const alternative = typeof key.remoteJidAlt === 'string' ? key.remoteJidAlt : undefined;
     const canonical = canonicalWhatsAppJid(remoteJid, alternative);
     if (canonical !== remoteJid) return canonical;
   }
@@ -64,14 +63,14 @@ async function resolveLidJid(args: {
   instance: string;
   remoteJid: string;
 }): Promise<string> {
-  if (!args.remoteJid.endsWith("@lid")) return args.remoteJid;
+  if (!args.remoteJid.endsWith('@lid')) return args.remoteJid;
 
-  const url = `${args.baseUrl.replace(/\/$/, "")}/chat/findMessages/${encodeURIComponent(args.instance)}`;
+  const url = `${args.baseUrl.replace(/\/$/, '')}/chat/findMessages/${encodeURIComponent(args.instance)}`;
   const response = await fetch(url, {
-    method: "POST",
+    method: 'POST',
     headers: {
       apikey: args.apiKey,
-      "content-type": "application/json",
+      'content-type': 'application/json',
     },
     body: JSON.stringify({
       where: { key: { remoteJid: args.remoteJid } },
@@ -92,17 +91,17 @@ export async function fetchMediaBase64(args: {
   messageId: string;
   convertToMp4?: boolean;
 }): Promise<FetchMediaResult> {
-  const baseUrl = getEnv("EVOLUTION_API_BASE_URL");
-  const apiKey = getEnv("EVOLUTION_API_KEY");
-  if (!baseUrl) throw new Error("Evolution not configured: set EVOLUTION_API_BASE_URL");
-  if (!apiKey) throw new Error("Evolution not configured: set EVOLUTION_API_KEY");
+  const baseUrl = getEnv('EVOLUTION_API_BASE_URL');
+  const apiKey = getEnv('EVOLUTION_API_KEY');
+  if (!baseUrl) throw new Error('Evolution not configured: set EVOLUTION_API_BASE_URL');
+  if (!apiKey) throw new Error('Evolution not configured: set EVOLUTION_API_KEY');
 
-  const url = `${baseUrl.replace(/\/$/, "")}/chat/getBase64FromMediaMessage/${encodeURIComponent(args.instance)}`;
+  const url = `${baseUrl.replace(/\/$/, '')}/chat/getBase64FromMediaMessage/${encodeURIComponent(args.instance)}`;
   const response = await fetch(url, {
-    method: "POST",
+    method: 'POST',
     headers: {
       apikey: apiKey,
-      "content-type": "application/json",
+      'content-type': 'application/json',
     },
     body: JSON.stringify({
       message: { key: { id: args.messageId } },
@@ -120,14 +119,14 @@ export async function fetchMediaBase64(args: {
   let fileName: string | undefined;
   try {
     const parsed = JSON.parse(rawText) as Record<string, any>;
-    base64 = typeof parsed.base64 === "string" ? parsed.base64 : undefined;
-    mimeType = typeof parsed.mimetype === "string" ? parsed.mimetype : undefined;
-    fileName = typeof parsed.fileName === "string" ? parsed.fileName : undefined;
+    base64 = typeof parsed.base64 === 'string' ? parsed.base64 : undefined;
+    mimeType = typeof parsed.mimetype === 'string' ? parsed.mimetype : undefined;
+    fileName = typeof parsed.fileName === 'string' ? parsed.fileName : undefined;
   } catch {
     base64 = rawText;
   }
   if (!base64) {
-    throw new Error("Evolution fetchMediaBase64 returned no base64 payload");
+    throw new Error('Evolution fetchMediaBase64 returned no base64 payload');
   }
   return { base64, mimeType, fileName };
 }
@@ -149,18 +148,18 @@ export async function fetchGroupInfo(args: {
   instance: string;
   groupJid: string;
 }): Promise<GroupInfo> {
-  const baseUrl = getEnv("EVOLUTION_API_BASE_URL");
-  const apiKey = getEnv("EVOLUTION_API_KEY");
-  if (!baseUrl) throw new Error("Evolution not configured: set EVOLUTION_API_BASE_URL");
-  if (!apiKey) throw new Error("Evolution not configured: set EVOLUTION_API_KEY");
+  const baseUrl = getEnv('EVOLUTION_API_BASE_URL');
+  const apiKey = getEnv('EVOLUTION_API_KEY');
+  if (!baseUrl) throw new Error('Evolution not configured: set EVOLUTION_API_BASE_URL');
+  if (!apiKey) throw new Error('Evolution not configured: set EVOLUTION_API_KEY');
 
   const url = new URL(
-    `${baseUrl.replace(/\/$/, "")}/group/findGroupInfos/${encodeURIComponent(args.instance)}`,
+    `${baseUrl.replace(/\/$/, '')}/group/findGroupInfos/${encodeURIComponent(args.instance)}`,
   );
-  url.searchParams.set("groupJid", args.groupJid);
+  url.searchParams.set('groupJid', args.groupJid);
 
   const response = await fetch(url.toString(), {
-    method: "GET",
+    method: 'GET',
     headers: { apikey: apiKey },
   });
   const rawText = await response.text();
@@ -175,20 +174,20 @@ export async function fetchGroupInfo(args: {
   }
   const participantsArray = Array.isArray(parsed?.participants) ? parsed.participants : [];
   return {
-    id: typeof parsed?.id === "string" ? parsed.id : args.groupJid,
-    subject: typeof parsed?.subject === "string" ? parsed.subject : undefined,
-    subjectOwner: typeof parsed?.subjectOwner === "string" ? parsed.subjectOwner : undefined,
-    subjectTime: typeof parsed?.subjectTime === "number" ? parsed.subjectTime : undefined,
-    pictureUrl: typeof parsed?.pictureUrl === "string" ? parsed.pictureUrl : undefined,
-    size: typeof parsed?.size === "number" ? parsed.size : undefined,
-    creation: typeof parsed?.creation === "number" ? parsed.creation : undefined,
-    owner: typeof parsed?.owner === "string" ? parsed.owner : undefined,
-    desc: typeof parsed?.desc === "string" ? parsed.desc : undefined,
+    id: typeof parsed?.id === 'string' ? parsed.id : args.groupJid,
+    subject: typeof parsed?.subject === 'string' ? parsed.subject : undefined,
+    subjectOwner: typeof parsed?.subjectOwner === 'string' ? parsed.subjectOwner : undefined,
+    subjectTime: typeof parsed?.subjectTime === 'number' ? parsed.subjectTime : undefined,
+    pictureUrl: typeof parsed?.pictureUrl === 'string' ? parsed.pictureUrl : undefined,
+    size: typeof parsed?.size === 'number' ? parsed.size : undefined,
+    creation: typeof parsed?.creation === 'number' ? parsed.creation : undefined,
+    owner: typeof parsed?.owner === 'string' ? parsed.owner : undefined,
+    desc: typeof parsed?.desc === 'string' ? parsed.desc : undefined,
     participants: participantsArray
-      .filter((p: any) => p && typeof p.id === "string")
+      .filter((p: any) => p && typeof p.id === 'string')
       .map((p: any) => ({
         id: p.id as string,
-        admin: typeof p.admin === "string" ? (p.admin as string) : undefined,
+        admin: typeof p.admin === 'string' ? (p.admin as string) : undefined,
       })),
   };
 }
@@ -205,17 +204,17 @@ export async function fetchProfilePictureUrl(args: {
   instance: string;
   number: string;
 }): Promise<string | null> {
-  const baseUrl = getEnv("EVOLUTION_API_BASE_URL");
-  const apiKey = getEnv("EVOLUTION_API_KEY");
-  if (!baseUrl) throw new Error("Evolution not configured: set EVOLUTION_API_BASE_URL");
-  if (!apiKey) throw new Error("Evolution not configured: set EVOLUTION_API_KEY");
+  const baseUrl = getEnv('EVOLUTION_API_BASE_URL');
+  const apiKey = getEnv('EVOLUTION_API_KEY');
+  if (!baseUrl) throw new Error('Evolution not configured: set EVOLUTION_API_BASE_URL');
+  if (!apiKey) throw new Error('Evolution not configured: set EVOLUTION_API_KEY');
 
-  const url = `${baseUrl.replace(/\/$/, "")}/chat/fetchProfilePictureUrl/${encodeURIComponent(args.instance)}`;
+  const url = `${baseUrl.replace(/\/$/, '')}/chat/fetchProfilePictureUrl/${encodeURIComponent(args.instance)}`;
   const response = await fetch(url, {
-    method: "POST",
+    method: 'POST',
     headers: {
       apikey: apiKey,
-      "content-type": "application/json",
+      'content-type': 'application/json',
     },
     body: JSON.stringify({ number: args.number }),
   });
@@ -225,9 +224,7 @@ export async function fetchProfilePictureUrl(args: {
     // 4xx here means "no picture for this number" far more often than it means
     // a real failure, so only surface 5xx as an error worth retrying.
     if (response.status >= 500) {
-      throw new Error(
-        `Evolution fetchProfilePictureUrl failed (${response.status}): ${rawText}`,
-      );
+      throw new Error(`Evolution fetchProfilePictureUrl failed (${response.status}): ${rawText}`);
     }
     return null;
   }
@@ -235,7 +232,7 @@ export async function fetchProfilePictureUrl(args: {
   try {
     const parsed = JSON.parse(rawText) as Record<string, any>;
     const picture = parsed?.profilePictureUrl;
-    return typeof picture === "string" && picture.length > 0 ? picture : null;
+    return typeof picture === 'string' && picture.length > 0 ? picture : null;
   } catch {
     return null;
   }
@@ -255,7 +252,7 @@ export async function fetchProfilePictureUrl(args: {
  */
 export async function isProfilePictureAlive(pictureUrl: string): Promise<boolean> {
   try {
-    const response = await fetch(pictureUrl, { method: "HEAD" });
+    const response = await fetch(pictureUrl, { method: 'HEAD' });
     return response.ok;
   } catch {
     return true;
@@ -263,10 +260,10 @@ export async function isProfilePictureAlive(pictureUrl: string): Promise<boolean
 }
 
 export async function sendText(args: SendTextArgs): Promise<SendTextResult> {
-  const baseUrl = getEnv("EVOLUTION_API_BASE_URL");
-  const apiKey = getEnv("EVOLUTION_API_KEY");
-  if (!baseUrl) throw new Error("Evolution not configured: set EVOLUTION_API_BASE_URL");
-  if (!apiKey) throw new Error("Evolution not configured: set EVOLUTION_API_KEY");
+  const baseUrl = getEnv('EVOLUTION_API_BASE_URL');
+  const apiKey = getEnv('EVOLUTION_API_KEY');
+  if (!baseUrl) throw new Error('Evolution not configured: set EVOLUTION_API_BASE_URL');
+  if (!apiKey) throw new Error('Evolution not configured: set EVOLUTION_API_KEY');
 
   const resolvedJid = await resolveLidJid({
     baseUrl,
@@ -274,10 +271,10 @@ export async function sendText(args: SendTextArgs): Promise<SendTextResult> {
     instance: args.instance,
     remoteJid: args.to,
   });
-  const number = resolvedJid.endsWith("@lid") ? resolvedJid : extractNumber(resolvedJid);
+  const number = resolvedJid.endsWith('@lid') ? resolvedJid : extractNumber(resolvedJid);
   if (!number) throw new Error(`Evolution sendText: could not derive number from "${args.to}"`);
 
-  const url = `${baseUrl.replace(/\/$/, "")}/message/sendText/${encodeURIComponent(args.instance)}`;
+  const url = `${baseUrl.replace(/\/$/, '')}/message/sendText/${encodeURIComponent(args.instance)}`;
   const body: Record<string, unknown> = {
     number,
     text: args.text,
@@ -285,15 +282,15 @@ export async function sendText(args: SendTextArgs): Promise<SendTextResult> {
   if (args.quoted) {
     body.quoted = {
       key: { id: args.quoted.messageId },
-      message: { conversation: args.quoted.originalText ?? "" },
+      message: { conversation: args.quoted.originalText ?? '' },
     };
   }
 
   const response = await fetch(url, {
-    method: "POST",
+    method: 'POST',
     headers: {
       apikey: apiKey,
-      "content-type": "application/json",
+      'content-type': 'application/json',
     },
     body: JSON.stringify(body),
   });
@@ -310,11 +307,12 @@ export async function sendText(args: SendTextArgs): Promise<SendTextResult> {
     throw new Error(`Evolution sendText failed (${response.status}): ${rawText}`);
   }
 
-  const obj = typeof parsed === "object" && parsed !== null ? (parsed as Record<string, any>) : {};
-  const key = typeof obj.key === "object" && obj.key !== null ? (obj.key as Record<string, any>) : {};
+  const obj = typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, any>) : {};
+  const key =
+    typeof obj.key === 'object' && obj.key !== null ? (obj.key as Record<string, any>) : {};
   return {
-    messageId: typeof key.id === "string" ? key.id : undefined,
-    status: typeof obj.status === "string" ? obj.status : undefined,
+    messageId: typeof key.id === 'string' ? key.id : undefined,
+    status: typeof obj.status === 'string' ? obj.status : undefined,
     raw: parsed,
   };
 }

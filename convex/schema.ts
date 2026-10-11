@@ -1,54 +1,51 @@
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { defineSchema, defineTable } from 'convex/server';
+import { v } from 'convex/values';
 
 const priorityValidator = v.union(
-  v.literal("urgent"),
-  v.literal("high"),
-  v.literal("normal"),
-  v.literal("low"),
+  v.literal('urgent'),
+  v.literal('high'),
+  v.literal('normal'),
+  v.literal('low'),
 );
 
 const aiModeValidator = v.union(
-  v.literal("manual"),
-  v.literal("semi_auto"),
-  v.literal("full_auto"),
-  v.literal("silent"),
+  v.literal('manual'),
+  v.literal('semi_auto'),
+  v.literal('full_auto'),
+  v.literal('silent'),
 );
 
 const incomingMessageModeValidator = v.union(
-  v.literal("save_and_process"),
-  v.literal("save_only"),
-  v.literal("ignore"),
+  v.literal('save_and_process'),
+  v.literal('save_only'),
+  v.literal('ignore'),
 );
 
-const messageProcessingModeValidator = v.union(
-  v.literal("automatic"),
-  v.literal("manual_only"),
-);
+const messageProcessingModeValidator = v.union(v.literal('automatic'), v.literal('manual_only'));
 
 const messageCategoryValidator = v.union(
-  v.literal("greeting"),
-  v.literal("meeting"),
-  v.literal("deadline"),
-  v.literal("payment"),
-  v.literal("client_issue"),
-  v.literal("project_update"),
-  v.literal("school"),
-  v.literal("family"),
-  v.literal("document"),
-  v.literal("image"),
-  v.literal("voice"),
-  v.literal("group_announcement"),
-  v.literal("spam"),
-  v.literal("unknown"),
+  v.literal('greeting'),
+  v.literal('meeting'),
+  v.literal('deadline'),
+  v.literal('payment'),
+  v.literal('client_issue'),
+  v.literal('project_update'),
+  v.literal('school'),
+  v.literal('family'),
+  v.literal('document'),
+  v.literal('image'),
+  v.literal('voice'),
+  v.literal('group_announcement'),
+  v.literal('spam'),
+  v.literal('unknown'),
 );
 
 const toneValidator = v.union(
-  v.literal("casual"),
-  v.literal("professional"),
-  v.literal("friendly"),
-  v.literal("concise"),
-  v.literal("custom"),
+  v.literal('casual'),
+  v.literal('professional'),
+  v.literal('friendly'),
+  v.literal('concise'),
+  v.literal('custom'),
 );
 
 export default defineSchema({
@@ -61,13 +58,13 @@ export default defineSchema({
     pushName: v.optional(v.string()),
     deviceContactId: v.optional(v.string()),
     deviceContactName: v.optional(v.string()),
-    source: v.optional(v.union(v.literal("whatsapp"), v.literal("device"), v.literal("bimi"))),
+    source: v.optional(v.union(v.literal('whatsapp'), v.literal('device'), v.literal('bimi'))),
     syncStatus: v.optional(
       v.union(
-        v.literal("synced"),
-        v.literal("pending_phone_create"),
-        v.literal("pending_cloud_import"),
-        v.literal("failed"),
+        v.literal('synced'),
+        v.literal('pending_phone_create'),
+        v.literal('pending_cloud_import'),
+        v.literal('failed'),
       ),
     ),
     syncError: v.optional(v.string()),
@@ -106,14 +103,14 @@ export default defineSchema({
     lastAutoReplyAt: v.optional(v.number()),
     relationship: v.optional(
       v.union(
-        v.literal("vip"),
-        v.literal("client"),
-        v.literal("family"),
-        v.literal("friend"),
-        v.literal("classmate"),
-        v.literal("team"),
-        v.literal("low_priority"),
-        v.literal("unknown"),
+        v.literal('vip'),
+        v.literal('client'),
+        v.literal('family'),
+        v.literal('friend'),
+        v.literal('classmate'),
+        v.literal('team'),
+        v.literal('low_priority'),
+        v.literal('unknown'),
       ),
     ),
     checkInCadenceDays: v.optional(v.number()),
@@ -129,10 +126,10 @@ export default defineSchema({
     avatarCheckedAt: v.optional(v.number()),
     avatarStatus: v.optional(
       v.union(
-        v.literal("ready"),
+        v.literal('ready'),
         // No picture, or hidden by the contact's privacy settings.
-        v.literal("none"),
-        v.literal("failed"),
+        v.literal('none'),
+        v.literal('failed'),
       ),
     ),
     // Denormalized chat-list row, maintained on write by convex/chatState.ts so
@@ -149,7 +146,7 @@ export default defineSchema({
     pendingDraftCount: v.optional(v.number()),
     lastMessagePreview: v.optional(
       v.object({
-        messageId: v.id("messages"),
+        messageId: v.id('messages'),
         text: v.string(),
         fromMe: v.boolean(),
         sentByAi: v.boolean(),
@@ -157,12 +154,12 @@ export default defineSchema({
         messageType: v.string(),
         deliveryStatus: v.optional(
           v.union(
-            v.literal("pending"),
-            v.literal("sent"),
-            v.literal("delivered"),
-            v.literal("read"),
-            v.literal("played"),
-            v.literal("error"),
+            v.literal('pending'),
+            v.literal('sent'),
+            v.literal('delivered'),
+            v.literal('read'),
+            v.literal('played'),
+            v.literal('error'),
           ),
         ),
         participant: v.optional(v.string()),
@@ -170,19 +167,19 @@ export default defineSchema({
       }),
     ),
   })
-    .index("by_instance", ["instance"])
-    .index("by_instance_and_remoteJid", ["instance", "remoteJid"])
-    .index("by_instance_and_normalizedPhone", ["instance", "normalizedPhone"])
-    .index("by_instance_and_deviceContactId", ["instance", "deviceContactId"])
-    .index("by_instance_and_syncStatus", ["instance", "syncStatus"])
-    .index("by_instance_and_lastMessageAt", ["instance", "lastMessageAt"])
-    .searchIndex("search_name", {
-      searchField: "displayName",
-      filterFields: ["instance"],
+    .index('by_instance', ['instance'])
+    .index('by_instance_and_remoteJid', ['instance', 'remoteJid'])
+    .index('by_instance_and_normalizedPhone', ['instance', 'normalizedPhone'])
+    .index('by_instance_and_deviceContactId', ['instance', 'deviceContactId'])
+    .index('by_instance_and_syncStatus', ['instance', 'syncStatus'])
+    .index('by_instance_and_lastMessageAt', ['instance', 'lastMessageAt'])
+    .searchIndex('search_name', {
+      searchField: 'displayName',
+      filterFields: ['instance'],
     }),
 
   messages: defineTable({
-    contactId: v.id("contacts"),
+    contactId: v.id('contacts'),
     instance: v.string(),
     remoteJid: v.string(),
     messageId: v.string(),
@@ -193,10 +190,10 @@ export default defineSchema({
     pushName: v.optional(v.string()),
     timestamp: v.optional(v.number()),
     status: v.union(
-      v.literal("ready"),
-      v.literal("processing"),
-      v.literal("failed"),
-      v.literal("skipped"),
+      v.literal('ready'),
+      v.literal('processing'),
+      v.literal('failed'),
+      v.literal('skipped'),
     ),
     // Immutable receipt-time policy. Missing legacy values are treated as
     // automatic so existing history keeps its current behavior.
@@ -212,17 +209,17 @@ export default defineSchema({
     participantPushName: v.optional(v.string()),
     deliveryStatus: v.optional(
       v.union(
-        v.literal("pending"),
-        v.literal("sent"),
-        v.literal("delivered"),
-        v.literal("read"),
-        v.literal("played"),
-        v.literal("error"),
+        v.literal('pending'),
+        v.literal('sent'),
+        v.literal('delivered'),
+        v.literal('read'),
+        v.literal('played'),
+        v.literal('error'),
       ),
     ),
-    mediaStorageId: v.optional(v.id("_storage")),
+    mediaStorageId: v.optional(v.id('_storage')),
     mediaFetchStatus: v.optional(
-      v.union(v.literal("pending"), v.literal("ready"), v.literal("failed")),
+      v.union(v.literal('pending'), v.literal('ready'), v.literal('failed')),
     ),
     isImportant: v.optional(v.boolean()),
     isUrgent: v.optional(v.boolean()),
@@ -244,44 +241,44 @@ export default defineSchema({
     isNoise: v.optional(v.boolean()),
     imageType: v.optional(
       v.union(
-        v.literal("payment"),
-        v.literal("receipt"),
-        v.literal("flyer"),
-        v.literal("server_error"),
-        v.literal("notice"),
-        v.literal("screenshot_text"),
-        v.literal("other"),
+        v.literal('payment'),
+        v.literal('receipt'),
+        v.literal('flyer'),
+        v.literal('server_error'),
+        v.literal('notice'),
+        v.literal('screenshot_text'),
+        v.literal('other'),
       ),
     ),
     extractedFields: v.optional(v.any()),
   })
-    .index("by_instance_and_messageId", ["instance", "messageId"])
-    .index("by_contact", ["contactId"])
-    .index("by_contact_and_timestamp", ["contactId", "timestamp"])
-    .index("by_contactId_and_processingModeAtIngest_and_timestamp", [
-      "contactId",
-      "processingModeAtIngest",
-      "timestamp",
+    .index('by_instance_and_messageId', ['instance', 'messageId'])
+    .index('by_contact', ['contactId'])
+    .index('by_contact_and_timestamp', ['contactId', 'timestamp'])
+    .index('by_contactId_and_processingModeAtIngest_and_timestamp', [
+      'contactId',
+      'processingModeAtIngest',
+      'timestamp',
     ])
-    .index("by_contact_and_needsReply", ["contactId", "needsReply"])
-    .index("by_contact_and_isUrgent", ["contactId", "isUrgent"])
-    .index("by_contact_and_category", ["contactId", "category"])
-    .index("by_contact_and_mentionsUser", ["contactId", "mentionsUser"])
-    .index("by_instance_and_timestamp", ["instance", "timestamp"])
-    .index("by_instance_and_processingModeAtIngest_and_timestamp", [
-      "instance",
-      "processingModeAtIngest",
-      "timestamp",
+    .index('by_contact_and_needsReply', ['contactId', 'needsReply'])
+    .index('by_contact_and_isUrgent', ['contactId', 'isUrgent'])
+    .index('by_contact_and_category', ['contactId', 'category'])
+    .index('by_contact_and_mentionsUser', ['contactId', 'mentionsUser'])
+    .index('by_instance_and_timestamp', ['instance', 'timestamp'])
+    .index('by_instance_and_processingModeAtIngest_and_timestamp', [
+      'instance',
+      'processingModeAtIngest',
+      'timestamp',
     ])
-    .searchIndex("search_text", {
-      searchField: "text",
-      filterFields: ["contactId", "instance", "fromMe"],
+    .searchIndex('search_text', {
+      searchField: 'text',
+      filterFields: ['contactId', 'instance', 'fromMe'],
     }),
 
   drafts: defineTable({
     instance: v.string(),
-    contactId: v.id("contacts"),
-    sourceMessageId: v.optional(v.id("messages")),
+    contactId: v.id('contacts'),
+    sourceMessageId: v.optional(v.id('messages')),
     text: v.string(),
     /** Initial/generated text retained when the user edits the draft. */
     generatedText: v.optional(v.string()),
@@ -289,44 +286,38 @@ export default defineSchema({
     feedbackVariant: v.optional(v.string()),
     approvedByUser: v.optional(v.boolean()),
     style: v.optional(v.string()),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("sent"),
-      v.literal("rejected"),
-    ),
-    sentMessageId: v.optional(v.id("messages")),
+    status: v.union(v.literal('pending'), v.literal('sent'), v.literal('rejected')),
+    sentMessageId: v.optional(v.id('messages')),
     reason: v.optional(v.string()),
     priority: v.optional(priorityValidator),
     confidence: v.optional(v.number()),
     aiSummary: v.optional(v.string()),
     category: v.optional(messageCategoryValidator),
-    sourceMode: v.optional(
-      v.union(v.literal("auto_pipeline"), v.literal("manual_request")),
-    ),
+    sourceMode: v.optional(v.union(v.literal('auto_pipeline'), v.literal('manual_request'))),
     // Set when a contact goal produced this draft, so the goal can find and
     // regenerate its own pending draft instead of stacking new ones, and so
     // approving it credits the goal's reply-detection signal.
-    goalId: v.optional(v.id("contactGoals")),
+    goalId: v.optional(v.id('contactGoals')),
   })
-    .index("by_contact_and_status", ["contactId", "status"])
-    .index("by_instance_and_status", ["instance", "status"])
-    .index("by_sourceMessage", ["sourceMessageId"]),
+    .index('by_contact_and_status', ['contactId', 'status'])
+    .index('by_instance_and_status', ['instance', 'status'])
+    .index('by_sourceMessage', ['sourceMessageId']),
 
   tasks: defineTable({
     instance: v.string(),
-    contactId: v.optional(v.id("contacts")),
-    sourceMessageId: v.optional(v.id("messages")),
+    contactId: v.optional(v.id('contacts')),
+    sourceMessageId: v.optional(v.id('messages')),
     title: v.string(),
     description: v.optional(v.string()),
     dueAt: v.optional(v.number()),
     priority: v.optional(priorityValidator),
-    status: v.union(v.literal("open"), v.literal("done")),
+    status: v.union(v.literal('open'), v.literal('done')),
     completedAt: v.optional(v.number()),
-    createdBy: v.union(v.literal("user"), v.literal("ai")),
+    createdBy: v.union(v.literal('user'), v.literal('ai')),
   })
-    .index("by_instance_and_status", ["instance", "status"])
-    .index("by_contact", ["contactId"])
-    .index("by_dueAt", ["dueAt"]),
+    .index('by_instance_and_status', ['instance', 'status'])
+    .index('by_contact', ['contactId'])
+    .index('by_dueAt', ['dueAt']),
 
   userPreferences: defineTable({
     instance: v.string(),
@@ -347,47 +338,39 @@ export default defineSchema({
     quietHoursTimezone: v.optional(v.string()),
     quietHoursAllowVip: v.optional(v.boolean()),
     memoryWriteMode: v.optional(
-      v.union(
-        v.literal("auto"),
-        v.literal("approval"),
-        v.literal("off"),
-      ),
+      v.union(v.literal('auto'), v.literal('approval'), v.literal('off')),
     ),
     memoryExtractionIntervalHours: v.optional(v.number()),
     memoryExtractionDailyTime: v.optional(v.string()),
     memoryExtractionTimezone: v.optional(v.string()),
-    voiceMode: v.optional(
-      v.union(v.literal("push_to_talk"), v.literal("conversational")),
-    ),
-    voiceTtsEngine: v.optional(
-      v.union(v.literal("device"), v.literal("bimi")),
-    ),
+    voiceMode: v.optional(v.union(v.literal('push_to_talk'), v.literal('conversational'))),
+    voiceTtsEngine: v.optional(v.union(v.literal('device'), v.literal('bimi'))),
     voiceAutoSpeak: v.optional(v.boolean()),
     voiceLocale: v.optional(v.string()),
-  }).index("by_instance", ["instance"]),
+  }).index('by_instance', ['instance']),
 
   knowledgeEntries: defineTable({
     instance: v.string(),
     kind: v.union(
-      v.literal("project"),
-      v.literal("url"),
-      v.literal("template"),
-      v.literal("client_note"),
-      v.literal("availability"),
-      v.literal("note"),
+      v.literal('project'),
+      v.literal('url'),
+      v.literal('template'),
+      v.literal('client_note'),
+      v.literal('availability'),
+      v.literal('note'),
     ),
     title: v.string(),
     body: v.string(),
     tags: v.optional(v.array(v.string())),
     pinned: v.optional(v.boolean()),
-    contactId: v.optional(v.id("contacts")),
+    contactId: v.optional(v.id('contacts')),
     updatedAt: v.number(),
   })
-    .index("by_instance_and_kind", ["instance", "kind"])
-    .index("by_instance_and_pinned", ["instance", "pinned"])
-    .searchIndex("search_body", {
-      searchField: "body",
-      filterFields: ["instance", "kind"],
+    .index('by_instance_and_kind', ['instance', 'kind'])
+    .index('by_instance_and_pinned', ['instance', 'pinned'])
+    .searchIndex('search_body', {
+      searchField: 'body',
+      filterFields: ['instance', 'kind'],
     }),
 
   dailySummaries: defineTable({
@@ -396,55 +379,55 @@ export default defineSchema({
     generatedAt: v.number(),
     urgent: v.array(
       v.object({
-        messageId: v.id("messages"),
-        contactId: v.id("contacts"),
+        messageId: v.id('messages'),
+        contactId: v.id('contacts'),
         contactName: v.optional(v.string()),
         preview: v.string(),
       }),
     ),
     needsReply: v.array(
       v.object({
-        messageId: v.id("messages"),
-        contactId: v.id("contacts"),
+        messageId: v.id('messages'),
+        contactId: v.id('contacts'),
         contactName: v.optional(v.string()),
         preview: v.string(),
       }),
     ),
     tasks: v.array(
       v.object({
-        taskId: v.id("tasks"),
+        taskId: v.id('tasks'),
         title: v.string(),
         dueAt: v.optional(v.number()),
       }),
     ),
     meetings: v.array(
       v.object({
-        messageId: v.id("messages"),
-        contactId: v.id("contacts"),
+        messageId: v.id('messages'),
+        contactId: v.id('contacts'),
         contactName: v.optional(v.string()),
         preview: v.string(),
       }),
     ),
     documents: v.array(
       v.object({
-        messageId: v.id("messages"),
-        contactId: v.id("contacts"),
+        messageId: v.id('messages'),
+        contactId: v.id('contacts'),
         contactName: v.optional(v.string()),
         fileName: v.optional(v.string()),
       }),
     ),
     autoReplied: v.array(
       v.object({
-        messageId: v.id("messages"),
-        contactId: v.id("contacts"),
+        messageId: v.id('messages'),
+        contactId: v.id('contacts'),
         contactName: v.optional(v.string()),
         preview: v.string(),
       }),
     ),
     fyi: v.array(
       v.object({
-        messageId: v.id("messages"),
-        contactId: v.id("contacts"),
+        messageId: v.id('messages'),
+        contactId: v.id('contacts'),
         contactName: v.optional(v.string()),
         preview: v.string(),
         category: v.optional(messageCategoryValidator),
@@ -455,10 +438,10 @@ export default defineSchema({
       v.array(
         v.object({
           label: v.string(),
-          kind: v.union(v.literal("aggregation"), v.literal("llm")),
+          kind: v.union(v.literal('aggregation'), v.literal('llm')),
           count: v.optional(v.number()),
-          contactIds: v.array(v.id("contacts")),
-          messageIds: v.array(v.id("messages")),
+          contactIds: v.array(v.id('contacts')),
+          messageIds: v.array(v.id('messages')),
         }),
       ),
     ),
@@ -468,47 +451,43 @@ export default defineSchema({
           order: v.number(),
           action: v.string(),
           reason: v.optional(v.string()),
-          priority: v.union(
-            v.literal("urgent"),
-            v.literal("high"),
-            v.literal("normal"),
-          ),
-          contactId: v.optional(v.id("contacts")),
+          priority: v.union(v.literal('urgent'), v.literal('high'), v.literal('normal')),
+          contactId: v.optional(v.id('contacts')),
           contactName: v.optional(v.string()),
-          sourceMessageId: v.optional(v.id("messages")),
-          taskId: v.optional(v.id("tasks")),
-          meetingId: v.optional(v.id("meetings")),
+          sourceMessageId: v.optional(v.id('messages')),
+          taskId: v.optional(v.id('tasks')),
+          meetingId: v.optional(v.id('meetings')),
           doneAt: v.optional(v.number()),
         }),
       ),
     ),
-  }).index("by_instance_and_date", ["instance", "date"]),
+  }).index('by_instance_and_date', ['instance', 'date']),
 
   reminders: defineTable({
     instance: v.string(),
-    contactId: v.optional(v.id("contacts")),
-    sourceMessageId: v.optional(v.id("messages")),
+    contactId: v.optional(v.id('contacts')),
+    sourceMessageId: v.optional(v.id('messages')),
     text: v.string(),
     remindAt: v.number(),
     status: v.union(
-      v.literal("suggested"),
-      v.literal("pending"),
-      v.literal("fired"),
-      v.literal("dismissed"),
+      v.literal('suggested'),
+      v.literal('pending'),
+      v.literal('fired'),
+      v.literal('dismissed'),
     ),
-    kind: v.optional(v.union(v.literal("user"), v.literal("ai_followup"))),
+    kind: v.optional(v.union(v.literal('user'), v.literal('ai_followup'))),
   })
-    .index("by_instance_and_status", ["instance", "status"])
-    .index("by_contact", ["contactId"])
-    .index("by_contact_and_status", ["contactId", "status"])
-    .index("by_remindAt", ["remindAt"])
-    .index("by_sourceMessage", ["sourceMessageId"]),
+    .index('by_instance_and_status', ['instance', 'status'])
+    .index('by_contact', ['contactId'])
+    .index('by_contact_and_status', ['contactId', 'status'])
+    .index('by_remindAt', ['remindAt'])
+    .index('by_sourceMessage', ['sourceMessageId']),
 
   assistantThreads: defineTable({
     instance: v.string(),
     title: v.optional(v.string()),
     lastMessageAt: v.number(),
-    kind: v.optional(v.union(v.literal("chat"), v.literal("search"))),
+    kind: v.optional(v.union(v.literal('chat'), v.literal('search'))),
     modelId: v.optional(v.string()),
     pinned: v.optional(v.boolean()),
     archived: v.optional(v.boolean()),
@@ -516,20 +495,16 @@ export default defineSchema({
     // (send, regenerate, confirm, choose) keeps the spoken answer style.
     voice: v.optional(v.boolean()),
   })
-    .index("by_instance_and_lastMessageAt", ["instance", "lastMessageAt"])
-    .index("by_instance_and_kind", ["instance", "kind"])
-    .searchIndex("search_title", {
-      searchField: "title",
-      filterFields: ["instance"],
+    .index('by_instance_and_lastMessageAt', ['instance', 'lastMessageAt'])
+    .index('by_instance_and_kind', ['instance', 'kind'])
+    .searchIndex('search_title', {
+      searchField: 'title',
+      filterFields: ['instance'],
     }),
 
   assistantMessages: defineTable({
-    threadId: v.id("assistantThreads"),
-    role: v.union(
-      v.literal("user"),
-      v.literal("assistant"),
-      v.literal("tool"),
-    ),
+    threadId: v.id('assistantThreads'),
+    role: v.union(v.literal('user'), v.literal('assistant'), v.literal('tool')),
     content: v.string(),
     toolName: v.optional(v.string()),
     toolArgs: v.optional(v.any()),
@@ -537,26 +512,26 @@ export default defineSchema({
     toolCallId: v.optional(v.string()),
     status: v.optional(
       v.union(
-        v.literal("running"),
-        v.literal("done"),
-        v.literal("error"),
-        v.literal("awaiting_confirmation"),
-        v.literal("awaiting_choice"),
-        v.literal("awaiting_questions"),
-        v.literal("cancelled"),
+        v.literal('running'),
+        v.literal('done'),
+        v.literal('error'),
+        v.literal('awaiting_confirmation'),
+        v.literal('awaiting_choice'),
+        v.literal('awaiting_questions'),
+        v.literal('cancelled'),
       ),
     ),
-    citedMessageIds: v.optional(v.array(v.id("messages"))),
-    citedContactIds: v.optional(v.array(v.id("contacts"))),
+    citedMessageIds: v.optional(v.array(v.id('messages'))),
+    citedContactIds: v.optional(v.array(v.id('contacts'))),
     cancelRequested: v.optional(v.boolean()),
     suggestedFollowUps: v.optional(v.array(v.string())),
     reasoning: v.optional(v.string()),
-  }).index("by_thread", ["threadId"]),
+  }).index('by_thread', ['threadId']),
 
   replyStyleProfiles: defineTable({
     instance: v.string(),
-    scope: v.union(v.literal("global"), v.literal("contact")),
-    contactId: v.optional(v.id("contacts")),
+    scope: v.union(v.literal('global'), v.literal('contact')),
+    contactId: v.optional(v.id('contacts')),
     summary: v.string(),
     targetWords: v.number(),
     maxChars: v.number(),
@@ -568,83 +543,75 @@ export default defineSchema({
     lastAnalyzedMessageAt: v.optional(v.number()),
     updatedAt: v.number(),
   })
-    .index("by_instance_and_scope", ["instance", "scope"])
-    .index("by_contactId", ["contactId"]),
+    .index('by_instance_and_scope', ['instance', 'scope'])
+    .index('by_contactId', ['contactId']),
 
   assistantPreferences: defineTable({
     instance: v.string(),
     preferences: v.string(),
     updatedAt: v.number(),
-  }).index("by_instance", ["instance"]),
+  }).index('by_instance', ['instance']),
 
   memories: defineTable({
     instance: v.string(),
-    scope: v.union(
-      v.literal("user"),
-      v.literal("contact"),
-      v.literal("chat"),
-    ),
-    contactId: v.optional(v.id("contacts")),
+    scope: v.union(v.literal('user'), v.literal('contact'), v.literal('chat')),
+    contactId: v.optional(v.id('contacts')),
     type: v.union(
-      v.literal("fact"),
-      v.literal("preference"),
-      v.literal("commitment"),
-      v.literal("ongoing"),
-      v.literal("relationship"),
+      v.literal('fact'),
+      v.literal('preference'),
+      v.literal('commitment'),
+      v.literal('ongoing'),
+      v.literal('relationship'),
     ),
     content: v.string(),
     confidence: v.number(),
     status: v.union(
-      v.literal("active"),
-      v.literal("proposed"),
-      v.literal("superseded"),
-      v.literal("dismissed"),
-      v.literal("expired"),
+      v.literal('active'),
+      v.literal('proposed'),
+      v.literal('superseded'),
+      v.literal('dismissed'),
+      v.literal('expired'),
     ),
     pinned: v.optional(v.boolean()),
-    sourceMessageId: v.optional(v.id("messages")),
-    createdBy: v.union(v.literal("ai"), v.literal("user")),
+    sourceMessageId: v.optional(v.id('messages')),
+    createdBy: v.union(v.literal('ai'), v.literal('user')),
     expiresAt: v.optional(v.number()),
-    supersededBy: v.optional(v.id("memories")),
+    supersededBy: v.optional(v.id('memories')),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_instance_scope_status", ["instance", "scope", "status"])
-    .index("by_contact_scope_status", ["contactId", "scope", "status"])
-    .index("by_status_expiry", ["status", "expiresAt"])
-    .searchIndex("search_content", {
-      searchField: "content",
-      filterFields: ["instance", "scope", "status", "contactId"],
+    .index('by_instance_scope_status', ['instance', 'scope', 'status'])
+    .index('by_contact_scope_status', ['contactId', 'scope', 'status'])
+    .index('by_status_expiry', ['status', 'expiresAt'])
+    .searchIndex('search_content', {
+      searchField: 'content',
+      filterFields: ['instance', 'scope', 'status', 'contactId'],
     }),
 
   memoryAudit: defineTable({
     instance: v.string(),
-    memoryId: v.id("memories"),
+    memoryId: v.id('memories'),
     action: v.union(
-      v.literal("create"),
-      v.literal("approve"),
-      v.literal("reject"),
-      v.literal("edit"),
-      v.literal("supersede"),
-      v.literal("dismiss"),
-      v.literal("delete"),
-      v.literal("expire"),
-      v.literal("pin"),
-      v.literal("unpin"),
+      v.literal('create'),
+      v.literal('approve'),
+      v.literal('reject'),
+      v.literal('edit'),
+      v.literal('supersede'),
+      v.literal('dismiss'),
+      v.literal('delete'),
+      v.literal('expire'),
+      v.literal('pin'),
+      v.literal('unpin'),
     ),
-    actor: v.union(
-      v.literal("ai"),
-      v.literal("user"),
-      v.literal("system"),
-    ),
+    actor: v.union(v.literal('ai'), v.literal('user'), v.literal('system')),
     before: v.optional(v.any()),
     after: v.optional(v.any()),
     at: v.number(),
-  }).index("by_memory", ["memoryId"]),
+  }).index('by_memory', ['memoryId']),
 
   contactMemoryProfiles: defineTable({
     instance: v.string(),
-    contactId: v.id("contacts"),
+    contactId: v.id('contacts'),
     summary: v.string(),
     relationshipNotes: v.optional(v.string()),
     preferences: v.array(v.string()),
@@ -654,42 +621,38 @@ export default defineSchema({
     lastProcessedAt: v.optional(v.number()),
     updatedAt: v.number(),
   })
-    .index("by_contact", ["contactId"])
-    .index("by_instance_and_updatedAt", ["instance", "updatedAt"]),
+    .index('by_contact', ['contactId'])
+    .index('by_instance_and_updatedAt', ['instance', 'updatedAt']),
 
   contactGoals: defineTable({
     instance: v.string(),
-    contactId: v.id("contacts"),
+    contactId: v.id('contacts'),
     title: v.string(),
     instructions: v.string(),
     kind: v.union(
-      v.literal("check_in"),
-      v.literal("meeting"),
-      v.literal("relationship"),
-      v.literal("custom"),
+      v.literal('check_in'),
+      v.literal('meeting'),
+      v.literal('relationship'),
+      v.literal('custom'),
     ),
     recurrence: v.union(
-      v.literal("once"),
-      v.literal("daily"),
-      v.literal("weekly"),
-      v.literal("interval"),
+      v.literal('once'),
+      v.literal('daily'),
+      v.literal('weekly'),
+      v.literal('interval'),
       // Open-ended: no clock, keeps working the conversation until the success
       // criteria are met. nextRunAt acts only as a silence timer.
-      v.literal("until_done"),
+      v.literal('until_done'),
     ),
     intervalHours: v.optional(v.number()),
     preferredTime: v.optional(v.string()),
     timezone: v.optional(v.string()),
     successCriteria: v.optional(v.string()),
-    mode: v.union(v.literal("draft"), v.literal("auto")),
-    status: v.union(
-      v.literal("active"),
-      v.literal("paused"),
-      v.literal("done"),
-    ),
+    mode: v.union(v.literal('draft'), v.literal('auto')),
+    status: v.union(v.literal('active'), v.literal('paused'), v.literal('done')),
     nextRunAt: v.number(),
     lastRunAt: v.optional(v.number()),
-    lastDraftId: v.optional(v.id("drafts")),
+    lastDraftId: v.optional(v.id('drafts')),
     // Stall tracking. Counts outbound *attempts* (send or draft) since the
     // contact last replied; at STALL_CAP the goal pauses itself.
     unansweredCount: v.optional(v.number()),
@@ -701,7 +664,7 @@ export default defineSchema({
     // has not been met in two weeks is not going to be met by nagging.
     expiresAt: v.optional(v.number()),
     lastGoalMessageAt: v.optional(v.number()),
-    lastGoalMessageId: v.optional(v.id("messages")),
+    lastGoalMessageId: v.optional(v.id('messages')),
     lastContactReplyAt: v.optional(v.number()),
     pausedReason: v.optional(v.string()),
     lastStrategyAction: v.optional(v.string()),
@@ -715,14 +678,14 @@ export default defineSchema({
     updatedAt: v.number(),
     completedAt: v.optional(v.number()),
   })
-    .index("by_contact_and_status", ["contactId", "status"])
-    .index("by_status_and_nextRunAt", ["status", "nextRunAt"])
-    .index("by_instance_status_nextRunAt", ["instance", "status", "nextRunAt"]),
+    .index('by_contact_and_status', ['contactId', 'status'])
+    .index('by_status_and_nextRunAt', ['status', 'nextRunAt'])
+    .index('by_instance_status_nextRunAt', ['instance', 'status', 'nextRunAt']),
 
   meetings: defineTable({
     instance: v.string(),
-    contactId: v.id("contacts"),
-    sourceMessageId: v.id("messages"),
+    contactId: v.id('contacts'),
+    sourceMessageId: v.id('messages'),
     title: v.optional(v.string()),
     proposedTimes: v.array(
       v.object({
@@ -733,16 +696,16 @@ export default defineSchema({
     ),
     selectedStartAt: v.optional(v.number()),
     status: v.union(
-      v.literal("pending"),
-      v.literal("accepted"),
-      v.literal("declined"),
-      v.literal("rescheduled"),
+      v.literal('pending'),
+      v.literal('accepted'),
+      v.literal('declined'),
+      v.literal('rescheduled'),
     ),
-    confirmationDraftId: v.optional(v.id("drafts")),
+    confirmationDraftId: v.optional(v.id('drafts')),
     calendarEventId: v.optional(v.string()),
     addedToCalendarAt: v.optional(v.number()),
   })
-    .index("by_instance_and_status", ["instance", "status"])
-    .index("by_source", ["sourceMessageId"])
-    .index("by_contact_and_status", ["contactId", "status"]),
+    .index('by_instance_and_status', ['instance', 'status'])
+    .index('by_source', ['sourceMessageId'])
+    .index('by_contact_and_status', ['contactId', 'status']),
 });

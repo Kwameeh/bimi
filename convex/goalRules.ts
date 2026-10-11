@@ -6,7 +6,7 @@ import {
   BLOCKED_CATEGORIES,
   matchApprovalKeyword,
   type AiMode,
-} from "./replyRules";
+} from './replyRules';
 
 export const HOUR_MS = 60 * 60 * 1000;
 export const DAY_MS = 24 * HOUR_MS;
@@ -44,10 +44,10 @@ const MAX_NUDGE_HOURS = 168; // one week
 /** Backoff stops escalating here: 24h → 48 → 72 → 96 → 120h, then flat. */
 const MAX_BACKOFF_STEPS = 5;
 
-export type GoalKind = "check_in" | "meeting" | "relationship" | "custom";
-export type GoalRecurrence = "once" | "daily" | "weekly" | "interval" | "until_done";
-export type GoalMode = "draft" | "auto";
-export type GoalStatus = "active" | "paused" | "done";
+export type GoalKind = 'check_in' | 'meeting' | 'relationship' | 'custom';
+export type GoalRecurrence = 'once' | 'daily' | 'weekly' | 'interval' | 'until_done';
+export type GoalMode = 'draft' | 'auto';
+export type GoalStatus = 'active' | 'paused' | 'done';
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -55,14 +55,12 @@ function clamp(value: number, min: number, max: number): number {
 
 function firstFinite(...values: Array<number | undefined>): number | undefined {
   for (const value of values) {
-    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
   }
   return undefined;
 }
 
-export function parsePreferredTime(
-  value?: string,
-): { hours: number; minutes: number } | null {
+export function parsePreferredTime(value?: string): { hours: number; minutes: number } | null {
   if (!value) return null;
   const match = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
   if (!match) return null;
@@ -83,22 +81,22 @@ type TzParts = { year: number; month: number; day: number; hour: number; minute:
 function tzParts(atMs: number, tz: string | undefined | null): TzParts {
   const date = new Date(atMs);
   try {
-    const fmt = new Intl.DateTimeFormat("en-US", {
-      timeZone: tz && tz.length > 0 ? tz : "UTC",
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz && tz.length > 0 ? tz : 'UTC',
       hour12: false,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
     });
     const out: TzParts = { year: 0, month: 1, day: 1, hour: 0, minute: 0 };
     for (const part of fmt.formatToParts(date)) {
-      if (part.type === "year") out.year = Number(part.value);
-      else if (part.type === "month") out.month = Number(part.value);
-      else if (part.type === "day") out.day = Number(part.value);
-      else if (part.type === "hour") out.hour = Number(part.value);
-      else if (part.type === "minute") out.minute = Number(part.value);
+      if (part.type === 'year') out.year = Number(part.value);
+      else if (part.type === 'month') out.month = Number(part.value);
+      else if (part.type === 'day') out.day = Number(part.value);
+      else if (part.type === 'hour') out.hour = Number(part.value);
+      else if (part.type === 'minute') out.minute = Number(part.value);
     }
     // Intl renders midnight as "24" in some locales — normalise.
     if (out.hour === 24) out.hour = 0;
@@ -136,8 +134,7 @@ export function localWallClockNext(args: {
   const { fromMs, timezone, hours, minutes, strideMs } = args;
   const offset = tzOffsetMinutes(fromMs, timezone);
   const p = tzParts(fromMs, timezone);
-  let candidate =
-    Date.UTC(p.year, p.month - 1, p.day, hours, minutes) - offset * 60_000;
+  let candidate = Date.UTC(p.year, p.month - 1, p.day, hours, minutes) - offset * 60_000;
   while (candidate <= fromMs) candidate += strideMs;
 
   // The offset may differ at the candidate instant (DST). Re-measure and
@@ -181,7 +178,7 @@ export function nextRunFor(args: {
   nudgeHoursOverride?: number;
   fromMs: number;
 }): number {
-  if (args.recurrence === "until_done") {
+  if (args.recurrence === 'until_done') {
     // Only ever a silence timer — an inbound reply preempts it via the
     // takeover hook and never consults nextRunAt.
     return (
@@ -190,15 +187,15 @@ export function nextRunFor(args: {
     );
   }
 
-  if (args.recurrence === "interval") {
+  if (args.recurrence === 'interval') {
     const hours = clamp(args.intervalHours ?? 24, 1, 168);
     return args.fromMs + hours * HOUR_MS;
   }
 
   const preferred = parsePreferredTime(args.preferredTime);
   if (!preferred) {
-    if (args.recurrence === "weekly") return args.fromMs + WEEK_MS;
-    if (args.recurrence === "daily") return args.fromMs + DAY_MS;
+    if (args.recurrence === 'weekly') return args.fromMs + WEEK_MS;
+    if (args.recurrence === 'daily') return args.fromMs + DAY_MS;
     return args.fromMs;
   }
 
@@ -207,7 +204,7 @@ export function nextRunFor(args: {
     timezone: args.timezone,
     hours: preferred.hours,
     minutes: preferred.minutes,
-    strideMs: args.recurrence === "weekly" ? WEEK_MS : DAY_MS,
+    strideMs: args.recurrence === 'weekly' ? WEEK_MS : DAY_MS,
   });
 }
 
@@ -215,7 +212,7 @@ export function nextRunFor(args: {
 
 export type GoalBudget =
   | { exhausted: false }
-  | { exhausted: true; reason: "turn_budget" | "expired" };
+  | { exhausted: true; reason: 'turn_budget' | 'expired' };
 
 /**
  * Whether an open-ended goal has spent itself. Clock-scheduled goals are exempt:
@@ -230,14 +227,14 @@ export function evaluateGoalBudget(args: {
   maxTurns?: number;
   nowMs: number;
 }): GoalBudget {
-  if (args.recurrence !== "until_done") return { exhausted: false };
+  if (args.recurrence !== 'until_done') return { exhausted: false };
   const maxTurns = args.maxTurns ?? GOAL_MAX_TURNS;
   if ((args.turnsUsed ?? 0) >= maxTurns) {
-    return { exhausted: true, reason: "turn_budget" };
+    return { exhausted: true, reason: 'turn_budget' };
   }
   // expiresAt is absent on goals created before it existed; fall back to age.
   const deadline = args.expiresAt ?? args.createdAt + GOAL_MAX_AGE_MS;
-  if (args.nowMs >= deadline) return { exhausted: true, reason: "expired" };
+  if (args.nowMs >= deadline) return { exhausted: true, reason: 'expired' };
   return { exhausted: false };
 }
 
@@ -249,13 +246,7 @@ export function evaluateGoalBudget(args: {
 // used to run forever.
 
 export type GoalAssessment = {
-  action:
-    | "complete"
-    | "reply_only"
-    | "weave_goal"
-    | "start_goal"
-    | "wait"
-    | "pause";
+  action: 'complete' | 'reply_only' | 'weave_goal' | 'start_goal' | 'wait' | 'pause';
   /** The conversation already satisfies the success criteria. */
   completed: boolean;
   confidence: number;
@@ -266,7 +257,7 @@ export type GoalAssessment = {
   /** Optional delay before the strategy is reconsidered. */
   nextCheckHours?: number;
   /** Machine-readable explanation when action=pause. */
-  pauseReason?: "declined" | "low_reciprocity" | "unsafe";
+  pauseReason?: 'declined' | 'low_reciprocity' | 'unsafe';
   reasoning: string;
 };
 
@@ -277,16 +268,16 @@ export type GoalAssessment = {
  */
 export function parseGoalAssessment(raw: string): GoalAssessment {
   const out: GoalAssessment = {
-    action: "reply_only",
+    action: 'reply_only',
     completed: false,
     confidence: 0.5,
     goalRelevant: false,
     shouldRaise: false,
-    reasoning: "",
+    reasoning: '',
   };
   try {
-    const start = raw.indexOf("{");
-    const end = raw.lastIndexOf("}");
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
     if (start < 0 || end <= start) return out;
     const parsed = JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>;
     out.completed = parsed.completed === true;
@@ -294,46 +285,44 @@ export function parseGoalAssessment(raw: string): GoalAssessment {
     out.shouldRaise = parsed.shouldRaise === true;
     const action = parsed.action;
     if (
-      action === "complete" ||
-      action === "reply_only" ||
-      action === "weave_goal" ||
-      action === "start_goal" ||
-      action === "wait" ||
-      action === "pause"
+      action === 'complete' ||
+      action === 'reply_only' ||
+      action === 'weave_goal' ||
+      action === 'start_goal' ||
+      action === 'wait' ||
+      action === 'pause'
     ) {
       out.action = action;
     } else if (out.completed) {
-      out.action = "complete";
+      out.action = 'complete';
     } else if (out.goalRelevant || out.shouldRaise) {
       // Backward compatibility for older model output during deployment.
-      out.action = "weave_goal";
+      out.action = 'weave_goal';
     }
     const nextCheckHours =
-      typeof parsed.nextCheckHours === "string"
+      typeof parsed.nextCheckHours === 'string'
         ? Number(parsed.nextCheckHours)
         : parsed.nextCheckHours;
-    if (typeof nextCheckHours === "number" && Number.isFinite(nextCheckHours)) {
+    if (typeof nextCheckHours === 'number' && Number.isFinite(nextCheckHours)) {
       out.nextCheckHours = clamp(nextCheckHours, MIN_NUDGE_HOURS, MAX_NUDGE_HOURS);
     }
     if (
-      parsed.pauseReason === "declined" ||
-      parsed.pauseReason === "low_reciprocity" ||
-      parsed.pauseReason === "unsafe"
+      parsed.pauseReason === 'declined' ||
+      parsed.pauseReason === 'low_reciprocity' ||
+      parsed.pauseReason === 'unsafe'
     ) {
       out.pauseReason = parsed.pauseReason;
     }
-    if (typeof parsed.reasoning === "string") {
+    if (typeof parsed.reasoning === 'string') {
       out.reasoning = parsed.reasoning.trim().slice(0, 200);
     }
     const confidence =
-      typeof parsed.confidence === "string"
-        ? Number(parsed.confidence)
-        : parsed.confidence;
-    if (typeof confidence === "number" && Number.isFinite(confidence)) {
+      typeof parsed.confidence === 'string' ? Number(parsed.confidence) : parsed.confidence;
+    if (typeof confidence === 'number' && Number.isFinite(confidence)) {
       out.confidence = clamp(confidence, 0, 1);
     }
   } catch (err) {
-    console.warn("parseGoalAssessment: JSON parse failed", {
+    console.warn('parseGoalAssessment: JSON parse failed', {
       rawPreview: raw.slice(0, 200),
       error: err instanceof Error ? err.message : String(err),
     });
@@ -348,11 +337,8 @@ export function parseGoalAssessment(raw: string): GoalAssessment {
  * A cron nudge is by definition the goal speaking on its own initiative, so
  * relevance does not apply — there is no incoming message to be relevant to.
  */
-export function goalOwnsReply(
-  assessment: GoalAssessment,
-  _isNudge: boolean,
-): boolean {
-  return assessment.action === "weave_goal" || assessment.action === "start_goal";
+export function goalOwnsReply(assessment: GoalAssessment, _isNudge: boolean): boolean {
+  return assessment.action === 'weave_goal' || assessment.action === 'start_goal';
 }
 
 // --- Auto-send gate ---------------------------------------------------------
@@ -379,10 +365,8 @@ export type GoalGate = { send: boolean; reason: string };
  * those two words, only for `kind === "meeting"`.
  */
 export function keywordsForGoalKind(kind: GoalKind): readonly string[] {
-  if (kind !== "meeting") return APPROVAL_REQUIRED_KEYWORDS;
-  return APPROVAL_REQUIRED_KEYWORDS.filter(
-    (k) => k !== "meeting" && k !== "appointment",
-  );
+  if (kind !== 'meeting') return APPROVAL_REQUIRED_KEYWORDS;
+  return APPROVAL_REQUIRED_KEYWORDS.filter((k) => k !== 'meeting' && k !== 'appointment');
 }
 
 /**
@@ -394,21 +378,21 @@ export function keywordsForGoalKind(kind: GoalKind): readonly string[] {
  * send still has something to say; the user just approves it by hand.
  */
 export function evaluateGoalGate(input: GoalGateInput): GoalGate {
-  if (input.goalMode === "draft") return { send: false, reason: "draft_mode" };
+  if (input.goalMode === 'draft') return { send: false, reason: 'draft_mode' };
   // A goal is an explicit instruction so it still runs under silent mode, but
   // silently emitting to a chat the user muted the AI on would be surprising.
-  if (input.aiMode === "silent") return { send: false, reason: "silent_mode" };
+  if (input.aiMode === 'silent') return { send: false, reason: 'silent_mode' };
   if (input.autoReplyBlocked) {
-    return { send: false, reason: "contact_auto_block" };
+    return { send: false, reason: 'contact_auto_block' };
   }
   // Parity with decideReplyMode — a group is many third parties at once and an
   // auto-send there is the most public mistake the app can make, so it always
   // goes through a human regardless of mode.
   if (input.isGroup) {
-    return { send: false, reason: "group_chat_safety" };
+    return { send: false, reason: 'group_chat_safety' };
   }
   if (input.quietHoursActive && !input.contactBypassQuiet) {
-    return { send: false, reason: "quiet_hours" };
+    return { send: false, reason: 'quiet_hours' };
   }
   if (input.triggerCategory && BLOCKED_CATEGORIES.has(input.triggerCategory)) {
     return { send: false, reason: `category_blocked:${input.triggerCategory}` };
@@ -418,13 +402,10 @@ export function evaluateGoalGate(input: GoalGateInput): GoalGate {
   // contact had ever mentioned money. Injection risk on nudge turns is covered
   // by isSuspiciousAutoReply, since recent messages are in the prompt.
   if (input.triggerText) {
-    const hit = matchApprovalKeyword(
-      input.triggerText,
-      keywordsForGoalKind(input.goalKind),
-    );
+    const hit = matchApprovalKeyword(input.triggerText, keywordsForGoalKind(input.goalKind));
     if (hit) return { send: false, reason: `keyword:${hit}` };
   }
-  return { send: true, reason: "goal_auto" };
+  return { send: true, reason: 'goal_auto' };
 }
 
 // --- Model output parsing ---------------------------------------------------
@@ -443,16 +424,16 @@ export type GoalTurnOutput = {
  */
 export function parseGoalTurn(raw: string): GoalTurnOutput {
   const out: GoalTurnOutput = {
-    text: "",
+    text: '',
     completed: false,
     confidence: 0.5,
-    reasoning: "",
+    reasoning: '',
   };
   try {
-    const start = raw.indexOf("{");
-    const end = raw.lastIndexOf("}");
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
     if (start < 0 || end <= start) {
-      console.warn("parseGoalTurn: no JSON object in output", {
+      console.warn('parseGoalTurn: no JSON object in output', {
         rawPreview: raw.slice(0, 200),
       });
       return out;
@@ -464,28 +445,26 @@ export function parseGoalTurn(raw: string): GoalTurnOutput {
       reasoning?: unknown;
       nextNudgeHours?: unknown;
     };
-    if (typeof parsed.text === "string") out.text = parsed.text.trim();
+    if (typeof parsed.text === 'string') out.text = parsed.text.trim();
     // Strict === true: a stringy "true" is model drift, not consent to stop.
     out.completed = parsed.completed === true;
-    if (typeof parsed.reasoning === "string") {
+    if (typeof parsed.reasoning === 'string') {
       out.reasoning = parsed.reasoning.trim().slice(0, 200);
     }
     const confidence =
-      typeof parsed.confidence === "string"
-        ? Number(parsed.confidence)
-        : parsed.confidence;
-    if (typeof confidence === "number" && Number.isFinite(confidence)) {
+      typeof parsed.confidence === 'string' ? Number(parsed.confidence) : parsed.confidence;
+    if (typeof confidence === 'number' && Number.isFinite(confidence)) {
       out.confidence = clamp(confidence, 0, 1);
     }
     const nudge =
-      typeof parsed.nextNudgeHours === "string"
+      typeof parsed.nextNudgeHours === 'string'
         ? Number(parsed.nextNudgeHours)
         : parsed.nextNudgeHours;
-    if (typeof nudge === "number" && Number.isFinite(nudge)) {
+    if (typeof nudge === 'number' && Number.isFinite(nudge)) {
       out.nextNudgeHours = clamp(nudge, MIN_NUDGE_HOURS, MAX_NUDGE_HOURS);
     }
   } catch (err) {
-    console.warn("parseGoalTurn: JSON parse failed", {
+    console.warn('parseGoalTurn: JSON parse failed', {
       rawPreview: raw.slice(0, 200),
       error: err instanceof Error ? err.message : String(err),
     });
@@ -514,33 +493,28 @@ const MAX_CRITERIA_CHARS = 300;
  * was. Replacing a half-written instruction with an empty string would be worse
  * than not offering the button at all.
  */
-export function parseGoalEnhancement(
-  raw: string,
-  fallback: GoalDraftFields,
-): GoalDraftFields {
+export function parseGoalEnhancement(raw: string, fallback: GoalDraftFields): GoalDraftFields {
   const out: GoalDraftFields = { ...fallback };
   const take = (value: unknown, max: number): string | null => {
-    if (typeof value !== "string") return null;
+    if (typeof value !== 'string') return null;
     const trimmed = value.trim().slice(0, max);
     return trimmed.length > 0 ? trimmed : null;
   };
   try {
-    const start = raw.indexOf("{");
-    const end = raw.lastIndexOf("}");
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
     if (start < 0 || end <= start) {
-      console.warn("parseGoalEnhancement: no JSON object in output", {
+      console.warn('parseGoalEnhancement: no JSON object in output', {
         rawPreview: raw.slice(0, 200),
       });
       return out;
     }
     const parsed = JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>;
     out.title = take(parsed.title, MAX_TITLE_CHARS) ?? out.title;
-    out.instructions =
-      take(parsed.instructions, MAX_INSTRUCTION_CHARS) ?? out.instructions;
-    out.successCriteria =
-      take(parsed.successCriteria, MAX_CRITERIA_CHARS) ?? out.successCriteria;
+    out.instructions = take(parsed.instructions, MAX_INSTRUCTION_CHARS) ?? out.instructions;
+    out.successCriteria = take(parsed.successCriteria, MAX_CRITERIA_CHARS) ?? out.successCriteria;
   } catch (err) {
-    console.warn("parseGoalEnhancement: JSON parse failed", {
+    console.warn('parseGoalEnhancement: JSON parse failed', {
       rawPreview: raw.slice(0, 200),
       error: err instanceof Error ? err.message : String(err),
     });

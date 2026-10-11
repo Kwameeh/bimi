@@ -8,38 +8,38 @@
 //  3. the stall cap terminates an unanswered open-ended goal
 //  4. a blocked auto-send always falls back to a draft, never a silent skip
 /// <reference types="vite/client" />
-import { convexTest } from "convex-test";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import schema from "./schema";
-import { api, internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
-import { GOAL_MAX_TURNS } from "./goalRules";
+import { convexTest } from 'convex-test';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import schema from './schema';
+import { api, internal } from './_generated/api';
+import type { Doc, Id } from './_generated/dataModel';
+import { GOAL_MAX_TURNS } from './goalRules';
 
-const modules = import.meta.glob("./**/*.ts");
+const modules = import.meta.glob('./**/*.ts');
 
 const runJsonExtraction = vi.hoisted(() => vi.fn());
 const sendText = vi.hoisted(() => vi.fn());
 const generateReply = vi.hoisted(() => vi.fn());
 const generateText = vi.hoisted(() => vi.fn());
 
-vi.mock("./providers/aiSdk", () => ({ runJsonExtraction }));
-vi.mock("./providers/evolution", () => ({
+vi.mock('./providers/aiSdk', () => ({ runJsonExtraction }));
+vi.mock('./providers/evolution', () => ({
   sendText,
   fetchMediaBase64: vi.fn(),
   fetchGroupInfo: vi.fn(),
 }));
-vi.mock("./providers/processing", () => ({ generateReply, generateText }));
+vi.mock('./providers/processing', () => ({ generateReply, generateText }));
 
-const INSTANCE = "test-instance";
-const REMOTE_JID = "233200000000@s.whatsapp.net";
+const INSTANCE = 'test-instance';
+const REMOTE_JID = '233200000000@s.whatsapp.net';
 
 /** What the model returns for the message-writing call. */
 function modelSays(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
-    text: "Are you free Thursday or Friday?",
+    text: 'Are you free Thursday or Friday?',
     completed: false,
     confidence: 0.8,
-    reasoning: "asking availability",
+    reasoning: 'asking availability',
     ...overrides,
   });
 }
@@ -51,7 +51,7 @@ function assessmentSays(overrides: Record<string, unknown> = {}) {
     confidence: 0.9,
     goalRelevant: true,
     shouldRaise: true,
-    reasoning: "still working the goal",
+    reasoning: 'still working the goal',
     ...overrides,
   });
 }
@@ -62,10 +62,7 @@ function assessmentSays(overrides: Record<string, unknown> = {}) {
  * way. Without this a test that stubs `completed: true` to exercise the writer
  * would also be telling the assessor the goal is already finished.
  */
-function mockTurn(
-  turn: Record<string, unknown> = {},
-  assessment: Record<string, unknown> = {},
-) {
+function mockTurn(turn: Record<string, unknown> = {}, assessment: Record<string, unknown> = {}) {
   runJsonExtraction.mockImplementation(
     async (args: { schema?: { properties?: Record<string, unknown> } }) =>
       args?.schema?.properties?.goalRelevant !== undefined
@@ -96,9 +93,9 @@ beforeEach(() => {
   vi.useFakeTimers();
   runJsonExtraction.mockReset();
   mockTurn();
-  sendText.mockReset().mockResolvedValue({ messageId: "wamid.stub", raw: {} });
-  generateReply.mockReset().mockResolvedValue("generic pipeline reply");
-  generateText.mockReset().mockResolvedValue("summary");
+  sendText.mockReset().mockResolvedValue({ messageId: 'wamid.stub', raw: {} });
+  generateReply.mockReset().mockResolvedValue('generic pipeline reply');
+  generateText.mockReset().mockResolvedValue('summary');
 });
 
 afterEach(async () => {
@@ -112,15 +109,12 @@ afterEach(async () => {
   vi.clearAllMocks();
 });
 
-async function seedContact(
-  t: Ctx,
-  patch: Partial<Doc<"contacts">> = {},
-): Promise<Id<"contacts">> {
+async function seedContact(t: Ctx, patch: Partial<Doc<'contacts'>> = {}): Promise<Id<'contacts'>> {
   return await t.run(async (ctx) =>
-    ctx.db.insert("contacts", {
+    ctx.db.insert('contacts', {
       instance: INSTANCE,
       remoteJid: REMOTE_JID,
-      displayName: "Ama",
+      displayName: 'Ama',
       ...patch,
     }),
   );
@@ -128,21 +122,21 @@ async function seedContact(
 
 async function seedInbound(
   t: Ctx,
-  contactId: Id<"contacts">,
-  patch: Partial<Doc<"messages">> = {},
-): Promise<Id<"messages">> {
+  contactId: Id<'contacts'>,
+  patch: Partial<Doc<'messages'>> = {},
+): Promise<Id<'messages'>> {
   return await t.run(async (ctx) =>
-    ctx.db.insert("messages", {
+    ctx.db.insert('messages', {
       contactId,
       instance: INSTANCE,
       remoteJid: REMOTE_JID,
       messageId: `wamid.in.${Math.random().toString(36).slice(2)}`,
       fromMe: false,
-      messageType: "conversation",
+      messageType: 'conversation',
       text: "hey what's up",
       timestamp: Math.floor(Date.now() / 1000),
-      status: "ready",
-      category: "greeting",
+      status: 'ready',
+      category: 'greeting',
       classificationConfidence: 0.9,
       ...patch,
     }),
@@ -151,20 +145,20 @@ async function seedInbound(
 
 async function seedGoal(
   t: Ctx,
-  contactId: Id<"contacts">,
-  patch: Partial<Doc<"contactGoals">> = {},
-): Promise<Id<"contactGoals">> {
+  contactId: Id<'contacts'>,
+  patch: Partial<Doc<'contactGoals'>> = {},
+): Promise<Id<'contactGoals'>> {
   const now = Date.now();
   return await t.run(async (ctx) =>
-    ctx.db.insert("contactGoals", {
+    ctx.db.insert('contactGoals', {
       instance: INSTANCE,
       contactId,
-      title: "Find a time to meet",
-      instructions: "Ask when they are available.",
-      kind: "meeting",
-      recurrence: "until_done",
-      mode: "auto",
-      status: "active",
+      title: 'Find a time to meet',
+      instructions: 'Ask when they are available.',
+      kind: 'meeting',
+      recurrence: 'until_done',
+      mode: 'auto',
+      status: 'active',
       unansweredCount: 0,
       nextRunAt: now + 60_000,
       createdAt: now,
@@ -174,34 +168,32 @@ async function seedGoal(
   );
 }
 
-const getGoal = (t: Ctx, goalId: Id<"contactGoals">) =>
-  t.run(async (ctx) => ctx.db.get(goalId));
+const getGoal = (t: Ctx, goalId: Id<'contactGoals'>) => t.run(async (ctx) => ctx.db.get(goalId));
 
-const listDrafts = (t: Ctx) =>
-  t.run(async (ctx) => ctx.db.query("drafts").collect());
+const listDrafts = (t: Ctx) => t.run(async (ctx) => ctx.db.query('drafts').collect());
 
 /** Claim a goal the way the cron does, returning the lease token. */
-async function claim(t: Ctx, goalId: Id<"contactGoals">): Promise<string> {
+async function claim(t: Ctx, goalId: Id<'contactGoals'>): Promise<string> {
   const result = await t.mutation(internal.contactGoals.claimGoalTurnInternal, {
     goalId,
     nowMs: Date.now(),
   });
-  if (result.kind !== "claimed" || !result.leaseToken) {
+  if (result.kind !== 'claimed' || !result.leaseToken) {
     throw new Error(`expected to claim, got ${result.kind}`);
   }
   return result.leaseToken;
 }
 
-describe("takeover: no double-messaging", () => {
-  test("a busy goal makes decideAndDraft stand down entirely", async () => {
+describe('takeover: no double-messaging', () => {
+  test('a busy goal makes decideAndDraft stand down entirely', async () => {
     const t = setup();
-    const contactId = await seedContact(t, { aiMode: "full_auto" });
+    const contactId = await seedContact(t, { aiMode: 'full_auto' });
     // Lease already held by an in-flight turn.
     const goalId = await seedGoal(t, contactId, {
       turnLockUntil: Date.now() + 60_000,
-      turnLockToken: "held-by-cron",
+      turnLockToken: 'held-by-cron',
     });
-    const messageId = await seedInbound(t, contactId, { text: "ok" });
+    const messageId = await seedInbound(t, contactId, { text: 'ok' });
 
     await t.action(internal.replies.decideAndDraft, { messageId });
 
@@ -210,17 +202,17 @@ describe("takeover: no double-messaging", () => {
     expect(generateReply).not.toHaveBeenCalled();
     expect(await listDrafts(t)).toHaveLength(0);
     // The goal is untouched and still locked.
-    expect((await getGoal(t, goalId))?.turnLockToken).toBe("held-by-cron");
+    expect((await getGoal(t, goalId))?.turnLockToken).toBe('held-by-cron');
   });
 
-  test("the busy retry is bounded — it never schedules a second", async () => {
+  test('the busy retry is bounded — it never schedules a second', async () => {
     const t = setup();
-    const contactId = await seedContact(t, { aiMode: "full_auto" });
+    const contactId = await seedContact(t, { aiMode: 'full_auto' });
     await seedGoal(t, contactId, {
       turnLockUntil: Date.now() + 60_000,
-      turnLockToken: "held",
+      turnLockToken: 'held',
     });
-    const messageId = await seedInbound(t, contactId, { text: "ok" });
+    const messageId = await seedInbound(t, contactId, { text: 'ok' });
 
     // goalRetry: true is the loop guard — still busy, so give up quietly.
     await t.action(internal.replies.decideAndDraft, { messageId, goalRetry: true });
@@ -232,13 +224,13 @@ describe("takeover: no double-messaging", () => {
     expect(sendText).not.toHaveBeenCalled();
   });
 
-  test("an inbound message with an active goal never runs the generic pipeline", async () => {
+  test('an inbound message with an active goal never runs the generic pipeline', async () => {
     const t = setup();
     // full_auto + "ok" is exactly what decideReplyMode would auto-send as an
     // acknowledgment, so this proves the goal really preempts it.
-    const contactId = await seedContact(t, { aiMode: "full_auto" });
+    const contactId = await seedContact(t, { aiMode: 'full_auto' });
     const goalId = await seedGoal(t, contactId);
-    const messageId = await seedInbound(t, contactId, { text: "ok" });
+    const messageId = await seedInbound(t, contactId, { text: 'ok' });
 
     await t.action(internal.replies.decideAndDraft, { messageId });
     await drain(t);
@@ -249,17 +241,17 @@ describe("takeover: no double-messaging", () => {
     expect(sendText.mock.calls[0][0]).toMatchObject({
       instance: INSTANCE,
       to: REMOTE_JID,
-      text: "Are you free Thursday or Friday?",
+      text: 'Are you free Thursday or Friday?',
     });
     // Quoted against the message that triggered the turn.
     expect(sendText.mock.calls[0][0].quoted).toBeDefined();
     expect((await getGoal(t, goalId))?.lastGoalMessageId).toBeTruthy();
   });
 
-  test("with no goal, the generic pipeline is untouched", async () => {
+  test('with no goal, the generic pipeline is untouched', async () => {
     const t = setup();
-    const contactId = await seedContact(t, { aiMode: "full_auto" });
-    const messageId = await seedInbound(t, contactId, { text: "ok" });
+    const contactId = await seedContact(t, { aiMode: 'full_auto' });
+    const messageId = await seedInbound(t, contactId, { text: 'ok' });
 
     await t.action(internal.replies.decideAndDraft, { messageId });
 
@@ -268,12 +260,12 @@ describe("takeover: no double-messaging", () => {
     // scheduled off recordOutgoing calls it too.)
     expect(generateReply).toHaveBeenCalledTimes(1);
     expect(sendText).toHaveBeenCalledTimes(1);
-    expect(sendText.mock.calls[0][0].text).toBe("generic pipeline reply");
+    expect(sendText.mock.calls[0][0].text).toBe('generic pipeline reply');
   });
 });
 
-describe("claiming", () => {
-  test("a claim is exclusive", async () => {
+describe('claiming', () => {
+  test('a claim is exclusive', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
@@ -282,13 +274,13 @@ describe("claiming", () => {
       contactId,
       nowMs: Date.now(),
     });
-    expect(first.kind).toBe("claimed");
+    expect(first.kind).toBe('claimed');
 
     const second = await t.mutation(internal.contactGoals.onInboundForContactInternal, {
       contactId,
       nowMs: Date.now(),
     });
-    expect(second.kind).toBe("busy");
+    expect(second.kind).toBe('busy');
     expect(second.retryAfterMs).toBeGreaterThan(0);
 
     // The cron's by-id claim is blocked by the same lease.
@@ -296,36 +288,36 @@ describe("claiming", () => {
       goalId,
       nowMs: Date.now(),
     });
-    expect(viaCron.kind).toBe("busy");
+    expect(viaCron.kind).toBe('busy');
   });
 
-  test("an expired lease can be re-claimed", async () => {
+  test('an expired lease can be re-claimed', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId, {
       turnLockUntil: Date.now() - 1,
-      turnLockToken: "stale",
+      turnLockToken: 'stale',
     });
     const result = await t.mutation(internal.contactGoals.claimGoalTurnInternal, {
       goalId,
       nowMs: Date.now(),
     });
-    expect(result.kind).toBe("claimed");
-    expect(result.leaseToken).not.toBe("stale");
+    expect(result.kind).toBe('claimed');
+    expect(result.leaseToken).not.toBe('stale');
   });
 
-  test("contacts with no open-ended goal report none", async () => {
+  test('contacts with no open-ended goal report none', async () => {
     const t = setup();
     const contactId = await seedContact(t);
-    await seedGoal(t, contactId, { recurrence: "daily", preferredTime: "09:00" });
+    await seedGoal(t, contactId, { recurrence: 'daily', preferredTime: '09:00' });
     const result = await t.mutation(internal.contactGoals.onInboundForContactInternal, {
       contactId,
       nowMs: Date.now(),
     });
-    expect(result.kind).toBe("none");
+    expect(result.kind).toBe('none');
   });
 
-  test("a stale lease token cannot write", async () => {
+  test('a stale lease token cannot write', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId, { nextRunAt: 111 });
@@ -334,8 +326,8 @@ describe("claiming", () => {
 
     const result = await t.mutation(internal.contactGoals.recordGoalTurnInternal, {
       goalId,
-      leaseToken: "stale-token",
-      outcome: "sent",
+      leaseToken: 'stale-token',
+      outcome: 'sent',
       countAsAttempt: true,
       completed: false,
     });
@@ -345,25 +337,25 @@ describe("claiming", () => {
     expect(goal?.unansweredCount).toBe(0);
   });
 
-  test("a turn cannot resurrect a goal the user paused mid-flight", async () => {
+  test('a turn cannot resurrect a goal the user paused mid-flight', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
     const leaseToken = await claim(t, goalId);
-    await t.mutation(api.contactGoals.updateStatus, { goalId, status: "paused" });
+    await t.mutation(api.contactGoals.updateStatus, { goalId, status: 'paused' });
 
     const result = await t.mutation(internal.contactGoals.recordGoalTurnInternal, {
       goalId,
       leaseToken,
-      outcome: "sent",
+      outcome: 'sent',
       countAsAttempt: true,
       completed: false,
     });
     expect(result.applied).toBe(false);
-    expect((await getGoal(t, goalId))?.status).toBe("paused");
+    expect((await getGoal(t, goalId))?.status).toBe('paused');
   });
 
-  test("recording releases the lease", async () => {
+  test('recording releases the lease', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
@@ -371,7 +363,7 @@ describe("claiming", () => {
     await t.mutation(internal.contactGoals.recordGoalTurnInternal, {
       goalId,
       leaseToken,
-      outcome: "drafted",
+      outcome: 'drafted',
       countAsAttempt: true,
       completed: false,
     });
@@ -381,8 +373,8 @@ describe("claiming", () => {
   });
 });
 
-describe("stall cap", () => {
-  test("pauses after five unanswered attempts and leaves the cron", async () => {
+describe('stall cap', () => {
+  test('pauses after five unanswered attempts and leaves the cron', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
@@ -395,8 +387,8 @@ describe("stall cap", () => {
 
     const goal = await getGoal(t, goalId);
     expect(goal?.unansweredCount).toBe(5);
-    expect(goal?.status).toBe("paused");
-    expect(goal?.pausedReason).toBe("stall_cap");
+    expect(goal?.status).toBe('paused');
+    expect(goal?.pausedReason).toBe('stall_cap');
 
     // A paused goal is out of the due index, so the cron stops seeing it.
     const due = await t.query(internal.contactGoals.listDueGoalsInternal, {
@@ -408,19 +400,19 @@ describe("stall cap", () => {
     expect(sendText).toHaveBeenCalledTimes(5);
   });
 
-  test("resume clears the stall state so it does not immediately re-pause", async () => {
+  test('resume clears the stall state so it does not immediately re-pause', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId, {
-      status: "paused",
-      pausedReason: "stall_cap",
+      status: 'paused',
+      pausedReason: 'stall_cap',
       unansweredCount: 5,
     });
 
-    await t.mutation(api.contactGoals.updateStatus, { goalId, status: "active" });
+    await t.mutation(api.contactGoals.updateStatus, { goalId, status: 'active' });
 
     const goal = await getGoal(t, goalId);
-    expect(goal?.status).toBe("active");
+    expect(goal?.status).toBe('active');
     expect(goal?.unansweredCount).toBe(0);
     expect(goal?.pausedReason).toBeUndefined();
     // Armed for a future nudge rather than firing instantly at someone who has
@@ -428,27 +420,27 @@ describe("stall cap", () => {
     expect(goal?.nextRunAt).toBeGreaterThan(Date.now());
   });
 
-  test("resume clears a lease left behind by a turn paused mid-flight", async () => {
+  test('resume clears a lease left behind by a turn paused mid-flight', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
     await claim(t, goalId);
-    await t.mutation(api.contactGoals.updateStatus, { goalId, status: "paused" });
-    await t.mutation(api.contactGoals.updateStatus, { goalId, status: "active" });
+    await t.mutation(api.contactGoals.updateStatus, { goalId, status: 'paused' });
+    await t.mutation(api.contactGoals.updateStatus, { goalId, status: 'active' });
 
     expect((await getGoal(t, goalId))?.turnLockToken).toBeUndefined();
     // ...so the very next turn can actually be claimed.
     await expect(claim(t, goalId)).resolves.toBeTruthy();
   });
 
-  test("an inbound message does not reset counters before strategy confirms goal engagement", async () => {
+  test('an inbound message does not reset counters before strategy confirms goal engagement', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const openEnded = await seedGoal(t, contactId, { unansweredCount: 3 });
     // A clock-scheduled goal must be reset too, not just the open-ended one.
     const daily = await seedGoal(t, contactId, {
-      recurrence: "daily",
-      preferredTime: "09:00",
+      recurrence: 'daily',
+      preferredTime: '09:00',
       unansweredCount: 2,
     });
 
@@ -462,10 +454,10 @@ describe("stall cap", () => {
     expect((await getGoal(t, openEnded))?.lastContactReplyAt).toBeUndefined();
   });
 
-  test("a draft-mode goal is capped too, so ignored drafts cannot loop forever", async () => {
+  test('a draft-mode goal is capped too, so ignored drafts cannot loop forever', async () => {
     const t = setup();
     const contactId = await seedContact(t);
-    const goalId = await seedGoal(t, contactId, { mode: "draft" });
+    const goalId = await seedGoal(t, contactId, { mode: 'draft' });
 
     for (let i = 0; i < 5; i++) {
       await t.run(async (ctx) => ctx.db.patch(goalId, { nextRunAt: Date.now() - 1000 }));
@@ -474,33 +466,31 @@ describe("stall cap", () => {
     }
 
     expect(sendText).not.toHaveBeenCalled();
-    expect((await getGoal(t, goalId))?.status).toBe("paused");
+    expect((await getGoal(t, goalId))?.status).toBe('paused');
     // Regenerated in place — one draft, not a stack of five.
     expect(await listDrafts(t)).toHaveLength(1);
   });
 
-  test("a relationship goal stops after two unanswered attempts", async () => {
+  test('a relationship goal stops after two unanswered attempts', async () => {
     const t = setup();
     const contactId = await seedContact(t);
-    const goalId = await seedGoal(t, contactId, { kind: "relationship" });
+    const goalId = await seedGoal(t, contactId, { kind: 'relationship' });
 
     for (let i = 0; i < 2; i++) {
-      await t.run(async (ctx) =>
-        ctx.db.patch(goalId, { nextRunAt: Date.now() - 1000 }),
-      );
+      await t.run(async (ctx) => ctx.db.patch(goalId, { nextRunAt: Date.now() - 1000 }));
       await t.action(internal.contactGoals.runDueGoalsInternal, {});
       await drain(t);
     }
 
     const goal = await getGoal(t, goalId);
-    expect(goal?.status).toBe("paused");
-    expect(goal?.pausedReason).toBe("low_reciprocity");
+    expect(goal?.status).toBe('paused');
+    expect(goal?.pausedReason).toBe('low_reciprocity');
     expect(sendText).toHaveBeenCalledTimes(2);
   });
 });
 
-describe("lifetime budget", () => {
-  test("a talkative contact cannot keep a goal alive forever", async () => {
+describe('lifetime budget', () => {
+  test('a talkative contact cannot keep a goal alive forever', async () => {
     // The bug this closes: unansweredCount resets to 0 on every inbound, so a
     // contact who actually replies holds the stall cap at zero and the goal
     // re-raises itself in every single reply, indefinitely.
@@ -512,13 +502,13 @@ describe("lifetime budget", () => {
       // The contact answers every time — this is what used to be unbounded.
       // The inbound hook resets the stall counter and claims the turn in one
       // go, exactly as decideAndDraft drives it.
-      const inbound = await t.mutation(
-        internal.contactGoals.onInboundForContactInternal,
-        { contactId, nowMs: Date.now() },
-      );
-      if (inbound.kind !== "claimed" || !inbound.leaseToken) break;
+      const inbound = await t.mutation(internal.contactGoals.onInboundForContactInternal, {
+        contactId,
+        nowMs: Date.now(),
+      });
+      if (inbound.kind !== 'claimed' || !inbound.leaseToken) break;
       const messageId = await seedInbound(t, contactId, {
-        text: "yes, tell me more",
+        text: 'yes, tell me more',
       });
       await t.action(internal.contactGoals.runGoalTurnInternal, {
         goalId,
@@ -529,15 +519,15 @@ describe("lifetime budget", () => {
     }
 
     const goal = await getGoal(t, goalId);
-    expect(goal?.status).toBe("paused");
-    expect(goal?.pausedReason).toBe("turn_budget");
+    expect(goal?.status).toBe('paused');
+    expect(goal?.pausedReason).toBe('turn_budget');
     // The stall cap never fired — it could not have.
     expect(goal?.unansweredCount).toBeLessThan(5);
     // It stopped at the budget rather than sending a ninth.
     expect(sendText).toHaveBeenCalledTimes(GOAL_MAX_TURNS);
   });
 
-  test("a goal past its deadline stops without sending", async () => {
+  test('a goal past its deadline stops without sending', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId, {
@@ -550,38 +540,38 @@ describe("lifetime budget", () => {
       leaseToken,
     });
 
-    expect(result.outcome).toBe("exhausted");
+    expect(result.outcome).toBe('exhausted');
     expect(sendText).not.toHaveBeenCalled();
     const goal = await getGoal(t, goalId);
-    expect(goal?.status).toBe("paused");
-    expect(goal?.pausedReason).toBe("expired");
+    expect(goal?.status).toBe('paused');
+    expect(goal?.pausedReason).toBe('expired');
   });
 
-  test("resume gives the goal a fresh budget", async () => {
+  test('resume gives the goal a fresh budget', async () => {
     // Otherwise Resume on a budget-paused goal re-pauses on its next turn and
     // the button looks broken — the same trap the stall counter already had.
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId, {
-      status: "paused",
-      pausedReason: "turn_budget",
+      status: 'paused',
+      pausedReason: 'turn_budget',
       turnsUsed: GOAL_MAX_TURNS,
       expiresAt: Date.now() - 1000,
     });
 
-    await t.mutation(api.contactGoals.updateStatus, { goalId, status: "active" });
+    await t.mutation(api.contactGoals.updateStatus, { goalId, status: 'active' });
 
     const goal = await getGoal(t, goalId);
     expect(goal?.turnsUsed).toBe(0);
     expect(goal?.expiresAt).toBeGreaterThan(Date.now());
   });
 
-  test("a clock-scheduled goal has no budget to spend", async () => {
+  test('a clock-scheduled goal has no budget to spend', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId, {
-      recurrence: "daily",
-      preferredTime: "09:00",
+      recurrence: 'daily',
+      preferredTime: '09:00',
       turnsUsed: 99,
     });
 
@@ -589,17 +579,17 @@ describe("lifetime budget", () => {
     await t.action(internal.contactGoals.runGoalTurnInternal, { goalId, leaseToken });
 
     expect(sendText).toHaveBeenCalledTimes(1);
-    expect((await getGoal(t, goalId))?.status).toBe("active");
+    expect((await getGoal(t, goalId))?.status).toBe('active');
   });
 });
 
-describe("assessment", () => {
-  test("an off-topic message is handed back to the normal pipeline", async () => {
+describe('assessment', () => {
+  test('an off-topic message is handed back to the normal pipeline', async () => {
     const t = setup();
-    const contactId = await seedContact(t, { aiMode: "full_auto" });
+    const contactId = await seedContact(t, { aiMode: 'full_auto' });
     const goalId = await seedGoal(t, contactId);
     mockTurn({}, { goalRelevant: false, shouldRaise: false });
-    const messageId = await seedInbound(t, contactId, { text: "ok" });
+    const messageId = await seedInbound(t, contactId, { text: 'ok' });
 
     await t.action(internal.replies.decideAndDraft, { messageId });
     await drain(t);
@@ -607,15 +597,15 @@ describe("assessment", () => {
     // The generic pipeline answered, and the goal did not write anything.
     expect(generateReply).toHaveBeenCalledTimes(1);
     expect(sendText).toHaveBeenCalledTimes(1);
-    expect(sendText.mock.calls[0][0].text).toBe("generic pipeline reply");
+    expect(sendText.mock.calls[0][0].text).toBe('generic pipeline reply');
     const goal = await getGoal(t, goalId);
     // Handing back costs the goal nothing — no message, no budget, no lease.
     expect(goal?.turnsUsed).toBe(0);
-    expect(goal?.status).toBe("active");
+    expect(goal?.status).toBe('active');
     expect(goal?.turnLockToken).toBeUndefined();
   });
 
-  test("a scheduled turn can wait when there is no natural opening", async () => {
+  test('a scheduled turn can wait when there is no natural opening', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
@@ -626,57 +616,57 @@ describe("assessment", () => {
 
     expect(sendText).not.toHaveBeenCalled();
     expect((await getGoal(t, goalId))?.turnsUsed).toBe(0);
-    expect((await getGoal(t, goalId))?.lastStrategyAction).toBe("wait");
+    expect((await getGoal(t, goalId))?.lastStrategyAction).toBe('wait');
   });
 
-  test("a goal the conversation already met closes, and the contact still gets a reply", async () => {
+  test('a goal the conversation already met closes, and the contact still gets a reply', async () => {
     const t = setup();
-    const contactId = await seedContact(t, { aiMode: "full_auto" });
+    const contactId = await seedContact(t, { aiMode: 'full_auto' });
     const goalId = await seedGoal(t, contactId);
     mockTurn({}, { completed: true, confidence: 0.9 });
-    const messageId = await seedInbound(t, contactId, { text: "ok" });
+    const messageId = await seedInbound(t, contactId, { text: 'ok' });
 
     await t.action(internal.replies.decideAndDraft, { messageId });
     await drain(t);
 
     const goal = await getGoal(t, goalId);
-    expect(goal?.status).toBe("done");
+    expect(goal?.status).toBe('done');
     expect(goal?.completedAt).toBeGreaterThan(0);
     // Closing the goal must not swallow the contact's message.
     expect(sendText).toHaveBeenCalledTimes(1);
-    expect(sendText.mock.calls[0][0].text).toBe("generic pipeline reply");
+    expect(sendText.mock.calls[0][0].text).toBe('generic pipeline reply');
   });
 
-  test("a relationship goal pauses on a clear rejection and hands the reply back", async () => {
+  test('a relationship goal pauses on a clear rejection and hands the reply back', async () => {
     const t = setup();
-    const contactId = await seedContact(t, { aiMode: "semi_auto" });
-    const goalId = await seedGoal(t, contactId, { kind: "relationship" });
+    const contactId = await seedContact(t, { aiMode: 'semi_auto' });
+    const goalId = await seedGoal(t, contactId, { kind: 'relationship' });
     mockTurn(
       {},
       {
-        action: "pause",
+        action: 'pause',
         goalRelevant: true,
         shouldRaise: false,
-        pauseReason: "declined",
-        reasoning: "they clearly said no",
+        pauseReason: 'declined',
+        reasoning: 'they clearly said no',
       },
     );
     const messageId = await seedInbound(t, contactId, {
-      text: "I am not interested, sorry",
+      text: 'I am not interested, sorry',
     });
 
     await t.action(internal.replies.decideAndDraft, { messageId });
     await drain(t);
 
     const goal = await getGoal(t, goalId);
-    expect(goal?.status).toBe("paused");
-    expect(goal?.pausedReason).toBe("declined");
+    expect(goal?.status).toBe('paused');
+    expect(goal?.pausedReason).toBe('declined');
     expect(sendText).not.toHaveBeenCalled();
     expect(generateReply).toHaveBeenCalledTimes(1);
-    expect((await listDrafts(t))[0]?.text).toBe("generic pipeline reply");
+    expect((await listDrafts(t))[0]?.text).toBe('generic pipeline reply');
   });
 
-  test("a low-confidence completion assessment does not close the goal", async () => {
+  test('a low-confidence completion assessment does not close the goal', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
@@ -685,18 +675,18 @@ describe("assessment", () => {
     const leaseToken = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, { goalId, leaseToken });
 
-    expect((await getGoal(t, goalId))?.status).toBe("active");
+    expect((await getGoal(t, goalId))?.status).toBe('active');
     expect(sendText).toHaveBeenCalledTimes(1);
   });
 
-  test("a failed scheduled assessment waits instead of sending blind", async () => {
+  test('a failed scheduled assessment waits instead of sending blind', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
     runJsonExtraction.mockImplementation(
       async (args: { schema?: { properties?: Record<string, unknown> } }) => {
         if (args?.schema?.properties?.goalRelevant !== undefined) {
-          throw new Error("assessor down");
+          throw new Error('assessor down');
         }
         return modelSays();
       },
@@ -706,64 +696,64 @@ describe("assessment", () => {
     await t.action(internal.contactGoals.runGoalTurnInternal, { goalId, leaseToken });
 
     expect(sendText).not.toHaveBeenCalled();
-    expect((await getGoal(t, goalId))?.status).toBe("active");
-    expect((await getGoal(t, goalId))?.lastStrategyAction).toBe("wait");
+    expect((await getGoal(t, goalId))?.status).toBe('active');
+    expect((await getGoal(t, goalId))?.lastStrategyAction).toBe('wait');
   });
 });
 
-describe("auto-send gates fall back to a draft, never a silent skip", () => {
+describe('auto-send gates fall back to a draft, never a silent skip', () => {
   const expectHeldAsDraft = async (t: Ctx, gate: string) => {
     const drafts = await listDrafts(t);
     expect(sendText).not.toHaveBeenCalled();
     expect(drafts).toHaveLength(1);
     expect(drafts[0].style).toBe(`contact_goal:${gate}`);
     expect(drafts[0].goalId).toBeTruthy();
-    expect(drafts[0].status).toBe("pending");
-    expect(drafts[0].text).toBe("Are you free Thursday or Friday?");
+    expect(drafts[0].status).toBe('pending');
+    expect(drafts[0].text).toBe('Are you free Thursday or Friday?');
   };
 
-  test("quiet hours", async () => {
+  test('quiet hours', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     await t.run(async (ctx) =>
-      ctx.db.insert("userPreferences", {
+      ctx.db.insert('userPreferences', {
         instance: INSTANCE,
-        defaultTone: "friendly",
+        defaultTone: 'friendly',
         quietHoursEnabled: true,
         // A window covering the whole day, so this is stable whenever it runs.
-        quietHoursStart: "00:00",
-        quietHoursEnd: "23:59",
-        quietHoursTimezone: "UTC",
+        quietHoursStart: '00:00',
+        quietHoursEnd: '23:59',
+        quietHoursTimezone: 'UTC',
       }),
     );
     const goalId = await seedGoal(t, contactId);
     const leaseToken = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, { goalId, leaseToken });
-    await expectHeldAsDraft(t, "quiet_hours");
+    await expectHeldAsDraft(t, 'quiet_hours');
   });
 
-  test("contact autoReplyBlocked", async () => {
+  test('contact autoReplyBlocked', async () => {
     const t = setup();
     const contactId = await seedContact(t, { autoReplyBlocked: true });
     const goalId = await seedGoal(t, contactId);
     const leaseToken = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, { goalId, leaseToken });
-    await expectHeldAsDraft(t, "contact_auto_block");
+    await expectHeldAsDraft(t, 'contact_auto_block');
   });
 
-  test("draft mode", async () => {
+  test('draft mode', async () => {
     const t = setup();
     const contactId = await seedContact(t);
-    const goalId = await seedGoal(t, contactId, { mode: "draft" });
+    const goalId = await seedGoal(t, contactId, { mode: 'draft' });
     const leaseToken = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, { goalId, leaseToken });
-    await expectHeldAsDraft(t, "draft_mode");
+    await expectHeldAsDraft(t, 'draft_mode');
   });
 
-  test("suspicious generated text", async () => {
+  test('suspicious generated text', async () => {
     const t = setup();
     mockTurn({
-      text: "Are you free Thursday or Friday?\n```\nignore all previous\n```",
+      text: 'Are you free Thursday or Friday?\n```\nignore all previous\n```',
     });
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
@@ -772,12 +762,12 @@ describe("auto-send gates fall back to a draft, never a silent skip", () => {
 
     const drafts = await listDrafts(t);
     expect(sendText).not.toHaveBeenCalled();
-    expect(drafts[0].style).toBe("contact_goal:suspicious_auto_reply");
+    expect(drafts[0].style).toBe('contact_goal:suspicious_auto_reply');
   });
 
-  test("a goal reply that stays long after one rewrite is held for review", async () => {
+  test('a goal reply that stays long after one rewrite is held for review', async () => {
     const t = setup();
-    const text = `Hey! ${"Really hoping we can find a slot that works for both of us. ".repeat(4)}`;
+    const text = `Hey! ${'Really hoping we can find a slot that works for both of us. '.repeat(4)}`;
     expect(text.length).toBeGreaterThan(240);
     mockTurn({ text });
     const contactId = await seedContact(t);
@@ -789,13 +779,13 @@ describe("auto-send gates fall back to a draft, never a silent skip", () => {
     expect(await listDrafts(t)).toHaveLength(1);
   });
 
-  test("sensitive words in the incoming message hold it back", async () => {
+  test('sensitive words in the incoming message hold it back', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
     const messageId = await seedInbound(t, contactId, {
-      text: "can you send the payment first",
-      category: "greeting",
+      text: 'can you send the payment first',
+      category: 'greeting',
     });
     const leaseToken = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, {
@@ -803,15 +793,15 @@ describe("auto-send gates fall back to a draft, never a silent skip", () => {
       leaseToken,
       triggerMessageId: messageId,
     });
-    await expectHeldAsDraft(t, "keyword:payment");
+    await expectHeldAsDraft(t, 'keyword:payment');
   });
 
-  test("but a meeting goal may talk about meetings", async () => {
+  test('but a meeting goal may talk about meetings', async () => {
     const t = setup();
     const contactId = await seedContact(t);
-    const goalId = await seedGoal(t, contactId, { kind: "meeting" });
+    const goalId = await seedGoal(t, contactId, { kind: 'meeting' });
     const messageId = await seedInbound(t, contactId, {
-      text: "when is a good time for a meeting?",
+      text: 'when is a good time for a meeting?',
     });
     const leaseToken = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, {
@@ -824,9 +814,9 @@ describe("auto-send gates fall back to a draft, never a silent skip", () => {
     expect(await listDrafts(t)).toHaveLength(0);
   });
 
-  test("a send failure degrades to a draft rather than losing the turn", async () => {
+  test('a send failure degrades to a draft rather than losing the turn', async () => {
     const t = setup();
-    sendText.mockRejectedValue(new Error("evolution down"));
+    sendText.mockRejectedValue(new Error('evolution down'));
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
     const leaseToken = await claim(t, goalId);
@@ -834,16 +824,16 @@ describe("auto-send gates fall back to a draft, never a silent skip", () => {
 
     const drafts = await listDrafts(t);
     expect(drafts).toHaveLength(1);
-    expect(drafts[0].style).toBe("contact_goal:send_failed");
+    expect(drafts[0].style).toBe('contact_goal:send_failed');
     expect((await getGoal(t, goalId))?.turnLockToken).toBeUndefined();
   });
 });
 
-describe("draft lifecycle", () => {
-  test("the goal regenerates its own draft in place", async () => {
+describe('draft lifecycle', () => {
+  test('the goal regenerates its own draft in place', async () => {
     const t = setup();
     const contactId = await seedContact(t);
-    const goalId = await seedGoal(t, contactId, { mode: "draft" });
+    const goalId = await seedGoal(t, contactId, { mode: 'draft' });
 
     const first = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, {
@@ -851,7 +841,7 @@ describe("draft lifecycle", () => {
       leaseToken: first,
     });
 
-    mockTurn({ text: "Still keen to meet up?" });
+    mockTurn({ text: 'Still keen to meet up?' });
     const second = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, {
       goalId,
@@ -860,19 +850,19 @@ describe("draft lifecycle", () => {
 
     const drafts = await listDrafts(t);
     expect(drafts).toHaveLength(1);
-    expect(drafts[0].text).toBe("Still keen to meet up?");
+    expect(drafts[0].text).toBe('Still keen to meet up?');
   });
 
-  test("an unrelated pending draft defers without spending the goal budget", async () => {
+  test('an unrelated pending draft defers without spending the goal budget', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
     await t.run(async (ctx) =>
-      ctx.db.insert("drafts", {
+      ctx.db.insert('drafts', {
         instance: INSTANCE,
         contactId,
-        text: "unrelated draft awaiting review",
-        status: "pending",
+        text: 'unrelated draft awaiting review',
+        status: 'pending',
       }),
     );
 
@@ -882,16 +872,16 @@ describe("draft lifecycle", () => {
       leaseToken,
     });
 
-    expect(result.outcome).toBe("deferred");
+    expect(result.outcome).toBe('deferred');
     expect(runJsonExtraction).not.toHaveBeenCalled();
     expect(sendText).not.toHaveBeenCalled();
     expect((await getGoal(t, goalId))?.unansweredCount).toBe(0);
   });
 
-  test("approving a goal draft credits the goal", async () => {
+  test('approving a goal draft credits the goal', async () => {
     const t = setup();
     const contactId = await seedContact(t);
-    const goalId = await seedGoal(t, contactId, { mode: "draft" });
+    const goalId = await seedGoal(t, contactId, { mode: 'draft' });
     const leaseToken = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, { goalId, leaseToken });
 
@@ -906,70 +896,70 @@ describe("draft lifecycle", () => {
   });
 });
 
-describe("completion", () => {
-  test("a completing turn still delivers its closing message", async () => {
+describe('completion', () => {
+  test('a completing turn still delivers its closing message', async () => {
     // Regression: the old runner returned on completed before emitting text, so
     // the message that actually closes the goal was thrown away.
     const t = setup();
-    mockTurn({ text: "Great, Thursday 3pm works, see you then", completed: true, confidence: 0.9 });
+    mockTurn({ text: 'Great, Thursday 3pm works, see you then', completed: true, confidence: 0.9 });
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
     const leaseToken = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, { goalId, leaseToken });
 
     expect(sendText).toHaveBeenCalledTimes(1);
-    expect(sendText.mock.calls[0][0].text).toBe("Great, Thursday 3pm works, see you then");
+    expect(sendText.mock.calls[0][0].text).toBe('Great, Thursday 3pm works, see you then');
     const goal = await getGoal(t, goalId);
-    expect(goal?.status).toBe("done");
+    expect(goal?.status).toBe('done');
     expect(goal?.completedAt).toBeGreaterThan(0);
   });
 
-  test("a low-confidence completion is ignored", async () => {
+  test('a low-confidence completion is ignored', async () => {
     const t = setup();
-    mockTurn({ text: "maybe Thursday?", completed: true, confidence: 0.3 });
+    mockTurn({ text: 'maybe Thursday?', completed: true, confidence: 0.3 });
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
     const leaseToken = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, { goalId, leaseToken });
 
-    expect((await getGoal(t, goalId))?.status).toBe("active");
+    expect((await getGoal(t, goalId))?.status).toBe('active');
   });
 
-  test("a `once` goal completes after one run", async () => {
+  test('a `once` goal completes after one run', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId, {
-      recurrence: "once",
-      mode: "draft",
+      recurrence: 'once',
+      mode: 'draft',
     });
     const leaseToken = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, { goalId, leaseToken });
-    expect((await getGoal(t, goalId))?.status).toBe("done");
+    expect((await getGoal(t, goalId))?.status).toBe('done');
   });
 
-  test("a `once` goal whose model call failed is not retired unsent", async () => {
+  test('a `once` goal whose model call failed is not retired unsent', async () => {
     // "Done after one run" has to mean it actually produced something. Marking
     // it done on a failure retired the goal without ever sending the one
     // message it existed for.
     const t = setup();
-    runJsonExtraction.mockRejectedValue(new Error("model down"));
+    runJsonExtraction.mockRejectedValue(new Error('model down'));
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId, {
-      recurrence: "once",
-      mode: "draft",
+      recurrence: 'once',
+      mode: 'draft',
     });
 
     const leaseToken = await claim(t, goalId);
     await t.action(internal.contactGoals.runGoalTurnInternal, { goalId, leaseToken });
 
     const goal = await getGoal(t, goalId);
-    expect(goal?.status).toBe("active");
+    expect(goal?.status).toBe('active');
     expect(goal?.completedAt).toBeUndefined();
   });
 
-  test("empty text neither sends nor drafts, but still counts", async () => {
+  test('empty text neither sends nor drafts, but still counts', async () => {
     const t = setup();
-    mockTurn({ text: "" });
+    mockTurn({ text: '' });
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
     const leaseToken = await claim(t, goalId);
@@ -978,20 +968,20 @@ describe("completion", () => {
       leaseToken,
     });
 
-    expect(result.outcome).toBe("empty");
+    expect(result.outcome).toBe('empty');
     expect(sendText).not.toHaveBeenCalled();
     expect(await listDrafts(t)).toHaveLength(0);
     expect((await getGoal(t, goalId))?.unansweredCount).toBe(1);
   });
 
-  test("a generation failure releases the lease without counting", async () => {
+  test('a generation failure releases the lease without counting', async () => {
     const t = setup();
     runJsonExtraction.mockImplementation(
       async (args: { schema?: { properties?: Record<string, unknown> } }) => {
         if (args?.schema?.properties?.goalRelevant !== undefined) {
-          return assessmentSays({ action: "start_goal", goalRelevant: false });
+          return assessmentSays({ action: 'start_goal', goalRelevant: false });
         }
-        throw new Error("model down");
+        throw new Error('model down');
       },
     );
     const contactId = await seedContact(t);
@@ -1002,15 +992,15 @@ describe("completion", () => {
       leaseToken,
     });
 
-    expect(result.outcome).toBe("failed");
+    expect(result.outcome).toBe('failed');
     const goal = await getGoal(t, goalId);
     expect(goal?.unansweredCount).toBe(0);
     expect(goal?.turnLockToken).toBeUndefined();
-    expect(goal?.status).toBe("active");
+    expect(goal?.status).toBe('active');
   });
 });
 
-describe("enhanceDraft", () => {
+describe('enhanceDraft', () => {
   /** The enhancer answers on its own schema, distinct from turn and assessment. */
   function mockEnhancer(fields: Record<string, unknown>) {
     runJsonExtraction.mockImplementation(
@@ -1021,60 +1011,60 @@ describe("enhanceDraft", () => {
     );
   }
 
-  test("it returns rewritten fields without saving anything", async () => {
+  test('it returns rewritten fields without saving anything', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     mockEnhancer({
-      title: "Chase the invoice",
-      instructions: "Ask him for the outstanding invoice and agree a day if he stalls.",
-      successCriteria: "He sends it or names the day he will.",
+      title: 'Chase the invoice',
+      instructions: 'Ask him for the outstanding invoice and agree a day if he stalls.',
+      successCriteria: 'He sends it or names the day he will.',
     });
 
     const result = await t.action(api.contactGoals.enhanceDraft, {
       contactId,
-      kind: "custom",
-      instructions: "get him to send the invoice",
+      kind: 'custom',
+      instructions: 'get him to send the invoice',
     });
 
-    expect(result.title).toBe("Chase the invoice");
-    expect(result.successCriteria).toBe("He sends it or names the day he will.");
+    expect(result.title).toBe('Chase the invoice');
+    expect(result.successCriteria).toBe('He sends it or names the day he will.');
     // Enhancing is a suggestion the user still has to accept — nothing is
     // created until they save.
-    const goals = await t.run(async (ctx) => ctx.db.query("contactGoals").collect());
+    const goals = await t.run(async (ctx) => ctx.db.query('contactGoals').collect());
     expect(goals).toHaveLength(0);
   });
 
-  test("an empty instruction is refused before any model call", async () => {
+  test('an empty instruction is refused before any model call', async () => {
     const t = setup();
     const contactId = await seedContact(t);
 
     await expect(
       t.action(api.contactGoals.enhanceDraft, {
         contactId,
-        kind: "custom",
-        instructions: "   ",
+        kind: 'custom',
+        instructions: '   ',
       }),
     ).rejects.toThrow(/Write the instruction first/);
     expect(runJsonExtraction).not.toHaveBeenCalled();
   });
 
-  test("a useless model answer gives the user their own words back", async () => {
+  test('a useless model answer gives the user their own words back', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     mockEnhancer({});
 
     const result = await t.action(api.contactGoals.enhanceDraft, {
       contactId,
-      kind: "custom",
-      instructions: "get him to send the invoice",
-      title: "invoice",
-      successCriteria: "",
+      kind: 'custom',
+      instructions: 'get him to send the invoice',
+      title: 'invoice',
+      successCriteria: '',
     });
 
     expect(result).toEqual({
-      title: "invoice",
-      instructions: "get him to send the invoice",
-      successCriteria: "",
+      title: 'invoice',
+      instructions: 'get him to send the invoice',
+      successCriteria: '',
     });
   });
 
@@ -1084,66 +1074,66 @@ describe("enhanceDraft", () => {
     const t = setup();
     const contactId = await seedContact(t);
     await t.run(async (ctx) =>
-      ctx.db.insert("contactMemoryProfiles", {
+      ctx.db.insert('contactMemoryProfiles', {
         instance: INSTANCE,
         contactId,
-        summary: "Runs the print shop on Oxford Street.",
-        preferences: ["prefers voice notes"],
+        summary: 'Runs the print shop on Oxford Street.',
+        preferences: ['prefers voice notes'],
         currentTopics: [],
         commitments: [],
         updatedAt: Date.now(),
       }),
     );
-    mockEnhancer({ title: "Chase the invoice" });
+    mockEnhancer({ title: 'Chase the invoice' });
 
     await t.action(api.contactGoals.enhanceDraft, {
       contactId,
-      kind: "custom",
-      instructions: "get him to send the invoice",
+      kind: 'custom',
+      instructions: 'get him to send the invoice',
     });
 
     const call = runJsonExtraction.mock.calls.at(-1)?.[0];
-    expect(call.messages[0].content).toContain("print shop");
-    expect(call.messages[0].content).toContain("prefers voice notes");
+    expect(call.messages[0].content).toContain('print shop');
+    expect(call.messages[0].content).toContain('prefers voice notes');
   });
 });
 
-describe("create", () => {
-  test("an open-ended goal opens the conversation immediately", async () => {
+describe('create', () => {
+  test('an open-ended goal opens the conversation immediately', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     const goalId = await t.mutation(api.contactGoals.create, {
       contactId,
-      title: "Find a time to meet",
-      instructions: "Ask when they are available.",
-      kind: "meeting",
-      recurrence: "until_done",
-      mode: "auto",
-      successCriteria: "They agree to a specific day and time.",
+      title: 'Find a time to meet',
+      instructions: 'Ask when they are available.',
+      kind: 'meeting',
+      recurrence: 'until_done',
+      mode: 'auto',
+      successCriteria: 'They agree to a specific day and time.',
     });
     await drain(t);
 
     expect(sendText).toHaveBeenCalledTimes(1);
     const goal = await getGoal(t, goalId);
-    expect(goal?.status).toBe("active");
+    expect(goal?.status).toBe('active');
     expect(goal?.unansweredCount).toBe(1);
     // The silence timer is armed for the next nudge.
     expect(goal?.nextRunAt).toBeGreaterThan(Date.now());
     expect(goal?.turnLockToken).toBeUndefined();
   });
 
-  test("a clock-scheduled goal does not fire on create", async () => {
+  test('a clock-scheduled goal does not fire on create', async () => {
     const t = setup();
     const contactId = await seedContact(t);
     await t.mutation(api.contactGoals.create, {
       contactId,
-      title: "Morning check-in",
-      instructions: "Say hi.",
-      kind: "check_in",
-      recurrence: "daily",
-      preferredTime: "09:00",
-      timezone: "Africa/Accra",
-      mode: "draft",
+      title: 'Morning check-in',
+      instructions: 'Say hi.',
+      kind: 'check_in',
+      recurrence: 'daily',
+      preferredTime: '09:00',
+      timezone: 'Africa/Accra',
+      mode: 'draft',
     });
     await drain(t);
 
@@ -1151,14 +1141,14 @@ describe("create", () => {
     expect(await listDrafts(t)).toHaveLength(0);
   });
 
-  test("mode defaults to draft and updateMode does not disturb scheduling", async () => {
+  test('mode defaults to draft and updateMode does not disturb scheduling', async () => {
     const t = setup();
     const contactId = await seedContact(t);
-    const goalId = await seedGoal(t, contactId, { mode: "draft", nextRunAt: 12345 });
+    const goalId = await seedGoal(t, contactId, { mode: 'draft', nextRunAt: 12345 });
 
-    await t.mutation(api.contactGoals.updateMode, { goalId, mode: "auto" });
+    await t.mutation(api.contactGoals.updateMode, { goalId, mode: 'auto' });
     const goal = await getGoal(t, goalId);
-    expect(goal?.mode).toBe("auto");
+    expect(goal?.mode).toBe('auto');
     expect(goal?.nextRunAt).toBe(12345);
   });
 });

@@ -1,4 +1,4 @@
-const ASSEMBLY_BASE = "https://api.assemblyai.com/v2";
+const ASSEMBLY_BASE = 'https://api.assemblyai.com/v2';
 const POLL_INTERVAL_MS = 2_000;
 const POLL_TIMEOUT_MS = 120_000;
 
@@ -20,10 +20,10 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 async function uploadAudio(apiKey: string, base64: string): Promise<string> {
   const buffer = base64ToArrayBuffer(base64);
   const response = await fetch(`${ASSEMBLY_BASE}/upload`, {
-    method: "POST",
+    method: 'POST',
     headers: {
       authorization: apiKey,
-      "content-type": "application/octet-stream",
+      'content-type': 'application/octet-stream',
     },
     body: buffer,
   });
@@ -34,22 +34,25 @@ async function uploadAudio(apiKey: string, base64: string): Promise<string> {
   }
   const json = (await response.json()) as { upload_url?: string };
   if (!json.upload_url) {
-    throw new Error("AssemblyAI upload returned no upload_url");
+    throw new Error('AssemblyAI upload returned no upload_url');
   }
   return json.upload_url;
 }
 
 async function submitTranscript(apiKey: string, audioUrl: string): Promise<string> {
-  const modelEnv = getEnv("ASSEMBLYAI_SPEECH_MODELS");
+  const modelEnv = getEnv('ASSEMBLYAI_SPEECH_MODELS');
   const speechModels = modelEnv
-    ? modelEnv.split(",").map((m) => m.trim()).filter((m) => m.length > 0)
-    : ["universal-2"];
+    ? modelEnv
+        .split(',')
+        .map((m) => m.trim())
+        .filter((m) => m.length > 0)
+    : ['universal-2'];
 
   const response = await fetch(`${ASSEMBLY_BASE}/transcript`, {
-    method: "POST",
+    method: 'POST',
     headers: {
       authorization: apiKey,
-      "content-type": "application/json",
+      'content-type': 'application/json',
     },
     body: JSON.stringify({
       audio_url: audioUrl,
@@ -63,7 +66,7 @@ async function submitTranscript(apiKey: string, audioUrl: string): Promise<strin
   }
   const json = (await response.json()) as { id?: string };
   if (!json.id) {
-    throw new Error("AssemblyAI submit returned no id");
+    throw new Error('AssemblyAI submit returned no id');
   }
   return json.id;
 }
@@ -83,11 +86,11 @@ async function pollTranscript(apiKey: string, transcriptId: string): Promise<str
       text?: string;
       error?: string;
     };
-    if (json.status === "completed") {
-      return (json.text ?? "").trim();
+    if (json.status === 'completed') {
+      return (json.text ?? '').trim();
     }
-    if (json.status === "error") {
-      throw new Error(`AssemblyAI transcription error: ${json.error ?? "unknown"}`);
+    if (json.status === 'error') {
+      throw new Error(`AssemblyAI transcription error: ${json.error ?? 'unknown'}`);
     }
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
   }
@@ -95,9 +98,9 @@ async function pollTranscript(apiKey: string, transcriptId: string): Promise<str
 }
 
 export async function transcribeAudio(args: { base64: string }): Promise<string> {
-  const apiKey = getEnv("ASSEMBLYAI_API_KEY");
+  const apiKey = getEnv('ASSEMBLYAI_API_KEY');
   if (!apiKey) {
-    throw new Error("AssemblyAI not configured: set ASSEMBLYAI_API_KEY");
+    throw new Error('AssemblyAI not configured: set ASSEMBLYAI_API_KEY');
   }
 
   const uploadUrl = await uploadAudio(apiKey, args.base64);

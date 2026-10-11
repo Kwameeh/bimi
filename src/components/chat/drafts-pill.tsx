@@ -26,7 +26,7 @@ type Props = {
 
 type Variant = 'regenerate' | 'shorter' | 'professional' | 'friendly' | 'custom';
 
-const VARIANT_LABELS: Array<{ key: Variant; label: string }> = [
+const VARIANT_LABELS: { key: Variant; label: string }[] = [
   { key: 'regenerate', label: 'Regenerate' },
   { key: 'shorter', label: 'Shorter' },
   { key: 'professional', label: 'Professional' },
@@ -96,11 +96,7 @@ export function DraftsPill({ instance, contactId }: Props) {
     }
   };
 
-  const applyVariant = async (
-    draftId: Id<'drafts'>,
-    variant: Variant,
-    custom?: string,
-  ) => {
+  const applyVariant = async (draftId: Id<'drafts'>, variant: Variant, custom?: string) => {
     setBusy(draftId);
     setBusyVariant(variant);
     try {
@@ -128,7 +124,8 @@ export function DraftsPill({ instance, contactId }: Props) {
         style={({ pressed }) => [
           styles.pill,
           { backgroundColor: theme.aiAccent, opacity: pressed ? 0.85 : 1 },
-        ]}>
+        ]}
+      >
         <Text style={[styles.pillText, { color: '#FFFFFF' }]}>
           ✦ {drafts.length} draft{drafts.length > 1 ? 's' : ''} ready
         </Text>
@@ -136,194 +133,201 @@ export function DraftsPill({ instance, contactId }: Props) {
       <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
         <KeyboardAvoidingContainer style={{ flex: 1 }}>
           <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable
-            style={[styles.sheet, { backgroundColor: theme.background, borderColor: theme.border }]}
-            onPress={(e) => e.stopPropagation()}>
-            <ThemedText type="smallBold" style={styles.title}>
-              Drafts awaiting approval
-            </ThemedText>
-            <ScrollView contentContainerStyle={{ gap: 12 }}>
-              {drafts.map((d) => {
-                const isBusy = busy === d._id;
-                return (
-                  <View
-                    key={d._id}
-                    style={[
-                      styles.card,
-                      { borderColor: theme.border, backgroundColor: theme.backgroundElement },
-                    ]}>
-                    {editing === d._id ? (
-                      <TextInput
-                        value={editText}
-                        onChangeText={setEditText}
-                        multiline
-                        style={[
-                          styles.input,
-                          {
-                            color: theme.text,
-                            borderColor: theme.border,
-                            backgroundColor: theme.background,
-                          },
-                        ]}
-                      />
-                    ) : (
-                      <Text style={[styles.draftText, { color: theme.text }]}>{d.text}</Text>
-                    )}
-
-                    {editing === d._id ? (
-                      <View style={styles.cardActions}>
-                        <Pressable
-                          onPress={() => setEditing(null)}
-                          style={[styles.btn, { borderColor: theme.border }]}>
-                          <Text style={{ color: theme.text }}>Cancel</Text>
-                        </Pressable>
-                        <Pressable
-                          onPress={saveEdit}
-                          disabled={isBusy}
+            <Pressable
+              style={[
+                styles.sheet,
+                { backgroundColor: theme.background, borderColor: theme.border },
+              ]}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <ThemedText type="smallBold" style={styles.title}>
+                Drafts awaiting approval
+              </ThemedText>
+              <ScrollView contentContainerStyle={{ gap: 12 }}>
+                {drafts.map((d) => {
+                  const isBusy = busy === d._id;
+                  return (
+                    <View
+                      key={d._id}
+                      style={[
+                        styles.card,
+                        { borderColor: theme.border, backgroundColor: theme.backgroundElement },
+                      ]}
+                    >
+                      {editing === d._id ? (
+                        <TextInput
+                          value={editText}
+                          onChangeText={setEditText}
+                          multiline
                           style={[
-                            styles.btn,
-                            styles.btnPrimary,
-                            { backgroundColor: theme.primary },
-                          ]}>
-                          {isBusy ? (
-                            <ActivityIndicator size="small" color={theme.primaryText} />
-                          ) : (
-                            <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
-                              Save
-                            </Text>
-                          )}
-                        </Pressable>
-                      </View>
-                    ) : (
-                      <>
-                        <View style={styles.variantRow}>
-                          {VARIANT_LABELS.map((v) => (
-                            <Pressable
-                              key={v.key}
-                              onPress={() => applyVariant(d._id, v.key)}
-                              disabled={isBusy}
-                              style={[
-                                styles.chip,
-                                { borderColor: theme.border },
-                                isBusy && { opacity: 0.5 },
-                              ]}>
-                              {isBusy && busyVariant === v.key ? (
-                                <ActivityIndicator size="small" color={theme.text} />
-                              ) : (
-                                <Text style={[styles.chipText, { color: theme.text }]}>
-                                  {v.label}
-                                </Text>
-                              )}
-                            </Pressable>
-                          ))}
-                          <Pressable
-                            onPress={() => {
-                              setCustomDraft(d._id);
-                              setCustomTone('');
-                            }}
-                            disabled={isBusy}
-                            style={[
-                              styles.chip,
-                              { borderColor: theme.border },
-                              isBusy && { opacity: 0.5 },
-                            ]}>
-                            <Text style={[styles.chipText, { color: theme.text }]}>
-                              Custom…
-                            </Text>
-                          </Pressable>
-                        </View>
+                            styles.input,
+                            {
+                              color: theme.text,
+                              borderColor: theme.border,
+                              backgroundColor: theme.background,
+                            },
+                          ]}
+                        />
+                      ) : (
+                        <Text style={[styles.draftText, { color: theme.text }]}>{d.text}</Text>
+                      )}
 
-                        {customDraft === d._id ? (
-                          <View style={{ gap: 8 }}>
-                            <TextInput
-                              value={customTone}
-                              onChangeText={setCustomTone}
-                              placeholder='e.g. "in pidgin" or "more apologetic"'
-                              placeholderTextColor={theme.textSecondary}
-                              style={[
-                                styles.input,
-                                {
-                                  color: theme.text,
-                                  borderColor: theme.border,
-                                  backgroundColor: theme.background,
-                                  minHeight: 44,
-                                },
-                              ]}
-                            />
-                            <View style={styles.cardActions}>
-                              <Pressable
-                                onPress={() => {
-                                  setCustomDraft(null);
-                                  setCustomTone('');
-                                }}
-                                style={[styles.btn, { borderColor: theme.border }]}>
-                                <Text style={{ color: theme.text }}>Cancel</Text>
-                              </Pressable>
-                              <Pressable
-                                onPress={() => applyVariant(d._id, 'custom', customTone)}
-                                disabled={isBusy || customTone.trim().length === 0}
-                                style={[
-                                  styles.btn,
-                                  styles.btnPrimary,
-                                  { backgroundColor: theme.primary },
-                                  (isBusy || customTone.trim().length === 0) && {
-                                    opacity: 0.5,
-                                  },
-                                ]}>
-                                {isBusy && busyVariant === 'custom' ? (
-                                  <ActivityIndicator
-                                    size="small"
-                                    color={theme.primaryText}
-                                  />
-                                ) : (
-                                  <Text
-                                    style={{ color: theme.primaryText, fontWeight: '700' }}>
-                                    Apply
-                                  </Text>
-                                )}
-                              </Pressable>
-                            </View>
-                          </View>
-                        ) : null}
-
+                      {editing === d._id ? (
                         <View style={styles.cardActions}>
                           <Pressable
-                            onPress={() => reject(d._id)}
-                            disabled={isBusy}
-                            style={[styles.btn, { borderColor: theme.border }]}>
-                            <Text style={{ color: theme.danger ?? '#EF4444' }}>Reject</Text>
+                            onPress={() => setEditing(null)}
+                            style={[styles.btn, { borderColor: theme.border }]}
+                          >
+                            <Text style={{ color: theme.text }}>Cancel</Text>
                           </Pressable>
                           <Pressable
-                            onPress={() => startEdit(d._id, d.text)}
-                            disabled={isBusy}
-                            style={[styles.btn, { borderColor: theme.border }]}>
-                            <Text style={{ color: theme.text }}>Edit</Text>
-                          </Pressable>
-                          <Pressable
-                            onPress={() => send(d._id)}
+                            onPress={saveEdit}
                             disabled={isBusy}
                             style={[
                               styles.btn,
                               styles.btnPrimary,
                               { backgroundColor: theme.primary },
-                            ]}>
-                            {isBusy && busyVariant === null ? (
+                            ]}
+                          >
+                            {isBusy ? (
                               <ActivityIndicator size="small" color={theme.primaryText} />
                             ) : (
-                              <Text
-                                style={{ color: theme.primaryText, fontWeight: '700' }}>
-                                Send
+                              <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
+                                Save
                               </Text>
                             )}
                           </Pressable>
                         </View>
-                      </>
-                    )}
-                  </View>
-                );
-              })}
-            </ScrollView>
-          </Pressable>
+                      ) : (
+                        <>
+                          <View style={styles.variantRow}>
+                            {VARIANT_LABELS.map((v) => (
+                              <Pressable
+                                key={v.key}
+                                onPress={() => applyVariant(d._id, v.key)}
+                                disabled={isBusy}
+                                style={[
+                                  styles.chip,
+                                  { borderColor: theme.border },
+                                  isBusy && { opacity: 0.5 },
+                                ]}
+                              >
+                                {isBusy && busyVariant === v.key ? (
+                                  <ActivityIndicator size="small" color={theme.text} />
+                                ) : (
+                                  <Text style={[styles.chipText, { color: theme.text }]}>
+                                    {v.label}
+                                  </Text>
+                                )}
+                              </Pressable>
+                            ))}
+                            <Pressable
+                              onPress={() => {
+                                setCustomDraft(d._id);
+                                setCustomTone('');
+                              }}
+                              disabled={isBusy}
+                              style={[
+                                styles.chip,
+                                { borderColor: theme.border },
+                                isBusy && { opacity: 0.5 },
+                              ]}
+                            >
+                              <Text style={[styles.chipText, { color: theme.text }]}>Custom…</Text>
+                            </Pressable>
+                          </View>
+
+                          {customDraft === d._id ? (
+                            <View style={{ gap: 8 }}>
+                              <TextInput
+                                value={customTone}
+                                onChangeText={setCustomTone}
+                                placeholder='e.g. "in pidgin" or "more apologetic"'
+                                placeholderTextColor={theme.textSecondary}
+                                style={[
+                                  styles.input,
+                                  {
+                                    color: theme.text,
+                                    borderColor: theme.border,
+                                    backgroundColor: theme.background,
+                                    minHeight: 44,
+                                  },
+                                ]}
+                              />
+                              <View style={styles.cardActions}>
+                                <Pressable
+                                  onPress={() => {
+                                    setCustomDraft(null);
+                                    setCustomTone('');
+                                  }}
+                                  style={[styles.btn, { borderColor: theme.border }]}
+                                >
+                                  <Text style={{ color: theme.text }}>Cancel</Text>
+                                </Pressable>
+                                <Pressable
+                                  onPress={() => applyVariant(d._id, 'custom', customTone)}
+                                  disabled={isBusy || customTone.trim().length === 0}
+                                  style={[
+                                    styles.btn,
+                                    styles.btnPrimary,
+                                    { backgroundColor: theme.primary },
+                                    (isBusy || customTone.trim().length === 0) && {
+                                      opacity: 0.5,
+                                    },
+                                  ]}
+                                >
+                                  {isBusy && busyVariant === 'custom' ? (
+                                    <ActivityIndicator size="small" color={theme.primaryText} />
+                                  ) : (
+                                    <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
+                                      Apply
+                                    </Text>
+                                  )}
+                                </Pressable>
+                              </View>
+                            </View>
+                          ) : null}
+
+                          <View style={styles.cardActions}>
+                            <Pressable
+                              onPress={() => reject(d._id)}
+                              disabled={isBusy}
+                              style={[styles.btn, { borderColor: theme.border }]}
+                            >
+                              <Text style={{ color: theme.danger ?? '#EF4444' }}>Reject</Text>
+                            </Pressable>
+                            <Pressable
+                              onPress={() => startEdit(d._id, d.text)}
+                              disabled={isBusy}
+                              style={[styles.btn, { borderColor: theme.border }]}
+                            >
+                              <Text style={{ color: theme.text }}>Edit</Text>
+                            </Pressable>
+                            <Pressable
+                              onPress={() => send(d._id)}
+                              disabled={isBusy}
+                              style={[
+                                styles.btn,
+                                styles.btnPrimary,
+                                { backgroundColor: theme.primary },
+                              ]}
+                            >
+                              {isBusy && busyVariant === null ? (
+                                <ActivityIndicator size="small" color={theme.primaryText} />
+                              ) : (
+                                <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
+                                  Send
+                                </Text>
+                              )}
+                            </Pressable>
+                          </View>
+                        </>
+                      )}
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            </Pressable>
           </Pressable>
         </KeyboardAvoidingContainer>
       </Modal>

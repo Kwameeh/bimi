@@ -53,13 +53,15 @@ class CitationRenderer extends Renderer {
             paddingVertical: 1,
             borderRadius: 6,
             alignSelf: 'flex-start',
-          }}>
+          }}
+        >
           <Text
             style={{
               color: this.opts.chipColor,
               fontWeight: '600',
               fontSize: 13,
-            }}>
+            }}
+          >
             @{label}
           </Text>
         </Pressable>
@@ -79,13 +81,15 @@ class CitationRenderer extends Renderer {
             paddingVertical: 1,
             borderRadius: 6,
             alignSelf: 'flex-start',
-          }}>
+          }}
+        >
           <Text
             style={{
               color: this.opts.chipColor,
               fontWeight: '600',
               fontSize: 13,
-            }}>
+            }}
+          >
             {label}
           </Text>
         </Pressable>
@@ -238,9 +242,7 @@ export function AssistantMarkdown({
         }}
         styles={styles}
       />
-      {isStreaming ? (
-        <StreamingCaret color={mutedColor} />
-      ) : null}
+      {isStreaming ? <StreamingCaret color={mutedColor} /> : null}
     </View>
   );
 }
@@ -255,10 +257,7 @@ function StreamingCaret({ color }: { color: string }) {
 
   useEffect(() => {
     opacity.value = withRepeat(
-      withSequence(
-        withTiming(0.15, { duration: 480 }),
-        withTiming(1, { duration: 480 }),
-      ),
+      withSequence(withTiming(0.15, { duration: 480 }), withTiming(1, { duration: 480 })),
       -1,
       true,
     );

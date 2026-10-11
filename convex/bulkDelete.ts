@@ -9,12 +9,10 @@ export const BULK_DELETE_LIMIT = 100;
 
 export function assertBulkSize(ids: readonly unknown[]): void {
   if (ids.length === 0) {
-    throw new Error("Nothing selected");
+    throw new Error('Nothing selected');
   }
   if (ids.length > BULK_DELETE_LIMIT) {
-    throw new Error(
-      `Select at most ${BULK_DELETE_LIMIT} items to delete at once`,
-    );
+    throw new Error(`Select at most ${BULK_DELETE_LIMIT} items to delete at once`);
   }
 }
 

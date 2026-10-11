@@ -41,12 +41,17 @@ function localMinutes(nowMs: number, tz: string | undefined | null): number {
   }
 }
 
-function isQuietNow(pref: {
-  quietHoursEnabled?: boolean;
-  quietHoursStart?: string;
-  quietHoursEnd?: string;
-  quietHoursTimezone?: string;
-} | null | undefined): boolean {
+function isQuietNow(
+  pref:
+    | {
+        quietHoursEnabled?: boolean;
+        quietHoursStart?: string;
+        quietHoursEnd?: string;
+        quietHoursTimezone?: string;
+      }
+    | null
+    | undefined,
+): boolean {
   if (!pref || pref.quietHoursEnabled !== true) return false;
   const start = parseHHmm(pref.quietHoursStart);
   const end = parseHHmm(pref.quietHoursEnd);
@@ -157,7 +162,8 @@ function SendPreview({
           previewStyles.bubble,
           { backgroundColor: theme.bubbleSent },
           draft && { opacity: 0.75 },
-        ]}>
+        ]}
+      >
         {quotedPreview ? (
           <View
             style={[
@@ -166,24 +172,20 @@ function SendPreview({
                 backgroundColor: 'rgba(255,255,255,0.18)',
                 borderLeftColor: theme.primaryText,
               },
-            ]}>
-            <Text
-              style={[
-                previewStyles.quotedAuthor,
-                { color: theme.primaryText },
-              ]}>
+            ]}
+          >
+            <Text style={[previewStyles.quotedAuthor, { color: theme.primaryText }]}>
               {quotedFromMe ? 'You' : contactName}
             </Text>
             <Text
               numberOfLines={2}
-              style={[previewStyles.quotedText, { color: theme.primaryText, opacity: 0.85 }]}>
+              style={[previewStyles.quotedText, { color: theme.primaryText, opacity: 0.85 }]}
+            >
               {quotedPreview}
             </Text>
           </View>
         ) : null}
-        <Text style={[previewStyles.bubbleText, { color: theme.bubbleSentText }]}>
-          {text}
-        </Text>
+        <Text style={[previewStyles.bubbleText, { color: theme.bubbleSentText }]}>{text}</Text>
       </View>
       {draft ? (
         <Text style={[previewStyles.caption, { color: theme.textSecondary }]}>
@@ -203,8 +205,7 @@ function TaskPreview({
   theme: ReturnType<typeof useTheme>;
   mode: 'create' | 'done' | 'delete';
 }) {
-  const title =
-    str(args.title) ?? str(args.taskTitle) ?? 'this task';
+  const title = str(args.title) ?? str(args.taskTitle) ?? 'this task';
   const due = formatDue(args.dueAt);
   const contactName = str(args.contactName);
   return (
@@ -212,20 +213,20 @@ function TaskPreview({
       style={[
         previewStyles.itemCard,
         { borderColor: theme.border, backgroundColor: theme.background },
-      ]}>
+      ]}
+    >
       <Text
         style={[
           previewStyles.itemTitle,
           { color: theme.text },
           mode === 'delete' && { textDecorationLine: 'line-through' },
         ]}
-        numberOfLines={2}>
+        numberOfLines={2}
+      >
         {truncate(title, 120)}
       </Text>
       {due ? (
-        <Text style={[previewStyles.itemMeta, { color: theme.textSecondary }]}>
-          Due {due}
-        </Text>
+        <Text style={[previewStyles.itemMeta, { color: theme.textSecondary }]}>Due {due}</Text>
       ) : null}
       {contactName ? (
         <Text style={[previewStyles.itemMeta, { color: theme.textSecondary }]}>
@@ -253,16 +254,15 @@ function MeetingPreview({
       style={[
         previewStyles.itemCard,
         { borderColor: theme.border, backgroundColor: theme.background },
-      ]}>
+      ]}
+    >
       <Text style={[previewStyles.itemTitle, { color: theme.text }]} numberOfLines={2}>
         {mode === 'accept' ? 'Accept' : 'Decline'}
         {title ? `: ${truncate(title, 80)}` : ' meeting'}
         {contactName ? ` with ${contactName}` : ''}
       </Text>
       {startAt ? (
-        <Text style={[previewStyles.itemMeta, { color: theme.textSecondary }]}>
-          {startAt}
-        </Text>
+        <Text style={[previewStyles.itemMeta, { color: theme.textSecondary }]}>{startAt}</Text>
       ) : null}
     </View>
   );
@@ -308,9 +308,7 @@ export function ConfirmCard({ row }: Props) {
 
   const toolName = row.toolName ?? '';
   const args = (row.toolArgs ?? {}) as Record<string, unknown>;
-  const copy =
-    DESTRUCTIVE_DESCRIPTION[toolName]?.(args) ??
-    'Bimi wants to perform this action.';
+  const copy = DESTRUCTIVE_DESCRIPTION[toolName]?.(args) ?? 'Bimi wants to perform this action.';
 
   const resolve = async (approved: boolean) => {
     if (confirming) return;
@@ -329,17 +327,16 @@ export function ConfirmCard({ row }: Props) {
 
   return (
     <View
-      style={[
-        styles.card,
-        { borderColor: '#F59E0B', backgroundColor: theme.backgroundElement },
-      ]}>
+      style={[styles.card, { borderColor: '#F59E0B', backgroundColor: theme.backgroundElement }]}
+    >
       <Text style={[styles.copy, { color: theme.text }]}>{copy}</Text>
       <ConfirmPreview toolName={toolName} args={args} theme={theme} />
       <View style={styles.actions}>
         <Pressable
           onPress={() => resolve(false)}
           disabled={confirming}
-          style={[styles.btn, { borderColor: theme.border }]}>
+          style={[styles.btn, { borderColor: theme.border }]}
+        >
           <Text style={{ color: theme.text, fontWeight: '600' }}>Deny</Text>
         </Pressable>
         <Pressable
@@ -350,7 +347,8 @@ export function ConfirmCard({ row }: Props) {
             styles.btnPrimary,
             { backgroundColor: theme.primary },
             confirming && { opacity: 0.5 },
-          ]}>
+          ]}
+        >
           {confirming ? (
             <ActivityIndicator size="small" color={theme.primaryText} />
           ) : (
