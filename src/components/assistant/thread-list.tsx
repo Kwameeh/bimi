@@ -51,9 +51,7 @@ export function ThreadList({
 
   const listed = useQuery(
     api.assistant.listThreads,
-    debounced.length === 0
-      ? { instance, limit: 50, includeArchived }
-      : 'skip',
+    debounced.length === 0 ? { instance, limit: 50, includeArchived } : 'skip',
   );
   const found = useQuery(
     api.assistant.searchThreads,
@@ -94,114 +92,114 @@ export function ThreadList({
     <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingContainer style={{ flex: 1 }}>
         <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable
-          style={[styles.sheet, { backgroundColor: theme.background, borderColor: theme.border }]}
-          onPress={(e) => e.stopPropagation()}>
-          <View style={styles.headerRow}>
-            <ThemedText type="smallBold">Conversations</ThemedText>
-            <Pressable
-              onPress={() => {
-                onCreate();
-                onClose();
-              }}
-              style={[styles.newBtn, { backgroundColor: theme.primary }]}>
-              <Text style={{ color: theme.primaryText, fontWeight: '700' }}>+ New</Text>
-            </Pressable>
-          </View>
+          <Pressable
+            style={[styles.sheet, { backgroundColor: theme.background, borderColor: theme.border }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.headerRow}>
+              <ThemedText type="smallBold">Conversations</ThemedText>
+              <Pressable
+                onPress={() => {
+                  onCreate();
+                  onClose();
+                }}
+                style={[styles.newBtn, { backgroundColor: theme.primary }]}
+              >
+                <Text style={{ color: theme.primaryText, fontWeight: '700' }}>+ New</Text>
+              </Pressable>
+            </View>
 
-          <TextInput
-            value={search}
-            onChangeText={setSearch}
-            placeholder="Search conversations…"
-            placeholderTextColor={theme.textSecondary}
-            style={[
-              styles.search,
-              {
-                color: theme.text,
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundElement,
-              },
-            ]}
-          />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search conversations…"
+              placeholderTextColor={theme.textSecondary}
+              style={[
+                styles.search,
+                {
+                  color: theme.text,
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundElement,
+                },
+              ]}
+            />
 
-          <ScrollView style={{ maxHeight: 420 }}>
-            {threads === undefined ? (
-              <ActivityIndicator color={theme.primary} />
-            ) : threads.length === 0 ? (
-              <ThemedText type="small" themeColor="textSecondary" style={{ paddingVertical: 12 }}>
-                {debounced.length > 0
-                  ? 'No matches.'
-                  : 'No conversations yet.'}
-              </ThemedText>
-            ) : (
-              threads.map((t) => {
-                const active = t._id === activeThreadId;
-                const pinned = t.pinned === true;
-                const archived = t.archived === true;
-                return (
-                  <Pressable
-                    key={t._id}
-                    onPress={() => {
-                      onSelect(t._id);
-                      onClose();
-                    }}
-                    onLongPress={() => openLongPress(t)}
-                    style={({ pressed }) => [
-                      styles.row,
-                      { borderTopColor: theme.border },
-                      active && { backgroundColor: theme.backgroundSelected },
-                      pressed && { opacity: 0.7 },
-                    ]}>
-                    <View style={{ flex: 1 }}>
-                      <View style={styles.titleRow}>
-                        {pinned ? (
-                          <AppIcon name="dot" tintColor={theme.primary} size={8} />
-                        ) : null}
-                        <Text
-                          style={[
-                            styles.title,
-                            { color: archived ? theme.textSecondary : theme.text },
-                          ]}
-                          numberOfLines={1}>
-                          {t.title ?? 'Untitled'}
+            <ScrollView style={{ maxHeight: 420 }}>
+              {threads === undefined ? (
+                <ActivityIndicator color={theme.primary} />
+              ) : threads.length === 0 ? (
+                <ThemedText type="small" themeColor="textSecondary" style={{ paddingVertical: 12 }}>
+                  {debounced.length > 0 ? 'No matches.' : 'No conversations yet.'}
+                </ThemedText>
+              ) : (
+                threads.map((t) => {
+                  const active = t._id === activeThreadId;
+                  const pinned = t.pinned === true;
+                  const archived = t.archived === true;
+                  return (
+                    <Pressable
+                      key={t._id}
+                      onPress={() => {
+                        onSelect(t._id);
+                        onClose();
+                      }}
+                      onLongPress={() => openLongPress(t)}
+                      style={({ pressed }) => [
+                        styles.row,
+                        { borderTopColor: theme.border },
+                        active && { backgroundColor: theme.backgroundSelected },
+                        pressed && { opacity: 0.7 },
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.titleRow}>
+                          {pinned ? (
+                            <AppIcon name="dot" tintColor={theme.primary} size={8} />
+                          ) : null}
+                          <Text
+                            style={[
+                              styles.title,
+                              { color: archived ? theme.textSecondary : theme.text },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {t.title ?? 'Untitled'}
+                          </Text>
+                        </View>
+                        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+                          {new Date(t.lastMessageAt).toLocaleString()}
                         </Text>
                       </View>
-                      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-                        {new Date(t.lastMessageAt).toLocaleString()}
-                      </Text>
-                    </View>
-                    <Pressable
-                      onPress={() =>
-                        Alert.alert('Delete conversation?', t.title ?? 'Untitled', [
-                          { text: 'Cancel', style: 'cancel' },
-                          {
-                            text: 'Delete',
-                            style: 'destructive',
-                            onPress: () => deleteThread({ threadId: t._id }),
-                          },
-                        ])
-                      }
-                      hitSlop={8}>
-                      <Text style={{ color: theme.textSecondary, fontSize: 18 }}>×</Text>
+                      <Pressable
+                        onPress={() =>
+                          Alert.alert('Delete conversation?', t.title ?? 'Untitled', [
+                            { text: 'Cancel', style: 'cancel' },
+                            {
+                              text: 'Delete',
+                              style: 'destructive',
+                              onPress: () => deleteThread({ threadId: t._id }),
+                            },
+                          ])
+                        }
+                        hitSlop={8}
+                      >
+                        <Text style={{ color: theme.textSecondary, fontSize: 18 }}>×</Text>
+                      </Pressable>
                     </Pressable>
-                  </Pressable>
-                );
-              })
-            )}
-          </ScrollView>
+                  );
+                })
+              )}
+            </ScrollView>
 
-          {debounced.length === 0 ? (
-            <View style={styles.archivedRow}>
-              <Text style={[styles.archivedLabel, { color: theme.textSecondary }]}>
-                Show archived
-              </Text>
-              <Switch
-                value={includeArchived}
-                onValueChange={setIncludeArchived}
-              />
-            </View>
-          ) : null}
-        </Pressable>
+            {debounced.length === 0 ? (
+              <View style={styles.archivedRow}>
+                <Text style={[styles.archivedLabel, { color: theme.textSecondary }]}>
+                  Show archived
+                </Text>
+                <Switch value={includeArchived} onValueChange={setIncludeArchived} />
+              </View>
+            ) : null}
+          </Pressable>
         </Pressable>
       </KeyboardAvoidingContainer>
     </Modal>

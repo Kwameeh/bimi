@@ -47,7 +47,13 @@ function getPermissionCopy(permission: ContactPermissionState) {
 }
 
 function contactName(contact: SyncContact) {
-  return contact.displayName ?? contact.pushName ?? contact.phoneNumber ?? contact.normalizedPhone ?? 'Unnamed';
+  return (
+    contact.displayName ??
+    contact.pushName ??
+    contact.phoneNumber ??
+    contact.normalizedPhone ??
+    'Unnamed'
+  );
 }
 
 function contactPhone(contact: SyncContact) {
@@ -173,8 +179,14 @@ export default function ContactsSyncScreen() {
   );
 
   useEffect(() => {
-    void loadPermission();
-  }, [loadPermission]);
+    let active = true;
+    void getContactPermissionState().then((state) => {
+      if (active) setPermission(state);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (permission !== 'granted' && permission !== 'limited') return undefined;
@@ -232,10 +244,15 @@ export default function ContactsSyncScreen() {
                   styles.primaryButton,
                   { backgroundColor: theme.text },
                   (pressed || syncing) && styles.pressed,
-                ]}>
+                ]}
+              >
                 <SymbolView
                   tintColor={theme.background}
-                  name={{ ios: canReadContacts ? 'arrow.triangle.2.circlepath' : 'person.badge.plus', android: 'sync', web: 'sync' }}
+                  name={{
+                    ios: canReadContacts ? 'arrow.triangle.2.circlepath' : 'person.badge.plus',
+                    android: 'sync',
+                    web: 'sync',
+                  }}
                   size={16}
                 />
                 <ThemedText type="smallBold" style={{ color: theme.background }}>
@@ -359,7 +376,8 @@ function ContactRow({
           styles.secondaryButton,
           { borderColor: theme.backgroundSelected },
           (pressed || disabled) && styles.pressed,
-        ]}>
+        ]}
+      >
         <SymbolView
           tintColor={theme.text}
           name={{ ios: 'plus.circle', android: 'add_circle', web: 'add_circle' }}

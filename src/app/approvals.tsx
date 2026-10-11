@@ -18,7 +18,7 @@ import type { Id } from '../../convex/_generated/dataModel';
 
 type Filter = 'all' | 'urgent' | 'high' | 'normal' | 'low';
 
-const FILTERS: Array<{ key: Filter; label: string }> = [
+const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'urgent', label: 'Urgent' },
   { key: 'high', label: 'High' },
@@ -58,110 +58,115 @@ export default function ApprovalsScreen() {
     <ThemedView style={styles.container}>
       <KeyboardAvoidingContainer style={styles.safe}>
         <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <ThemedText type="title">Approvals</ThemedText>
-            {items !== undefined && items.length > 0 && !selection.active ? (
-              <SelectButton onPress={selection.enter} />
-            ) : null}
-          </View>
-          <ThemedText type="small" themeColor="textSecondary">
-            {items === undefined
-              ? 'Loading…'
-              : items.length === 0
-                ? 'Nothing waiting.'
-                : `${items.length} pending`}
-          </ThemedText>
-        </View>
-
-        {selection.active ? (
-          <SelectionBar
-            count={selection.count}
-            total={visibleIds.length}
-            noun="draft"
-            busy={deleting}
-            onSelectAll={() => selection.setAll(visibleIds)}
-            onDelete={() => void deleteSelected()}
-            onCancel={selection.exit}
-          />
-        ) : null}
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}>
-          {FILTERS.map((f) => {
-            const active = filter === f.key;
-            return (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                key={f.key}
-                onPress={() => setFilter(f.key)}
-                style={[
-                  styles.filterChip,
-                  { borderColor: theme.border },
-                  active && {
-                    backgroundColor: theme.primary,
-                    borderColor: theme.primary,
-                  },
-                ]}>
-                <Text
-                  style={{
-                    color: active ? theme.primaryText : theme.text,
-                    fontWeight: '600',
-                    fontSize: 13,
-                  }}>
-                  {f.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        {items === undefined ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={theme.primary} />
-          </View>
-        ) : items.length === 0 ? (
-          <View style={styles.center}>
-            <ThemedText type="smallBold">All caught up</ThemedText>
+          <View style={styles.header}>
+            <View style={styles.headerRow}>
+              <ThemedText type="title">Approvals</ThemedText>
+              {items !== undefined && items.length > 0 && !selection.active ? (
+                <SelectButton onPress={selection.enter} />
+              ) : null}
+            </View>
             <ThemedText type="small" themeColor="textSecondary">
-              No drafts are waiting for your approval.
+              {items === undefined
+                ? 'Loading…'
+                : items.length === 0
+                  ? 'Nothing waiting.'
+                  : `${items.length} pending`}
             </ThemedText>
           </View>
-        ) : (
+
+          {selection.active ? (
+            <SelectionBar
+              count={selection.count}
+              total={visibleIds.length}
+              noun="draft"
+              busy={deleting}
+              onSelectAll={() => selection.setAll(visibleIds)}
+              onDelete={() => void deleteSelected()}
+              onCancel={selection.exit}
+            />
+          ) : null}
+
           <ScrollView
-            contentInsetAdjustmentBehavior="automatic"
-            contentContainerStyle={styles.list}>
-            {items.map((it) => {
-              const id = it.draft._id as Id<'drafts'>;
-              const checked = selection.isSelected(id);
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterRow}
+          >
+            {FILTERS.map((f) => {
+              const active = filter === f.key;
               return (
                 <Pressable
-                  key={it.draft._id}
-                  onPress={selection.active ? () => selection.toggle(id) : undefined}
-                  onLongPress={selection.active ? undefined : () => selection.begin(id)}
-                  delayLongPress={350}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  key={f.key}
+                  onPress={() => setFilter(f.key)}
                   style={[
-                    styles.row,
-                    selection.active && checked && { borderColor: theme.primary },
-                  ]}>
-                  {selection.active ? (
-                    <View style={styles.rowCheck}>
-                      <SelectionCheck checked={checked} />
-                    </View>
-                  ) : null}
-                  {/* The card's own Send/Edit/Reject buttons would fight the
-                      row for the tap, so it goes inert while selecting. */}
-                  <View style={styles.rowBody} pointerEvents={selection.active ? 'none' : 'auto'}>
-                    <ApprovalCard item={it} />
-                  </View>
+                    styles.filterChip,
+                    { borderColor: theme.border },
+                    active && {
+                      backgroundColor: theme.primary,
+                      borderColor: theme.primary,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: active ? theme.primaryText : theme.text,
+                      fontWeight: '600',
+                      fontSize: 13,
+                    }}
+                  >
+                    {f.label}
+                  </Text>
                 </Pressable>
               );
             })}
           </ScrollView>
-        )}
+
+          {items === undefined ? (
+            <View style={styles.center}>
+              <ActivityIndicator color={theme.primary} />
+            </View>
+          ) : items.length === 0 ? (
+            <View style={styles.center}>
+              <ThemedText type="smallBold">All caught up</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                No drafts are waiting for your approval.
+              </ThemedText>
+            </View>
+          ) : (
+            <ScrollView
+              contentInsetAdjustmentBehavior="automatic"
+              contentContainerStyle={styles.list}
+            >
+              {items.map((it) => {
+                const id = it.draft._id as Id<'drafts'>;
+                const checked = selection.isSelected(id);
+                return (
+                  <Pressable
+                    key={it.draft._id}
+                    onPress={selection.active ? () => selection.toggle(id) : undefined}
+                    onLongPress={selection.active ? undefined : () => selection.begin(id)}
+                    delayLongPress={350}
+                    style={[
+                      styles.row,
+                      selection.active && checked && { borderColor: theme.primary },
+                    ]}
+                  >
+                    {selection.active ? (
+                      <View style={styles.rowCheck}>
+                        <SelectionCheck checked={checked} />
+                      </View>
+                    ) : null}
+                    {/* The card's own Send/Edit/Reject buttons would fight the
+                      row for the tap, so it goes inert while selecting. */}
+                    <View style={styles.rowBody} pointerEvents={selection.active ? 'none' : 'auto'}>
+                      <ApprovalCard item={it} />
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
         </SafeAreaView>
       </KeyboardAvoidingContainer>
     </ThemedView>

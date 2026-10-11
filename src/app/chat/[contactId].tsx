@@ -2,13 +2,7 @@ import { FlashList } from '@shopify/flash-list';
 import { useAction, useMutation, usePaginatedQuery, useQuery } from 'convex/react';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/chat/avatar';
@@ -212,7 +206,8 @@ export default function ConversationScreen() {
                       backgroundColor: theme.aiAccent,
                       opacity: pressed ? 0.85 : 1,
                     },
-                  ]}>
+                  ]}
+                >
                   <ThemedText style={styles.sparkleText}>✦</ThemedText>
                 </Pressable>
                 <DraftsPill instance={instance} contactId={validContactId} />
@@ -321,7 +316,8 @@ function Header(props: {
       <Pressable
         onPress={props.onTapHeader}
         style={styles.headerCenter}
-        disabled={!props.onTapHeader}>
+        disabled={!props.onTapHeader}
+      >
         <Avatar
           name={props.avatarName}
           isGroup={props.isGroup}

@@ -1,0 +1,10 @@
+node_modules
+dist
+.expo
+android
+ios
+bun.lock
+convex/_generated
+.migration
+*.bak
+deploy.tar.gz

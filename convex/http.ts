@@ -1,8 +1,8 @@
-import { httpRouter } from "convex/server";
-import { httpAction } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { ACTION_REQUEST_PATTERN } from "./replyRules";
-import { detectMentions, isNoiseMessage } from "./mentions";
+import { httpRouter } from 'convex/server';
+import { httpAction } from './_generated/server';
+import { internal } from './_generated/api';
+import { ACTION_REQUEST_PATTERN } from './replyRules';
+import { detectMentions, isNoiseMessage } from './mentions';
 
 const http = httpRouter();
 
@@ -10,7 +10,7 @@ const PDF_PAGE_LIMIT = 20;
 const PDF_BYTES_LIMIT = 5 * 1024 * 1024;
 
 function isRecord(value: unknown): value is Record<string, any> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function redactSensitiveFields(value: unknown): unknown {
@@ -26,14 +26,14 @@ function redactSensitiveFields(value: unknown): unknown {
   for (const [key, nestedValue] of Object.entries(value)) {
     const lowerKey = key.toLowerCase();
     if (
-      lowerKey === "base64" ||
-      lowerKey.includes("apikey") ||
-      lowerKey.includes("api_key") ||
-      lowerKey.includes("token") ||
-      lowerKey.includes("secret") ||
-      lowerKey.includes("authorization")
+      lowerKey === 'base64' ||
+      lowerKey.includes('apikey') ||
+      lowerKey.includes('api_key') ||
+      lowerKey.includes('token') ||
+      lowerKey.includes('secret') ||
+      lowerKey.includes('authorization')
     ) {
-      redacted[key] = "[REDACTED]";
+      redacted[key] = '[REDACTED]';
     } else {
       redacted[key] = redactSensitiveFields(nestedValue);
     }
@@ -54,28 +54,30 @@ function getMessagePreview(payload: unknown) {
   const documentMessage = isRecord(message?.documentMessage) ? message.documentMessage : undefined;
   const videoMessage = isRecord(message?.videoMessage) ? message.videoMessage : undefined;
   const stickerMessage = isRecord(message?.stickerMessage) ? message.stickerMessage : undefined;
-  const extendedText = isRecord(message?.extendedTextMessage) ? message.extendedTextMessage : undefined;
+  const extendedText = isRecord(message?.extendedTextMessage)
+    ? message.extendedTextMessage
+    : undefined;
   const mediaMessage =
     imageMessage ?? audioMessage ?? documentMessage ?? videoMessage ?? stickerMessage;
 
   const base64Candidate =
-    (typeof message?.base64 === "string" ? message.base64 : undefined) ??
-    (typeof data?.base64 === "string" ? data.base64 : undefined) ??
-    (typeof mediaMessage?.base64 === "string" ? mediaMessage.base64 : undefined);
+    (typeof message?.base64 === 'string' ? message.base64 : undefined) ??
+    (typeof data?.base64 === 'string' ? data.base64 : undefined) ??
+    (typeof mediaMessage?.base64 === 'string' ? mediaMessage.base64 : undefined);
 
   const fileLength =
-    typeof documentMessage?.fileLength === "number"
+    typeof documentMessage?.fileLength === 'number'
       ? documentMessage.fileLength
-      : typeof documentMessage?.fileLength === "string"
+      : typeof documentMessage?.fileLength === 'string'
         ? Number(documentMessage.fileLength)
-        : typeof mediaMessage?.fileLength === "number"
+        : typeof mediaMessage?.fileLength === 'number'
           ? mediaMessage.fileLength
           : undefined;
 
   const captionCandidate =
-    (typeof imageMessage?.caption === "string" ? imageMessage.caption : undefined) ??
-    (typeof documentMessage?.caption === "string" ? documentMessage.caption : undefined) ??
-    (typeof videoMessage?.caption === "string" ? videoMessage.caption : undefined);
+    (typeof imageMessage?.caption === 'string' ? imageMessage.caption : undefined) ??
+    (typeof documentMessage?.caption === 'string' ? documentMessage.caption : undefined) ??
+    (typeof videoMessage?.caption === 'string' ? videoMessage.caption : undefined);
 
   const contextInfoCandidate =
     (isRecord(extendedText?.contextInfo) ? extendedText.contextInfo : undefined) ??
@@ -87,16 +89,15 @@ function getMessagePreview(payload: unknown) {
 
   const mentionedJids = Array.isArray(contextInfoCandidate?.mentionedJid)
     ? contextInfoCandidate.mentionedJid.filter(
-        (j: unknown): j is string => typeof j === "string" && j.length > 0,
+        (j: unknown): j is string => typeof j === 'string' && j.length > 0,
       )
     : undefined;
   const quotedMessageId =
-    typeof contextInfoCandidate?.stanzaId === "string" &&
-    contextInfoCandidate.stanzaId.length > 0
+    typeof contextInfoCandidate?.stanzaId === 'string' && contextInfoCandidate.stanzaId.length > 0
       ? contextInfoCandidate.stanzaId
       : undefined;
   const quotedParticipant =
-    typeof contextInfoCandidate?.participant === "string" &&
+    typeof contextInfoCandidate?.participant === 'string' &&
     contextInfoCandidate.participant.length > 0
       ? contextInfoCandidate.participant
       : undefined;
@@ -119,17 +120,18 @@ function getMessagePreview(payload: unknown) {
     mediaUrl: mediaMessage?.url,
     mediaWidth: imageMessage?.width,
     mediaHeight: imageMessage?.height,
-    mediaSeconds: typeof audioMessage?.seconds === "number" ? audioMessage.seconds : undefined,
+    mediaSeconds: typeof audioMessage?.seconds === 'number' ? audioMessage.seconds : undefined,
     mediaPageCount:
-      typeof documentMessage?.pageCount === "number" ? documentMessage.pageCount : undefined,
-    mediaFileLength: typeof fileLength === "number" && !Number.isNaN(fileLength) ? fileLength : undefined,
+      typeof documentMessage?.pageCount === 'number' ? documentMessage.pageCount : undefined,
+    mediaFileLength:
+      typeof fileLength === 'number' && !Number.isNaN(fileLength) ? fileLength : undefined,
     base64: base64Candidate,
     timestamp: data?.messageTimestamp,
     source: data?.source,
     owner:
-      typeof payload.owner === "string"
+      typeof payload.owner === 'string'
         ? payload.owner
-        : typeof data?.owner === "string"
+        : typeof data?.owner === 'string'
           ? data.owner
           : undefined,
     mentionedJids: mentionedJids && mentionedJids.length > 0 ? mentionedJids : undefined,
@@ -158,8 +160,7 @@ function detectFlags(text: string): {
 } {
   const t = text.trim();
   return {
-    needsReply:
-      QUESTION_PATTERN.test(t) || ACTION_REQUEST_PATTERN.test(t),
+    needsReply: QUESTION_PATTERN.test(t) || ACTION_REQUEST_PATTERN.test(t),
     isUrgent: URGENT_PATTERN.test(t),
     hasDeadline: DEADLINE_PATTERN.test(t),
     isMeeting: MEETING_PATTERN.test(t),
@@ -175,7 +176,7 @@ type IngestArgs = {
   messageType: string;
   text: string;
   caption?: string;
-  status: "ready" | "processing" | "failed" | "skipped";
+  status: 'ready' | 'processing' | 'failed' | 'skipped';
   pushName?: string;
   timestamp?: number;
   mediaMimeType?: string;
@@ -203,123 +204,131 @@ function buildPdfPlaceholder(args: {
   fileLength?: number;
   tooLong: boolean;
 }): string {
-  const name = args.fileName ?? "untitled.pdf";
+  const name = args.fileName ?? 'untitled.pdf';
   const parts: string[] = [name];
   if (args.pageCount !== undefined) parts.push(`${args.pageCount} pages`);
   if (args.fileLength !== undefined) parts.push(formatBytes(args.fileLength));
-  const meta = parts.join(", ");
+  const meta = parts.join(', ');
   return args.tooLong
     ? `[Long PDF: ${meta}. Too large to summarize — please review manually.]`
     : `[PDF: ${meta}. Auto-summary not yet implemented.]`;
 }
 
-function planIngest(preview: ReturnType<typeof getMessagePreview>): {
-  args: IngestArgs;
-  scheduleProcessing: boolean;
-} | { skipped: string } {
-  if (!preview) return { skipped: "no_preview" };
-  if (typeof preview.instance !== "string" || !preview.instance) return { skipped: "missing_instance" };
-  if (typeof preview.remoteJid !== "string" || !preview.remoteJid) return { skipped: "missing_remoteJid" };
-  if (typeof preview.messageId !== "string" || !preview.messageId) return { skipped: "missing_messageId" };
-  if (typeof preview.messageType !== "string" || !preview.messageType) return { skipped: "missing_messageType" };
+function planIngest(preview: ReturnType<typeof getMessagePreview>):
+  | {
+      args: IngestArgs;
+      scheduleProcessing: boolean;
+    }
+  | { skipped: string } {
+  if (!preview) return { skipped: 'no_preview' };
+  if (typeof preview.instance !== 'string' || !preview.instance)
+    return { skipped: 'missing_instance' };
+  if (typeof preview.remoteJid !== 'string' || !preview.remoteJid)
+    return { skipped: 'missing_remoteJid' };
+  if (typeof preview.messageId !== 'string' || !preview.messageId)
+    return { skipped: 'missing_messageId' };
+  if (typeof preview.messageType !== 'string' || !preview.messageType)
+    return { skipped: 'missing_messageType' };
 
-  const isGroup = preview.remoteJid.endsWith("@g.us");
-  const base: Omit<IngestArgs, "text" | "status"> = {
+  const isGroup = preview.remoteJid.endsWith('@g.us');
+  const base: Omit<IngestArgs, 'text' | 'status'> = {
     instance: preview.instance,
     remoteJid: preview.remoteJid,
     remoteJidAlt:
-      typeof preview.remoteJidAlt === "string" && preview.remoteJidAlt.length > 0
+      typeof preview.remoteJidAlt === 'string' && preview.remoteJidAlt.length > 0
         ? preview.remoteJidAlt
         : undefined,
     messageId: preview.messageId,
     fromMe: preview.fromMe === true,
     messageType: preview.messageType,
-    caption: typeof preview.caption === "string" ? preview.caption : undefined,
-    pushName: typeof preview.pushName === "string" ? preview.pushName : undefined,
-    timestamp: typeof preview.timestamp === "number" ? preview.timestamp : undefined,
-    mediaMimeType: typeof preview.mediaMimeType === "string" ? preview.mediaMimeType : undefined,
-    mediaFileName: typeof preview.mediaFileName === "string" ? preview.mediaFileName : undefined,
-    mediaSeconds: typeof preview.mediaSeconds === "number" ? preview.mediaSeconds : undefined,
-    mediaPageCount: typeof preview.mediaPageCount === "number" ? preview.mediaPageCount : undefined,
-    mediaFileLength: typeof preview.mediaFileLength === "number" ? preview.mediaFileLength : undefined,
+    caption: typeof preview.caption === 'string' ? preview.caption : undefined,
+    pushName: typeof preview.pushName === 'string' ? preview.pushName : undefined,
+    timestamp: typeof preview.timestamp === 'number' ? preview.timestamp : undefined,
+    mediaMimeType: typeof preview.mediaMimeType === 'string' ? preview.mediaMimeType : undefined,
+    mediaFileName: typeof preview.mediaFileName === 'string' ? preview.mediaFileName : undefined,
+    mediaSeconds: typeof preview.mediaSeconds === 'number' ? preview.mediaSeconds : undefined,
+    mediaPageCount: typeof preview.mediaPageCount === 'number' ? preview.mediaPageCount : undefined,
+    mediaFileLength:
+      typeof preview.mediaFileLength === 'number' ? preview.mediaFileLength : undefined,
     participant:
-      isGroup && typeof preview.participant === "string" && preview.participant.length > 0
+      isGroup && typeof preview.participant === 'string' && preview.participant.length > 0
         ? preview.participant
         : undefined,
     participantPushName:
-      isGroup && typeof preview.pushName === "string" && preview.pushName.length > 0
+      isGroup && typeof preview.pushName === 'string' && preview.pushName.length > 0
         ? preview.pushName
         : undefined,
     mentionedJids: preview.mentionedJids,
     quotedMessageId: preview.quotedMessageId,
     quotedParticipant: preview.quotedParticipant,
-    owner: typeof preview.owner === "string" ? preview.owner : undefined,
+    owner: typeof preview.owner === 'string' ? preview.owner : undefined,
   };
 
   switch (preview.messageType) {
-    case "conversation":
-    case "extendedTextMessage": {
-      if (typeof preview.text !== "string" || preview.text.length === 0) {
-        return { skipped: "empty_text" };
+    case 'conversation':
+    case 'extendedTextMessage': {
+      if (typeof preview.text !== 'string' || preview.text.length === 0) {
+        return { skipped: 'empty_text' };
       }
       return {
-        args: { ...base, text: preview.text, status: "ready" },
+        args: { ...base, text: preview.text, status: 'ready' },
         scheduleProcessing: false,
       };
     }
-    case "imageMessage": {
-      const hasBase64 = typeof preview.base64 === "string" && preview.base64.length > 0;
+    case 'imageMessage': {
+      const hasBase64 = typeof preview.base64 === 'string' && preview.base64.length > 0;
       return {
         args: {
           ...base,
-          text: hasBase64 ? "[Image received — describing...]" : "[Image received — no media payload]",
-          status: hasBase64 ? "processing" : "failed",
+          text: hasBase64
+            ? '[Image received — describing...]'
+            : '[Image received — no media payload]',
+          status: hasBase64 ? 'processing' : 'failed',
         },
         scheduleProcessing: hasBase64,
       };
     }
-    case "audioMessage": {
-      const hasBase64 = typeof preview.base64 === "string" && preview.base64.length > 0;
+    case 'audioMessage': {
+      const hasBase64 = typeof preview.base64 === 'string' && preview.base64.length > 0;
       return {
         args: {
           ...base,
-          text: hasBase64 ? "[Voice note received — transcribing...]" : "[Voice note received — no media payload]",
-          status: hasBase64 ? "processing" : "failed",
+          text: hasBase64
+            ? '[Voice note received — transcribing...]'
+            : '[Voice note received — no media payload]',
+          status: hasBase64 ? 'processing' : 'failed',
         },
         scheduleProcessing: hasBase64,
       };
     }
-    case "documentMessage": {
-      const mt = (preview.mediaMimeType ?? "").toLowerCase();
-      const fn = (preview.mediaFileName ?? "").toLowerCase();
-      const isPdf = mt.includes("pdf") || fn.endsWith(".pdf");
+    case 'documentMessage': {
+      const mt = (preview.mediaMimeType ?? '').toLowerCase();
+      const fn = (preview.mediaFileName ?? '').toLowerCase();
+      const isPdf = mt.includes('pdf') || fn.endsWith('.pdf');
       const isDocx =
-        mt.includes("officedocument.wordprocessingml") ||
-        mt.includes("msword") ||
-        fn.endsWith(".docx") ||
-        fn.endsWith(".doc");
+        mt.includes('officedocument.wordprocessingml') ||
+        mt.includes('msword') ||
+        fn.endsWith('.docx') ||
+        fn.endsWith('.doc');
       const isTxt =
-        mt.startsWith("text/") ||
-        fn.endsWith(".txt") ||
-        fn.endsWith(".md") ||
-        fn.endsWith(".csv");
+        mt.startsWith('text/') || fn.endsWith('.txt') || fn.endsWith('.md') || fn.endsWith('.csv');
       const isSupported = isPdf || isDocx || isTxt;
 
       if (!isSupported) {
         return {
           args: {
             ...base,
-            text: `[Document: ${preview.mediaFileName ?? "unknown"} (${preview.mediaMimeType ?? "unknown type"})]`,
-            status: "skipped",
+            text: `[Document: ${preview.mediaFileName ?? 'unknown'} (${preview.mediaMimeType ?? 'unknown type'})]`,
+            status: 'skipped',
           },
           scheduleProcessing: false,
         };
       }
 
       const tooLong =
-        (typeof preview.mediaPageCount === "number" && preview.mediaPageCount > PDF_PAGE_LIMIT) ||
-        (typeof preview.mediaFileLength === "number" && preview.mediaFileLength > PDF_BYTES_LIMIT);
-      const hasBase64 = typeof preview.base64 === "string" && preview.base64.length > 0;
+        (typeof preview.mediaPageCount === 'number' && preview.mediaPageCount > PDF_PAGE_LIMIT) ||
+        (typeof preview.mediaFileLength === 'number' && preview.mediaFileLength > PDF_BYTES_LIMIT);
+      const hasBase64 = typeof preview.base64 === 'string' && preview.base64.length > 0;
 
       if (tooLong || !hasBase64) {
         return {
@@ -331,18 +340,18 @@ function planIngest(preview: ReturnType<typeof getMessagePreview>): {
               fileLength: base.mediaFileLength,
               tooLong: true,
             }),
-            status: tooLong ? "ready" : "failed",
+            status: tooLong ? 'ready' : 'failed',
           },
           scheduleProcessing: false,
         };
       }
 
-      const docLabel = isPdf ? "PDF" : isDocx ? "DOCX" : "TXT";
+      const docLabel = isPdf ? 'PDF' : isDocx ? 'DOCX' : 'TXT';
       return {
         args: {
           ...base,
-          text: `[${docLabel}: ${preview.mediaFileName ?? "untitled"} — summarizing...]`,
-          status: "processing",
+          text: `[${docLabel}: ${preview.mediaFileName ?? 'untitled'} — summarizing...]`,
+          status: 'processing',
         },
         scheduleProcessing: true,
       };
@@ -352,7 +361,7 @@ function planIngest(preview: ReturnType<typeof getMessagePreview>): {
         args: {
           ...base,
           text: `[${preview.messageType} received — not handled]`,
-          status: "skipped",
+          status: 'skipped',
         },
         scheduleProcessing: false,
       };
@@ -360,17 +369,17 @@ function planIngest(preview: ReturnType<typeof getMessagePreview>): {
   }
 }
 
-type DeliveryStatus = "pending" | "sent" | "delivered" | "read" | "played" | "error";
+type DeliveryStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'played' | 'error';
 
 function normalizeStatus(raw: unknown): DeliveryStatus | undefined {
-  if (typeof raw !== "string") return undefined;
+  if (typeof raw !== 'string') return undefined;
   const s = raw.toUpperCase();
-  if (s === "PENDING") return "pending";
-  if (s === "SERVER_ACK") return "sent";
-  if (s === "DELIVERY_ACK") return "delivered";
-  if (s === "READ") return "read";
-  if (s === "PLAYED") return "played";
-  if (s === "ERROR") return "error";
+  if (s === 'PENDING') return 'pending';
+  if (s === 'SERVER_ACK') return 'sent';
+  if (s === 'DELIVERY_ACK') return 'delivered';
+  if (s === 'READ') return 'read';
+  if (s === 'PLAYED') return 'played';
+  if (s === 'ERROR') return 'error';
   return undefined;
 }
 
@@ -385,7 +394,7 @@ function collectStatusUpdates(payload: unknown): Array<{
   for (const item of items) {
     if (!isRecord(item)) continue;
     const key = isRecord(item.key) ? item.key : undefined;
-    const messageId = typeof key?.id === "string" ? key.id : undefined;
+    const messageId = typeof key?.id === 'string' ? key.id : undefined;
     if (!messageId) continue;
     const status = normalizeStatus(item.status) ?? normalizeStatus(item.update?.status);
     if (!status) continue;
@@ -395,48 +404,50 @@ function collectStatusUpdates(payload: unknown): Array<{
 }
 
 http.route({
-  path: "/webhooks/evolution",
-  method: "POST",
+  path: '/webhooks/evolution',
+  method: 'POST',
   handler: httpAction(async (ctx, request) => {
     const expectedSecret = process.env.EVOLUTION_WEBHOOK_SECRET;
     const url = new URL(request.url);
-    const receivedSecret = request.headers.get("x-bimi-webhook-secret") ?? url.searchParams.get("secret");
+    const receivedSecret =
+      request.headers.get('x-bimi-webhook-secret') ?? url.searchParams.get('secret');
 
     if (expectedSecret && receivedSecret !== expectedSecret) {
-      return new Response(JSON.stringify({ ok: false, error: "unauthorized" }), {
+      return new Response(JSON.stringify({ ok: false, error: 'unauthorized' }), {
         status: 401,
-        headers: { "content-type": "application/json" },
+        headers: { 'content-type': 'application/json' },
       });
     }
 
     const headers: Record<string, string> = {};
     request.headers.forEach((value, key) => {
-      headers[key] = key.toLowerCase() === "x-bimi-webhook-secret" ? "[REDACTED]" : value;
+      headers[key] = key.toLowerCase() === 'x-bimi-webhook-secret' ? '[REDACTED]' : value;
     });
     let payload: unknown;
     try {
       payload = await request.json();
     } catch {
-      return new Response(JSON.stringify({ ok: false, error: "invalid_json" }), {
+      return new Response(JSON.stringify({ ok: false, error: 'invalid_json' }), {
         status: 400,
-        headers: { "content-type": "application/json" },
+        headers: { 'content-type': 'application/json' },
       });
     }
 
     const safePayload = redactSensitiveFields(payload);
     const safeRequestUrl = new URL(request.url);
-    if (safeRequestUrl.searchParams.has("secret")) {
-      safeRequestUrl.searchParams.set("secret", "[REDACTED]");
+    if (safeRequestUrl.searchParams.has('secret')) {
+      safeRequestUrl.searchParams.set('secret', '[REDACTED]');
     }
     const preview = getMessagePreview(payload);
-    const previewForLog = preview ? { ...preview, base64: preview.base64 ? "[REDACTED]" : undefined } : null;
+    const previewForLog = preview
+      ? { ...preview, base64: preview.base64 ? '[REDACTED]' : undefined }
+      : null;
     const event = isRecord(payload) ? payload.event : undefined;
 
-    if (event === "messages.update") {
+    if (event === 'messages.update') {
       const updates = collectStatusUpdates(payload);
-      const instance = isRecord(payload) && typeof payload.instance === "string"
-        ? payload.instance
-        : undefined;
+      const instance =
+        isRecord(payload) && typeof payload.instance === 'string' ? payload.instance : undefined;
       let applied = 0;
       if (instance) {
         for (const u of updates) {
@@ -448,44 +459,50 @@ http.route({
           applied += 1;
         }
       }
-      console.log("Evolution status updates applied", { instance, applied });
+      console.log('Evolution status updates applied', { instance, applied });
       return new Response(JSON.stringify({ ok: true, event, applied }), {
         status: 200,
-        headers: { "content-type": "application/json" },
+        headers: { 'content-type': 'application/json' },
       });
     }
 
-    if (event !== "messages.upsert") {
-      return new Response(JSON.stringify({
-        ok: true,
-        logged: false,
-        ignored: true,
-        event,
-      }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
+    if (event !== 'messages.upsert') {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          logged: false,
+          ignored: true,
+          event,
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        },
+      );
     }
 
     const plan = planIngest(preview);
-    if ("skipped" in plan) {
-      return new Response(JSON.stringify({
-        ok: true,
-        logged: true,
-        event,
-        preview: previewForLog,
-        ingest: { skipped: plan.skipped },
-      }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
+    if ('skipped' in plan) {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          logged: true,
+          event,
+          preview: previewForLog,
+          ingest: { skipped: plan.skipped },
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        },
+      );
     }
 
     const ingestResult = await ctx.runMutation(internal.messages.ingestMessage, plan.args);
 
     if (ingestResult.ignored) {
       // Do not retain message text or payload data in logs for ignored chats.
-      console.log("Evolution message ignored by chat policy", {
+      console.log('Evolution message ignored by chat policy', {
         receivedAt: new Date().toISOString(),
         event,
         instance: plan.args.instance,
@@ -493,23 +510,26 @@ http.route({
         messageId: plan.args.messageId,
         messageType: plan.args.messageType,
       });
-      return new Response(JSON.stringify({
-        ok: true,
-        logged: false,
-        event,
-        ingest: {
-          contactId: ingestResult.contactId,
-          ignored: true,
-          incomingMessageMode: ingestResult.incomingMessageMode,
-          scheduledProcessing: false,
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          logged: false,
+          event,
+          ingest: {
+            contactId: ingestResult.contactId,
+            ignored: true,
+            incomingMessageMode: ingestResult.incomingMessageMode,
+            scheduledProcessing: false,
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
         },
-      }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
+      );
     }
 
-    console.log("Evolution webhook received", {
+    console.log('Evolution webhook received', {
       receivedAt: new Date().toISOString(),
       event,
       instance: isRecord(payload) ? payload.instance : undefined,
@@ -517,39 +537,47 @@ http.route({
       incomingMessageMode: ingestResult.incomingMessageMode,
     });
 
-    console.log("Evolution webhook payload", JSON.stringify({
-      receivedAt: new Date().toISOString(),
-      request: {
-        method: request.method,
-        url: safeRequestUrl.toString(),
-        headers,
-      },
-      preview: previewForLog,
-      payload: safePayload,
-    }, null, 2));
+    console.log(
+      'Evolution webhook payload',
+      JSON.stringify(
+        {
+          receivedAt: new Date().toISOString(),
+          request: {
+            method: request.method,
+            url: safeRequestUrl.toString(),
+            headers,
+          },
+          preview: previewForLog,
+          payload: safePayload,
+        },
+        null,
+        2,
+      ),
+    );
 
-    const automaticProcessing = ingestResult.incomingMessageMode === "save_and_process";
+    const automaticProcessing = ingestResult.incomingMessageMode === 'save_and_process';
 
     if (!ingestResult.deduped && automaticProcessing) {
       if (!plan.args.fromMe) {
-        const flags = detectFlags(plan.args.text + " " + (plan.args.caption ?? ""));
+        const flags = detectFlags(plan.args.text + ' ' + (plan.args.caption ?? ''));
 
         const pref = await ctx.runQuery(internal.userPreferences.getInternal, {
           instance: plan.args.instance,
         });
-        const mention = pref?.ownerJid || pref?.ownerName || pref?.ownerAliases?.length
-          ? detectMentions({
-              text: plan.args.text + " " + (plan.args.caption ?? ""),
-              mentionedJids: plan.args.mentionedJids,
-              quotedParticipant: plan.args.quotedParticipant,
-              owner: {
-                jid: pref?.ownerJid,
-                phone: pref?.ownerPhone,
-                name: pref?.ownerName,
-                aliases: pref?.ownerAliases,
-              },
-            })
-          : { mentionsUser: false };
+        const mention =
+          pref?.ownerJid || pref?.ownerName || pref?.ownerAliases?.length
+            ? detectMentions({
+                text: plan.args.text + ' ' + (plan.args.caption ?? ''),
+                mentionedJids: plan.args.mentionedJids,
+                quotedParticipant: plan.args.quotedParticipant,
+                owner: {
+                  jid: pref?.ownerJid,
+                  phone: pref?.ownerPhone,
+                  name: pref?.ownerName,
+                  aliases: pref?.ownerAliases,
+                },
+              })
+            : { mentionsUser: false };
 
         const noise = isNoiseMessage({
           text: plan.args.text,
@@ -579,12 +607,10 @@ http.route({
           });
         }
 
-        if (plan.args.status === "ready") {
-          await ctx.scheduler.runAfter(
-            0,
-            internal.classification.classifyMessageInternal,
-            { messageId: ingestResult.messageId },
-          );
+        if (plan.args.status === 'ready') {
+          await ctx.scheduler.runAfter(0, internal.classification.classifyMessageInternal, {
+            messageId: ingestResult.messageId,
+          });
         }
       }
     }
@@ -595,7 +621,7 @@ http.route({
       plan.scheduleProcessing &&
       preview?.base64
     ) {
-      if (plan.args.messageType === "documentMessage") {
+      if (plan.args.messageType === 'documentMessage') {
         await ctx.scheduler.runAfter(0, internal.documents.processDocumentMessage, {
           messageId: ingestResult.messageId,
           base64: preview.base64,
@@ -608,34 +634,37 @@ http.route({
       }
     }
 
-    return new Response(JSON.stringify({
-      ok: true,
-      logged: true,
-      event,
-      preview: previewForLog,
-      ingest: {
-        contactId: ingestResult.contactId,
-        messageId: ingestResult.messageId,
-        deduped: ingestResult.deduped,
-        ignored: false,
-        incomingMessageMode: ingestResult.incomingMessageMode,
-        scheduledProcessing:
-          !ingestResult.deduped && automaticProcessing && plan.scheduleProcessing,
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        logged: true,
+        event,
+        preview: previewForLog,
+        ingest: {
+          contactId: ingestResult.contactId,
+          messageId: ingestResult.messageId,
+          deduped: ingestResult.deduped,
+          ignored: false,
+          incomingMessageMode: ingestResult.incomingMessageMode,
+          scheduledProcessing:
+            !ingestResult.deduped && automaticProcessing && plan.scheduleProcessing,
+        },
+      }),
+      {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
       },
-    }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
+    );
   }),
 });
 
 http.route({
-  path: "/health",
-  method: "GET",
+  path: '/health',
+  method: 'GET',
   handler: httpAction(async () => {
-    return new Response(JSON.stringify({ ok: true, service: "bimi-convex" }), {
+    return new Response(JSON.stringify({ ok: true, service: 'bimi-convex' }), {
       status: 200,
-      headers: { "content-type": "application/json" },
+      headers: { 'content-type': 'application/json' },
     });
   }),
 });

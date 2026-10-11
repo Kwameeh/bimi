@@ -65,7 +65,8 @@ export function VoiceMessage({ messageId, durationSeconds, transcript, isOutgoin
         <Pressable
           onPress={handleToggle}
           disabled={!mediaInfo?.url}
-          style={[styles.playButton, { backgroundColor: accent }]}>
+          style={[styles.playButton, { backgroundColor: accent }]}
+        >
           {isLoading ? (
             <ActivityIndicator color={isOutgoing ? theme.bubbleSent : theme.background} />
           ) : (
@@ -92,7 +93,8 @@ export function VoiceMessage({ messageId, durationSeconds, transcript, isOutgoin
           type="small"
           style={{
             color: isOutgoing ? 'rgba(255,255,255,0.85)' : theme.textSecondary,
-          }}>
+          }}
+        >
           {transcript}
         </ThemedText>
       ) : null}

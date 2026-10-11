@@ -1,5 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { LayoutAnimation, Platform, Pressable, StyleSheet, Text, UIManager, View } from 'react-native';
+import {
+  LayoutAnimation,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  UIManager,
+  View,
+} from 'react-native';
 
 import { AppIcon } from '@/components/ui/app-icon';
 import { useTheme } from '@/hooks/use-theme';
@@ -52,17 +60,16 @@ export function ReasoningBlock({ reasoning, isStreaming }: Props) {
 
   return (
     <View
-      style={[
-        styles.wrap,
-        { borderColor: theme.border, backgroundColor: theme.backgroundElement },
-      ]}>
+      style={[styles.wrap, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         accessibilityLabel={open ? 'Hide reasoning' : 'Show reasoning'}
         onPress={toggle}
         hitSlop={6}
-        style={styles.header}>
+        style={styles.header}
+      >
         <View style={styles.headerLeft}>
           <Text style={[styles.headerLabel, { color: theme.textSecondary }]}>
             {isStreaming ? 'Thinking' : 'Thought for a moment'}

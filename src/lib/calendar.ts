@@ -20,9 +20,7 @@ export async function addMeetingToCalendar(args: {
     }
 
     const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-    const writable = calendars.filter(
-      (c) => c.allowsModifications && c.source !== undefined,
-    );
+    const writable = calendars.filter((c) => c.allowsModifications && c.source !== undefined);
     if (writable.length === 0) {
       return { error: 'No writable calendar found on this device.' };
     }

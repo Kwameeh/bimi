@@ -23,10 +23,8 @@ export function ToolResultCard({ rows, onOpen }: Props) {
   if (rows.length === 0) return null;
   return (
     <View
-      style={[
-        styles.card,
-        { borderColor: theme.border, backgroundColor: theme.backgroundElement },
-      ]}>
+      style={[styles.card, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
+    >
       {rows.map((r) => (
         <Pressable
           key={r.messageId}
@@ -35,15 +33,14 @@ export function ToolResultCard({ rows, onOpen }: Props) {
             styles.row,
             { borderTopColor: theme.border },
             pressed && { opacity: 0.7 },
-          ]}>
+          ]}
+        >
           <Avatar name={r.contactName ?? undefined} size={32} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
               {r.contactName ?? 'Unknown'}
             </Text>
-            <Text
-              style={[styles.preview, { color: theme.textSecondary }]}
-              numberOfLines={2}>
+            <Text style={[styles.preview, { color: theme.textSecondary }]} numberOfLines={2}>
               {r.preview}
             </Text>
           </View>

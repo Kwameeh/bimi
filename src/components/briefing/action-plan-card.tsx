@@ -48,15 +48,10 @@ export function ActionPlanCard({ summary }: Props) {
 
   return (
     <View
-      style={[
-        styles.wrap,
-        { borderColor: theme.border, backgroundColor: theme.backgroundElement },
-      ]}>
+      style={[styles.wrap, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
+    >
       <ThemedText type="smallBold">Today’s plan</ThemedText>
-      <ThemedText
-        type="small"
-        themeColor="textSecondary"
-        style={{ marginTop: 2, marginBottom: 8 }}>
+      <ThemedText type="small" themeColor="textSecondary" style={{ marginTop: 2, marginBottom: 8 }}>
         Tap to open the chat · long-press to mark done
       </ThemedText>
 
@@ -72,18 +67,16 @@ export function ActionPlanCard({ summary }: Props) {
               styles.row,
               { borderBottomColor: theme.border },
               pressed && { opacity: 0.7 },
-            ]}>
+            ]}
+          >
             <View
               style={[
                 styles.numberCircle,
                 { borderColor: priorityColor(item.priority) },
                 done && { opacity: 0.4 },
-              ]}>
-              <Text
-                style={[
-                  styles.numberText,
-                  { color: priorityColor(item.priority) },
-                ]}>
+              ]}
+            >
+              <Text style={[styles.numberText, { color: priorityColor(item.priority) }]}>
                 {item.order}
               </Text>
             </View>
@@ -96,20 +89,17 @@ export function ActionPlanCard({ summary }: Props) {
                     textDecorationLine: 'line-through',
                     color: theme.textSecondary,
                   },
-                ]}>
+                ]}
+              >
                 {item.action}
               </Text>
               {item.reason ? (
-                <Text
-                  style={[styles.reason, { color: theme.textSecondary }]}
-                  numberOfLines={2}>
+                <Text style={[styles.reason, { color: theme.textSecondary }]} numberOfLines={2}>
                   {item.reason}
                 </Text>
               ) : null}
             </View>
-            {done ? (
-              <Text style={{ color: theme.textSecondary, fontSize: 16 }}>✓</Text>
-            ) : null}
+            {done ? <Text style={{ color: theme.textSecondary, fontSize: 16 }}>✓</Text> : null}
           </Pressable>
         );
       })}

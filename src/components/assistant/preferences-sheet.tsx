@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from 'convex/react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -49,14 +49,8 @@ function normalizeHHmm(input: string): string | null {
 
 export function PreferencesSheet({ instance, visible, onClose }: Props) {
   const theme = useTheme();
-  const existing = useQuery(
-    api.assistantPreferences.get,
-    visible ? { instance } : 'skip',
-  );
-  const userPref = useQuery(
-    api.userPreferences.get,
-    visible ? { instance } : 'skip',
-  );
+  const existing = useQuery(api.assistantPreferences.get, visible ? { instance } : 'skip');
+  const userPref = useQuery(api.userPreferences.get, visible ? { instance } : 'skip');
   const save = useMutation(api.assistantPreferences.set);
   const saveQuiet = useMutation(api.userPreferences.setQuietHours);
   const saveMemoryMode = useMutation(api.userPreferences.setMemoryWriteMode);
@@ -72,29 +66,26 @@ export function PreferencesSheet({ instance, visible, onClose }: Props) {
   const [qhAllowVip, setQhAllowVip] = useState(true);
 
   // Memory write mode
-  const [memoryMode, setMemoryMode] = useState<'auto' | 'approval' | 'off'>(
-    'auto',
-  );
+  const [memoryMode, setMemoryMode] = useState<'auto' | 'approval' | 'off'>('auto');
 
-  useEffect(() => {
-    if (visible) {
-      setText(existing?.preferences ?? '');
-    }
-  }, [visible, existing]);
+  const [syncedKey, setSyncedKey] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (visible && userPref) {
+  const syncKey = visible ? `${existing?._id ?? 'none'}-${userPref?._id ?? 'none'}` : null;
+
+  if (visible && syncKey && syncedKey !== syncKey) {
+    setSyncedKey(syncKey);
+    setText(existing?.preferences ?? '');
+    if (userPref) {
       setQhEnabled(userPref.quietHoursEnabled === true);
       setQhStart(userPref.quietHoursStart ?? '22:00');
       setQhEnd(userPref.quietHoursEnd ?? '07:00');
       setQhTz(userPref.quietHoursTimezone ?? deviceTimezone());
       setQhAllowVip(userPref.quietHoursAllowVip !== false);
       setMemoryMode(
-        (userPref.memoryWriteMode as 'auto' | 'approval' | 'off' | undefined) ??
-          'auto',
+        (userPref.memoryWriteMode as 'auto' | 'approval' | 'off' | undefined) ?? 'auto',
       );
     }
-  }, [visible, userPref]);
+  }
 
   const onSave = async () => {
     if (saving) return;
@@ -133,192 +124,183 @@ export function PreferencesSheet({ instance, visible, onClose }: Props) {
   };
 
   return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="fade"
-      onRequestClose={onClose}>
+    <Modal transparent visible={visible} animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingContainer style={{ flex: 1 }}>
         <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable
-          style={[
-            styles.sheet,
-            { backgroundColor: theme.background, borderColor: theme.border },
-          ]}
-          onPress={(e) => e.stopPropagation()}>
-          <ScrollView>
-            <ThemedText type="smallBold">Your preferences</ThemedText>
-            <ThemedText
-              type="small"
-              themeColor="textSecondary"
-              style={{ marginTop: 4, marginBottom: 10 }}>
-              Tell Bimi how you want it to respond. The assistant reads this on every turn.
-            </ThemedText>
-
-            <TextInput
-              value={text}
-              onChangeText={setText}
-              multiline
-              placeholder={PLACEHOLDER}
-              placeholderTextColor={theme.textSecondary}
-              style={[
-                styles.input,
-                {
-                  color: theme.text,
-                  borderColor: theme.border,
-                  backgroundColor: theme.backgroundElement,
-                },
-              ]}
-            />
-
-            <View style={[styles.section, { borderTopColor: theme.border }]}>
-              <View style={styles.rowBetween}>
-                <ThemedText type="smallBold">Quiet hours</ThemedText>
-                <Switch value={qhEnabled} onValueChange={setQhEnabled} />
-              </View>
+          <Pressable
+            style={[styles.sheet, { backgroundColor: theme.background, borderColor: theme.border }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <ScrollView>
+              <ThemedText type="smallBold">Your preferences</ThemedText>
               <ThemedText
                 type="small"
                 themeColor="textSecondary"
-                style={{ marginTop: 4 }}>
-                During quiet hours: auto-replies become drafts, the assistant defers sends, and non-urgent push is silenced.
+                style={{ marginTop: 4, marginBottom: 10 }}
+              >
+                Tell Bimi how you want it to respond. The assistant reads this on every turn.
               </ThemedText>
 
-              <View style={styles.timeRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.label, { color: theme.textSecondary }]}>Start</Text>
-                  <TextInput
-                    value={qhStart}
-                    onChangeText={setQhStart}
-                    placeholder="22:00"
-                    placeholderTextColor={theme.textSecondary}
-                    editable={qhEnabled}
-                    style={[
-                      styles.timeInput,
-                      {
-                        color: theme.text,
-                        borderColor: theme.border,
-                        backgroundColor: theme.backgroundElement,
-                        opacity: qhEnabled ? 1 : 0.5,
-                      },
-                    ]}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.label, { color: theme.textSecondary }]}>End</Text>
-                  <TextInput
-                    value={qhEnd}
-                    onChangeText={setQhEnd}
-                    placeholder="07:00"
-                    placeholderTextColor={theme.textSecondary}
-                    editable={qhEnabled}
-                    style={[
-                      styles.timeInput,
-                      {
-                        color: theme.text,
-                        borderColor: theme.border,
-                        backgroundColor: theme.backgroundElement,
-                        opacity: qhEnabled ? 1 : 0.5,
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
-
-              <Text style={[styles.label, { color: theme.textSecondary, marginTop: 8 }]}>
-                Timezone
-              </Text>
               <TextInput
-                value={qhTz}
-                onChangeText={setQhTz}
-                placeholder="Africa/Accra"
+                value={text}
+                onChangeText={setText}
+                multiline
+                placeholder={PLACEHOLDER}
                 placeholderTextColor={theme.textSecondary}
-                editable={qhEnabled}
                 style={[
-                  styles.timeInput,
+                  styles.input,
                   {
                     color: theme.text,
                     borderColor: theme.border,
                     backgroundColor: theme.backgroundElement,
-                    opacity: qhEnabled ? 1 : 0.5,
                   },
                 ]}
               />
 
-              <View style={[styles.rowBetween, { marginTop: 10 }]}>
-                <Text style={{ color: theme.text, fontSize: 13, fontWeight: '600' }}>
-                  Let VIP contacts bypass
-                </Text>
-                <Switch
-                  value={qhAllowVip}
-                  onValueChange={setQhAllowVip}
-                  disabled={!qhEnabled}
-                />
-              </View>
-            </View>
+              <View style={[styles.section, { borderTopColor: theme.border }]}>
+                <View style={styles.rowBetween}>
+                  <ThemedText type="smallBold">Quiet hours</ThemedText>
+                  <Switch value={qhEnabled} onValueChange={setQhEnabled} />
+                </View>
+                <ThemedText type="small" themeColor="textSecondary" style={{ marginTop: 4 }}>
+                  During quiet hours: auto-replies become drafts, the assistant defers sends, and
+                  non-urgent push is silenced.
+                </ThemedText>
 
-            <View style={[styles.section, { borderTopColor: theme.border }]}>
-              <ThemedText type="smallBold">Memory write mode</ThemedText>
-              <ThemedText
-                type="small"
-                themeColor="textSecondary"
-                style={{ marginTop: 4, marginBottom: 8 }}>
-                How Bimi adds memories from your chats. Auto writes high-confidence facts directly; Approval queues everything for your review; Off keeps existing memories but writes nothing new.
-              </ThemedText>
-              <View style={styles.modeRow}>
-                {(['auto', 'approval', 'off'] as const).map((m) => {
-                  const active = memoryMode === m;
-                  return (
-                    <Pressable
-                      key={m}
-                      onPress={() => setMemoryMode(m)}
+                <View style={styles.timeRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>Start</Text>
+                    <TextInput
+                      value={qhStart}
+                      onChangeText={setQhStart}
+                      placeholder="22:00"
+                      placeholderTextColor={theme.textSecondary}
+                      editable={qhEnabled}
                       style={[
-                        styles.modeChip,
-                        { borderColor: theme.border },
-                        active && {
-                          backgroundColor: theme.primary,
-                          borderColor: theme.primary,
+                        styles.timeInput,
+                        {
+                          color: theme.text,
+                          borderColor: theme.border,
+                          backgroundColor: theme.backgroundElement,
+                          opacity: qhEnabled ? 1 : 0.5,
                         },
-                      ]}>
-                      <Text
-                        style={{
-                          color: active ? theme.primaryText : theme.text,
-                          fontWeight: '600',
-                          fontSize: 13,
-                        }}>
-                        {m === 'auto' ? 'Auto' : m === 'approval' ? 'Approval' : 'Off'}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
+                      ]}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.label, { color: theme.textSecondary }]}>End</Text>
+                    <TextInput
+                      value={qhEnd}
+                      onChangeText={setQhEnd}
+                      placeholder="07:00"
+                      placeholderTextColor={theme.textSecondary}
+                      editable={qhEnabled}
+                      style={[
+                        styles.timeInput,
+                        {
+                          color: theme.text,
+                          borderColor: theme.border,
+                          backgroundColor: theme.backgroundElement,
+                          opacity: qhEnabled ? 1 : 0.5,
+                        },
+                      ]}
+                    />
+                  </View>
+                </View>
 
-            <View style={styles.actions}>
-              <Pressable
-                onPress={onClose}
-                style={[styles.btn, { borderColor: theme.border }]}>
-                <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                onPress={onSave}
-                disabled={saving}
-                style={[
-                  styles.btn,
-                  styles.btnPrimary,
-                  { backgroundColor: theme.primary },
-                  saving && { opacity: 0.6 },
-                ]}>
-                {saving ? (
-                  <ActivityIndicator color={theme.primaryText} size="small" />
-                ) : (
-                  <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
-                    Save
+                <Text style={[styles.label, { color: theme.textSecondary, marginTop: 8 }]}>
+                  Timezone
+                </Text>
+                <TextInput
+                  value={qhTz}
+                  onChangeText={setQhTz}
+                  placeholder="Africa/Accra"
+                  placeholderTextColor={theme.textSecondary}
+                  editable={qhEnabled}
+                  style={[
+                    styles.timeInput,
+                    {
+                      color: theme.text,
+                      borderColor: theme.border,
+                      backgroundColor: theme.backgroundElement,
+                      opacity: qhEnabled ? 1 : 0.5,
+                    },
+                  ]}
+                />
+
+                <View style={[styles.rowBetween, { marginTop: 10 }]}>
+                  <Text style={{ color: theme.text, fontSize: 13, fontWeight: '600' }}>
+                    Let VIP contacts bypass
                   </Text>
-                )}
-              </Pressable>
-            </View>
-          </ScrollView>
-        </Pressable>
+                  <Switch value={qhAllowVip} onValueChange={setQhAllowVip} disabled={!qhEnabled} />
+                </View>
+              </View>
+
+              <View style={[styles.section, { borderTopColor: theme.border }]}>
+                <ThemedText type="smallBold">Memory write mode</ThemedText>
+                <ThemedText
+                  type="small"
+                  themeColor="textSecondary"
+                  style={{ marginTop: 4, marginBottom: 8 }}
+                >
+                  How Bimi adds memories from your chats. Auto writes high-confidence facts
+                  directly; Approval queues everything for your review; Off keeps existing memories
+                  but writes nothing new.
+                </ThemedText>
+                <View style={styles.modeRow}>
+                  {(['auto', 'approval', 'off'] as const).map((m) => {
+                    const active = memoryMode === m;
+                    return (
+                      <Pressable
+                        key={m}
+                        onPress={() => setMemoryMode(m)}
+                        style={[
+                          styles.modeChip,
+                          { borderColor: theme.border },
+                          active && {
+                            backgroundColor: theme.primary,
+                            borderColor: theme.primary,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: active ? theme.primaryText : theme.text,
+                            fontWeight: '600',
+                            fontSize: 13,
+                          }}
+                        >
+                          {m === 'auto' ? 'Auto' : m === 'approval' ? 'Approval' : 'Off'}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.actions}>
+                <Pressable onPress={onClose} style={[styles.btn, { borderColor: theme.border }]}>
+                  <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={onSave}
+                  disabled={saving}
+                  style={[
+                    styles.btn,
+                    styles.btnPrimary,
+                    { backgroundColor: theme.primary },
+                    saving && { opacity: 0.6 },
+                  ]}
+                >
+                  {saving ? (
+                    <ActivityIndicator color={theme.primaryText} size="small" />
+                  ) : (
+                    <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Save</Text>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
+          </Pressable>
         </Pressable>
       </KeyboardAvoidingContainer>
     </Modal>
@@ -361,7 +343,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   timeRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  label: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 },
+  label: {
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 4,
+  },
   timeInput: {
     height: 38,
     paddingHorizontal: 12,

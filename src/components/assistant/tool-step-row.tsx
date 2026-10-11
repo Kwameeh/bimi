@@ -114,9 +114,7 @@ function isWriteTool(name: string): boolean {
  */
 function isBookkeepingRow(row: Doc<'assistantMessages'>): boolean {
   const result = row.toolResult as { status?: unknown } | null | undefined;
-  return (
-    typeof result?.status === 'string' && result.status.startsWith('pending_')
-  );
+  return typeof result?.status === 'string' && result.status.startsWith('pending_');
 }
 
 type Props = {
@@ -147,11 +145,7 @@ export function ToolStepRow({ row }: Props) {
   const isRunning = status === 'running';
   const isError = status === 'error';
 
-  const accent = isError
-    ? theme.danger
-    : isCancelled
-      ? theme.textSecondary
-      : '#16A34A';
+  const accent = isError ? theme.danger : isCancelled ? theme.textSecondary : '#16A34A';
 
   // Read steps carry no trailing line: the row already names what ran, and
   // the answer follows immediately. Only outcomes the user needs to know
@@ -172,7 +166,8 @@ export function ToolStepRow({ row }: Props) {
       accessibilityLabel={outcome ? `${label}. ${outcome}` : label}
       accessibilityState={{ expanded }}
       onPress={() => setExpanded((e) => !e)}
-      style={styles.wrap}>
+      style={styles.wrap}
+    >
       <View style={styles.mainLine}>
         <View style={styles.bulletSlot}>
           {isRunning ? (
@@ -184,17 +179,16 @@ export function ToolStepRow({ row }: Props) {
           )}
         </View>
         <Text
-          style={[
-            styles.label,
-            { color: isRunning ? theme.text : theme.textSecondary },
-          ]}
-          numberOfLines={1}>
+          style={[styles.label, { color: isRunning ? theme.text : theme.textSecondary }]}
+          numberOfLines={1}
+        >
           {label}
         </Text>
         {outcome ? (
           <Text
             style={[styles.outcome, { color: isError ? theme.danger : theme.textSecondary }]}
-            numberOfLines={1}>
+            numberOfLines={1}
+          >
             {outcome}
           </Text>
         ) : null}

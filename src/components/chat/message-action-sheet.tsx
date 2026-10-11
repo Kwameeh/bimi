@@ -29,7 +29,7 @@ type ActionKey =
   | 'markImportant'
   | 'askBimi';
 
-const ACTIONS: Array<{ key: ActionKey; label: string; icon: string }> = [
+const ACTIONS: { key: ActionKey; label: string; icon: string }[] = [
   { key: 'summarize', label: 'Summarize', icon: '✦' },
   { key: 'draftReply', label: 'Draft Reply', icon: '✎' },
   { key: 'explain', label: 'Explain', icon: '?' },
@@ -38,6 +38,10 @@ const ACTIONS: Array<{ key: ActionKey; label: string; icon: string }> = [
   { key: 'markImportant', label: 'Mark Important', icon: '★' },
   { key: 'askBimi', label: 'Ask Bimi', icon: '💬' },
 ];
+
+function getOneHourFromNow(): number {
+  return Date.now() + 60 * 60 * 1000;
+}
 
 type Props = {
   messageId: Id<'messages'> | null;
@@ -80,10 +84,8 @@ export function MessageActionSheet({
     onClose();
   }, [onClose]);
 
-  if (!messageId) return null;
-
-  const run = async (key: ActionKey) => {
-    if (busy) return;
+  const handleAction = async (key: ActionKey) => {
+    if (busy || !messageId) return;
     setBusy(key);
     try {
       switch (key) {
@@ -116,7 +118,7 @@ export function MessageActionSheet({
           break;
         }
         case 'addReminder': {
-          const remindAt = Date.now() + 60 * 60 * 1000;
+          const remindAt = getOneHourFromNow();
           await createReminder({
             instance,
             sourceMessageId: messageId,
@@ -151,7 +153,7 @@ export function MessageActionSheet({
     }
   };
 
-  const submitAsk = async () => {
+  const handleSubmitAsk = async () => {
     const q = askText.trim();
     if (q.length === 0 || !messageId) return;
     setBusy('askBimi');
@@ -167,102 +169,109 @@ export function MessageActionSheet({
     }
   };
 
+  if (!messageId) return null;
+
   return (
     <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
       <KeyboardAvoidingContainer style={{ flex: 1 }}>
         <Pressable style={styles.backdrop} onPress={close}>
-        <Pressable
-          style={[styles.sheet, { backgroundColor: theme.background, borderColor: theme.border }]}
-          onPress={(e) => e.stopPropagation()}>
-          {mode.kind === 'menu' ? (
-            <View>
-              <ThemedText type="smallBold" style={styles.title}>
-                Message actions
-              </ThemedText>
-              {ACTIONS.map((a) => (
+          <Pressable
+            style={[styles.sheet, { backgroundColor: theme.background, borderColor: theme.border }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            {mode.kind === 'menu' ? (
+              <View>
+                <ThemedText type="smallBold" style={styles.title}>
+                  Message actions
+                </ThemedText>
+                {ACTIONS.map((a) => (
+                  <Pressable
+                    key={a.key}
+                    onPress={() => handleAction(a.key)}
+                    disabled={busy !== null}
+                    style={({ pressed }) => [
+                      styles.row,
+                      { borderTopColor: theme.border },
+                      pressed && { backgroundColor: theme.backgroundSelected },
+                    ]}
+                  >
+                    <Text style={[styles.icon, { color: theme.aiAccent }]}>{a.icon}</Text>
+                    <Text style={[styles.label, { color: theme.text }]}>
+                      {a.key === 'markImportant' && isImportant ? 'Unmark Important' : a.label}
+                    </Text>
+                    {busy === a.key ? (
+                      <ActivityIndicator size="small" color={theme.aiAccent} />
+                    ) : null}
+                  </Pressable>
+                ))}
+              </View>
+            ) : mode.kind === 'ask' ? (
+              <View>
+                <ThemedText type="smallBold" style={styles.title}>
+                  Ask Bimi about this message
+                </ThemedText>
+                <TextInput
+                  placeholder="e.g. What is this person actually asking?"
+                  placeholderTextColor={theme.textSecondary}
+                  value={askText}
+                  onChangeText={setAskText}
+                  style={[
+                    styles.input,
+                    {
+                      color: theme.text,
+                      backgroundColor: theme.backgroundElement,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                  multiline
+                  autoFocus
+                />
+                <View style={styles.actionsRow}>
+                  <Pressable
+                    onPress={() => setMode({ kind: 'menu' })}
+                    style={[styles.btn, { borderColor: theme.border }]}
+                  >
+                    <Text style={{ color: theme.text }}>Back</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleSubmitAsk}
+                    disabled={busy === 'askBimi' || askText.trim().length === 0}
+                    style={[
+                      styles.btn,
+                      styles.btnPrimary,
+                      { backgroundColor: theme.primary },
+                      (busy === 'askBimi' || askText.trim().length === 0) && { opacity: 0.5 },
+                    ]}
+                  >
+                    {busy === 'askBimi' ? (
+                      <ActivityIndicator color={theme.primaryText} size="small" />
+                    ) : (
+                      <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Ask</Text>
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <View>
+                <ThemedText type="smallBold" style={styles.title}>
+                  {mode.title}
+                </ThemedText>
+                <ScrollView style={styles.resultScroll}>
+                  <Text style={[styles.resultBody, { color: theme.text }]}>{mode.body}</Text>
+                </ScrollView>
                 <Pressable
-                  key={a.key}
-                  onPress={() => run(a.key)}
-                  disabled={busy !== null}
-                  style={({ pressed }) => [
-                    styles.row,
-                    { borderTopColor: theme.border },
-                    pressed && { backgroundColor: theme.backgroundSelected },
-                  ]}>
-                  <Text style={[styles.icon, { color: theme.aiAccent }]}>{a.icon}</Text>
-                  <Text style={[styles.label, { color: theme.text }]}>
-                    {a.key === 'markImportant' && isImportant ? 'Unmark Important' : a.label}
-                  </Text>
-                  {busy === a.key ? (
-                    <ActivityIndicator size="small" color={theme.aiAccent} />
-                  ) : null}
-                </Pressable>
-              ))}
-            </View>
-          ) : mode.kind === 'ask' ? (
-            <View>
-              <ThemedText type="smallBold" style={styles.title}>
-                Ask Bimi about this message
-              </ThemedText>
-              <TextInput
-                placeholder="e.g. What is this person actually asking?"
-                placeholderTextColor={theme.textSecondary}
-                value={askText}
-                onChangeText={setAskText}
-                style={[
-                  styles.input,
-                  {
-                    color: theme.text,
-                    backgroundColor: theme.backgroundElement,
-                    borderColor: theme.border,
-                  },
-                ]}
-                multiline
-                autoFocus
-              />
-              <View style={styles.actionsRow}>
-                <Pressable
-                  onPress={() => setMode({ kind: 'menu' })}
-                  style={[styles.btn, { borderColor: theme.border }]}>
-                  <Text style={{ color: theme.text }}>Back</Text>
-                </Pressable>
-                <Pressable
-                  onPress={submitAsk}
-                  disabled={busy === 'askBimi' || askText.trim().length === 0}
+                  onPress={close}
                   style={[
                     styles.btn,
                     styles.btnPrimary,
-                    { backgroundColor: theme.primary },
-                    (busy === 'askBimi' || askText.trim().length === 0) && { opacity: 0.5 },
-                  ]}>
-                  {busy === 'askBimi' ? (
-                    <ActivityIndicator color={theme.primaryText} size="small" />
-                  ) : (
-                    <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Ask</Text>
-                  )}
+                    { backgroundColor: theme.primary, marginTop: 12 },
+                  ]}
+                >
+                  <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Done</Text>
                 </Pressable>
               </View>
-            </View>
-          ) : (
-            <View>
-              <ThemedText type="smallBold" style={styles.title}>
-                {mode.title}
-              </ThemedText>
-              <ScrollView style={styles.resultScroll}>
-                <Text style={[styles.resultBody, { color: theme.text }]}>{mode.body}</Text>
-              </ScrollView>
-              <Pressable
-                onPress={close}
-                style={[
-                  styles.btn,
-                  styles.btnPrimary,
-                  { backgroundColor: theme.primary, marginTop: 12 },
-                ]}>
-                <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Done</Text>
-              </Pressable>
-            </View>
-          )}
-        </Pressable>
+            )}
+          </Pressable>
         </Pressable>
       </KeyboardAvoidingContainer>
     </Modal>

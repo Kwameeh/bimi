@@ -45,12 +45,14 @@ export default function TasksScreen() {
                 backgroundColor: theme.primary,
                 borderColor: theme.primary,
               },
-            ]}>
+            ]}
+          >
             <Text
               style={{
                 color: tab === 'tasks' ? theme.primaryText : theme.text,
                 fontWeight: '600',
-              }}>
+              }}
+            >
               Tasks
             </Text>
           </Pressable>
@@ -65,12 +67,14 @@ export default function TasksScreen() {
                 backgroundColor: theme.primary,
                 borderColor: theme.primary,
               },
-            ]}>
+            ]}
+          >
             <Text
               style={{
                 color: tab === 'reminders' ? theme.primaryText : theme.text,
                 fontWeight: '600',
-              }}>
+              }}
+            >
               Reminders
             </Text>
           </Pressable>
@@ -170,13 +174,15 @@ function TasksList({ instance }: { instance: string }) {
                   },
                 })
               }
-              hitSlop={8}>
+              hitSlop={8}
+            >
               <Text
                 style={{
                   color: theme.textSecondary,
                   fontSize: 14,
                   fontWeight: '600',
-                }}>
+                }}
+              >
                 Clear done
               </Text>
             </Pressable>
@@ -188,7 +194,8 @@ function TasksList({ instance }: { instance: string }) {
       )}
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.listContent}>
+        contentContainerStyle={styles.listContent}
+      >
         {open.length > 0 ? (
           <>
             <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionLabel}>
@@ -280,7 +287,8 @@ function TaskRow(props: {
                 backgroundColor: theme.primary,
                 borderColor: theme.primary,
               },
-            ]}>
+            ]}
+          >
             {props.done ? (
               <Text style={{ color: theme.primaryText, fontWeight: '800' }}>✓</Text>
             ) : null}
@@ -296,7 +304,8 @@ function TaskRow(props: {
               textDecorationLine: 'line-through',
               color: theme.textSecondary,
             },
-          ]}>
+          ]}
+        >
           {props.title}
         </Text>
         {props.description ? (
@@ -352,7 +361,8 @@ function TaskRow(props: {
       onPress={props.selectMode ? props.onSelectToggle : undefined}
       onLongPress={props.selectMode ? undefined : props.onLongPress}
       delayLongPress={350}
-      style={cardStyle}>
+      style={cardStyle}
+    >
       {body}
     </Pressable>
   );
@@ -423,7 +433,8 @@ function RemindersList({ instance }: { instance: string }) {
       )}
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.listContent}>
+        contentContainerStyle={styles.listContent}
+      >
         {suggested.length > 0 ? (
           <>
             <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionLabel}>
@@ -446,7 +457,8 @@ function RemindersList({ instance }: { instance: string }) {
                       borderColor: theme.primary,
                       backgroundColor: theme.backgroundSelected,
                     },
-                ]}>
+                ]}
+              >
                 {selection.active ? (
                   <View style={styles.checkbox}>
                     <SelectionCheck checked={selection.isSelected(r._id)} />
@@ -468,13 +480,15 @@ function RemindersList({ instance }: { instance: string }) {
                     <Pressable
                       onPress={() => dismissSuggested({ reminderId: r._id })}
                       hitSlop={6}
-                      style={styles.suggestedBtn}>
+                      style={styles.suggestedBtn}
+                    >
                       <Text
                         style={{
                           color: theme.textSecondary,
                           fontSize: 11,
                           fontWeight: '700',
-                        }}>
+                        }}
+                      >
                         DISMISS
                       </Text>
                     </Pressable>
@@ -484,13 +498,15 @@ function RemindersList({ instance }: { instance: string }) {
                       style={[
                         styles.suggestedBtn,
                         { backgroundColor: theme.primary, borderRadius: 6 },
-                      ]}>
+                      ]}
+                    >
                       <Text
                         style={{
                           color: theme.primaryText,
                           fontSize: 11,
                           fontWeight: '700',
-                        }}>
+                        }}
+                      >
                         ACCEPT
                       </Text>
                     </Pressable>
@@ -524,7 +540,8 @@ function RemindersList({ instance }: { instance: string }) {
                       borderColor: theme.primary,
                       backgroundColor: theme.backgroundSelected,
                     },
-                ]}>
+                ]}
+              >
                 {selection.active ? (
                   <View style={styles.checkbox}>
                     <SelectionCheck checked={selection.isSelected(r._id)} />
@@ -539,7 +556,8 @@ function RemindersList({ instance }: { instance: string }) {
                         textDecorationLine: 'line-through',
                         color: theme.textSecondary,
                       },
-                    ]}>
+                    ]}
+                  >
                     {r.text}
                   </Text>
                   <Text style={[styles.taskDue, { color: theme.textSecondary }]}>
@@ -555,13 +573,15 @@ function RemindersList({ instance }: { instance: string }) {
                   <Pressable
                     onPress={() => dismiss({ reminderId: r._id })}
                     hitSlop={6}
-                    style={styles.deleteBtn}>
+                    style={styles.deleteBtn}
+                  >
                     <Text
                       style={{
                         color: theme.textSecondary,
                         fontSize: 12,
                         fontWeight: '700',
-                      }}>
+                      }}
+                    >
                       DISMISS
                     </Text>
                   </Pressable>
@@ -569,7 +589,8 @@ function RemindersList({ instance }: { instance: string }) {
                   <Pressable
                     onPress={() => remove({ reminderId: r._id })}
                     hitSlop={8}
-                    style={styles.deleteBtn}>
+                    style={styles.deleteBtn}
+                  >
                     <Text style={{ color: theme.textSecondary, fontSize: 18 }}>×</Text>
                   </Pressable>
                 )}

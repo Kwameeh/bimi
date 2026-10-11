@@ -1,5 +1,5 @@
 import { useAction } from 'convex/react';
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,7 +19,6 @@ import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
 
 const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
 
 function nextAt(hour: number, dayOffset = 0): number {
   const d = new Date();
@@ -32,6 +31,36 @@ function nextAt(hour: number, dayOffset = 0): number {
   return d.getTime();
 }
 
+type PresetKey = '1h' | '3h' | 'tomorrow_9am' | 'tomorrow_3pm' | 'day_after_9am';
+
+type PresetOption = {
+  key: PresetKey;
+  label: string;
+};
+
+const PRESETS: PresetOption[] = [
+  { key: '1h', label: 'In 1 hour' },
+  { key: '3h', label: 'In 3 hours' },
+  { key: 'tomorrow_9am', label: 'Tomorrow 9am' },
+  { key: 'tomorrow_3pm', label: 'Tomorrow 3pm' },
+  { key: 'day_after_9am', label: 'Day after 9am' },
+];
+
+function resolvePresetTime(key: PresetKey): number {
+  switch (key) {
+    case '1h':
+      return Date.now() + HOUR_MS;
+    case '3h':
+      return Date.now() + 3 * HOUR_MS;
+    case 'tomorrow_9am':
+      return nextAt(9, 1);
+    case 'tomorrow_3pm':
+      return nextAt(15, 1);
+    case 'day_after_9am':
+      return nextAt(9, 2);
+  }
+}
+
 type Props = {
   visible: boolean;
   meetingId: Id<'meetings'> | null;
@@ -42,25 +71,13 @@ type Props = {
 export function MeetingCounterSheet({ visible, meetingId, onClose, onDrafted }: Props) {
   const theme = useTheme();
   const proposeAlternate = useAction(api.meetings.proposeAlternate);
-  const [selectedAt, setSelectedAt] = useState<number | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<PresetKey | null>(null);
   const [note, setNote] = useState('');
   const [customInput, setCustomInput] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const presets = useMemo(
-    () => [
-      { label: 'In 1 hour', value: Date.now() + HOUR_MS },
-      { label: 'In 3 hours', value: Date.now() + 3 * HOUR_MS },
-      { label: 'Tomorrow 9am', value: nextAt(9, 1) },
-      { label: 'Tomorrow 3pm', value: nextAt(15, 1) },
-      { label: 'Day after 9am', value: nextAt(9, 2) },
-    ],
-    // re-evaluate on each open
-    [visible],
-  );
-
   const close = () => {
-    setSelectedAt(null);
+    setSelectedPreset(null);
     setNote('');
     setCustomInput('');
     setBusy(false);
@@ -77,9 +94,12 @@ export function MeetingCounterSheet({ visible, meetingId, onClose, onDrafted }: 
 
   const submit = async () => {
     if (!meetingId) return;
-    const startAt = selectedAt ?? resolveCustom();
+    const startAt = selectedPreset ? resolvePresetTime(selectedPreset) : resolveCustom();
     if (!startAt) {
-      Alert.alert('Pick a time', 'Choose a preset or enter a valid future date (e.g. "2026-06-01 15:00").');
+      Alert.alert(
+        'Pick a time',
+        'Choose a preset or enter a valid future date (e.g. "2026-06-01 15:00").',
+      );
       return;
     }
     setBusy(true);
@@ -103,82 +123,101 @@ export function MeetingCounterSheet({ visible, meetingId, onClose, onDrafted }: 
     <Modal transparent visible={visible} animationType="fade" onRequestClose={close}>
       <KeyboardAvoidingContainer style={{ flex: 1 }}>
         <Pressable style={styles.backdrop} onPress={close}>
-        <Pressable
-          style={[styles.sheet, { backgroundColor: theme.background, borderColor: theme.border }]}
-          onPress={(e) => e.stopPropagation()}>
-          <ThemedText type="smallBold" style={styles.title}>
-            Suggest another time
-          </ThemedText>
+          <Pressable
+            style={[styles.sheet, { backgroundColor: theme.background, borderColor: theme.border }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <ThemedText type="smallBold" style={styles.title}>
+              Suggest another time
+            </ThemedText>
 
-          <Text style={[styles.label, { color: theme.textSecondary }]}>Quick picks</Text>
-          <View style={styles.chipRow}>
-            {presets.map((p) => {
-              const active = selectedAt === p.value;
-              return (
-                <Pressable
-                  key={p.label}
-                  onPress={() => {
-                    setSelectedAt(p.value);
-                    setCustomInput('');
-                  }}
-                  style={[
-                    styles.chip,
-                    { borderColor: active ? theme.primary : theme.border, backgroundColor: active ? theme.backgroundSelected : 'transparent' },
-                  ]}>
-                  <Text style={[styles.chipText, { color: theme.text }]}>{p.label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>Quick picks</Text>
+            <View style={styles.chipRow}>
+              {PRESETS.map((p) => {
+                const active = selectedPreset === p.key;
+                return (
+                  <Pressable
+                    key={p.key}
+                    onPress={() => {
+                      setSelectedPreset(p.key);
+                      setCustomInput('');
+                    }}
+                    style={[
+                      styles.chip,
+                      {
+                        borderColor: active ? theme.primary : theme.border,
+                        backgroundColor: active ? theme.backgroundSelected : 'transparent',
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.chipText, { color: theme.text }]}>{p.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
 
-          <Text style={[styles.label, { color: theme.textSecondary, marginTop: 12 }]}>
-            Or enter a date/time
-          </Text>
-          <TextInput
-            value={customInput}
-            onChangeText={(t) => {
-              setCustomInput(t);
-              setSelectedAt(null);
-            }}
-            placeholder="2026-06-01 15:00"
-            placeholderTextColor={theme.textSecondary}
-            style={[
-              styles.input,
-              { color: theme.text, borderColor: theme.border, backgroundColor: theme.backgroundElement },
-            ]}
-          />
+            <Text style={[styles.label, { color: theme.textSecondary, marginTop: 12 }]}>
+              Or enter a date/time
+            </Text>
+            <TextInput
+              value={customInput}
+              onChangeText={(t) => {
+                setCustomInput(t);
+                setSelectedPreset(null);
+              }}
+              placeholder="2026-06-01 15:00"
+              placeholderTextColor={theme.textSecondary}
+              style={[
+                styles.input,
+                {
+                  color: theme.text,
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundElement,
+                },
+              ]}
+            />
 
-          <Text style={[styles.label, { color: theme.textSecondary, marginTop: 12 }]}>
-            Note (optional)
-          </Text>
-          <TextInput
-            value={note}
-            onChangeText={setNote}
-            placeholder="e.g. I have a conflict at 3pm"
-            placeholderTextColor={theme.textSecondary}
-            style={[
-              styles.input,
-              { color: theme.text, borderColor: theme.border, backgroundColor: theme.backgroundElement },
-            ]}
-            multiline
-          />
+            <Text style={[styles.label, { color: theme.textSecondary, marginTop: 12 }]}>
+              Note (optional)
+            </Text>
+            <TextInput
+              value={note}
+              onChangeText={setNote}
+              placeholder="e.g. I have a conflict at 3pm"
+              placeholderTextColor={theme.textSecondary}
+              style={[
+                styles.input,
+                {
+                  color: theme.text,
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundElement,
+                },
+              ]}
+              multiline
+            />
 
-          <View style={styles.actionsRow}>
-            <Pressable onPress={close} style={[styles.btn, { borderColor: theme.border }]}>
-              <Text style={{ color: theme.text }}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              onPress={submit}
-              disabled={busy}
-              style={[styles.btn, styles.btnPrimary, { backgroundColor: theme.primary }, busy && { opacity: 0.5 }]}>
-              {busy ? (
-                <ActivityIndicator size="small" color={theme.primaryText} />
-              ) : (
-                <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Draft reply</Text>
-              )}
-            </Pressable>
-          </View>
-        </Pressable>
+            <View style={styles.actionsRow}>
+              <Pressable onPress={close} style={[styles.btn, { borderColor: theme.border }]}>
+                <Text style={{ color: theme.text }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={submit}
+                disabled={busy}
+                style={[
+                  styles.btn,
+                  styles.btnPrimary,
+                  { backgroundColor: theme.primary },
+                  busy && { opacity: 0.5 },
+                ]}
+              >
+                {busy ? (
+                  <ActivityIndicator size="small" color={theme.primaryText} />
+                ) : (
+                  <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Draft reply</Text>
+                )}
+              </Pressable>
+            </View>
+          </Pressable>
         </Pressable>
       </KeyboardAvoidingContainer>
     </Modal>
@@ -200,7 +239,13 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
   },
   title: { marginBottom: 8 },
-  label: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 },
+  label: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: {
     paddingHorizontal: 10,

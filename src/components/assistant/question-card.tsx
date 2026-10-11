@@ -86,10 +86,8 @@ function LegacyChoiceCard({ row }: Props) {
 
   return (
     <View
-      style={[
-        styles.card,
-        { borderColor: '#F59E0B', backgroundColor: theme.backgroundElement },
-      ]}>
+      style={[styles.card, { borderColor: '#F59E0B', backgroundColor: theme.backgroundElement }]}
+    >
       <Text style={[styles.question, { color: theme.text }]}>{question}</Text>
       <View style={styles.chipRow}>
         {options.map((opt) => (
@@ -101,10 +99,9 @@ function LegacyChoiceCard({ row }: Props) {
               styles.chip,
               { borderColor: theme.border, backgroundColor: theme.background },
               choosing && { opacity: 0.5 },
-            ]}>
-            <Text style={{ color: theme.text, fontWeight: '600', fontSize: 12 }}>
-              {opt}
-            </Text>
+            ]}
+          >
+            <Text style={{ color: theme.text, fontWeight: '600', fontSize: 12 }}>{opt}</Text>
           </Pressable>
         ))}
       </View>
@@ -133,8 +130,7 @@ function RichQuestionCard({ row }: Props) {
   const status = row.status ?? 'done';
 
   if (status !== 'awaiting_questions') {
-    const answers =
-      ((row.toolResult as { answers?: AnsweredQuestion[] } | undefined)?.answers ?? []);
+    const answers = (row.toolResult as { answers?: AnsweredQuestion[] } | undefined)?.answers ?? [];
     return (
       <AnsweredSummary
         rows={
@@ -156,8 +152,7 @@ function RichQuestionCard({ row }: Props) {
   }
 
   // Submit-on-tap only for the simplest shape: one single-select question.
-  const instantSubmit =
-    questions.length === 1 && questions[0]?.multiSelect !== true;
+  const instantSubmit = questions.length === 1 && questions[0]?.multiSelect !== true;
 
   const isAnswered = (s: QuestionState): boolean =>
     s.otherActive ? s.otherText.trim().length > 0 : s.selected.size > 0;
@@ -214,20 +209,15 @@ function RichQuestionCard({ row }: Props) {
   };
 
   const setOtherText = (qi: number, text: string) => {
-    setState((prev) =>
-      prev.map((s, i) => (i === qi ? { ...s, otherText: text } : s)),
-    );
+    setState((prev) => prev.map((s, i) => (i === qi ? { ...s, otherText: text } : s)));
   };
 
-  const showSubmit =
-    !instantSubmit || state.some((s) => s.otherActive);
+  const showSubmit = !instantSubmit || state.some((s) => s.otherActive);
 
   return (
     <View
-      style={[
-        styles.card,
-        { borderColor: '#F59E0B', backgroundColor: theme.backgroundElement },
-      ]}>
+      style={[styles.card, { borderColor: '#F59E0B', backgroundColor: theme.backgroundElement }]}
+    >
       {questions.map((q, qi) => {
         const s = state[qi];
         const multi = q.multiSelect === true;
@@ -239,15 +229,14 @@ function RichQuestionCard({ row }: Props) {
                   style={[
                     styles.headerChip,
                     { backgroundColor: theme.background, borderColor: theme.border },
-                  ]}>
+                  ]}
+                >
                   <Text style={[styles.headerChipText, { color: theme.textSecondary }]}>
                     {q.header}
                   </Text>
                 </View>
               ) : null}
-              <Text style={[styles.question, { color: theme.text }]}>
-                {q.question ?? ''}
-              </Text>
+              <Text style={[styles.question, { color: theme.text }]}>{q.question ?? ''}</Text>
             </View>
 
             {(q.options ?? []).map((opt, oi) => {
@@ -306,7 +295,8 @@ function RichQuestionCard({ row }: Props) {
             styles.submitBtn,
             { backgroundColor: theme.primary },
             (submitting || !allAnswered) && { opacity: 0.4 },
-          ]}>
+          ]}
+        >
           {submitting ? (
             <ActivityIndicator size="small" color={theme.primaryText} />
           ) : (
@@ -347,14 +337,16 @@ function OptionRow({
         },
         selected && { borderWidth: 1.5 },
         disabled && { opacity: 0.5 },
-      ]}>
+      ]}
+    >
       <View
         style={[
           styles.selector,
           multi ? styles.selectorSquare : styles.selectorRound,
           { borderColor: selected ? theme.primary : theme.textSecondary },
           selected && { backgroundColor: theme.primary },
-        ]}>
+        ]}
+      >
         {selected ? (
           <Text style={[styles.selectorMark, { color: theme.primaryText }]}>✓</Text>
         ) : null}
@@ -379,7 +371,7 @@ function AnsweredSummary({
   rows,
   cancelled,
 }: {
-  rows: Array<{ header: string | null; question: string; value: string | null }>;
+  rows: { header: string | null; question: string; value: string | null }[];
   cancelled: boolean;
 }) {
   const theme = useTheme();
@@ -388,7 +380,8 @@ function AnsweredSummary({
       style={[
         styles.answeredCard,
         { borderColor: theme.border, backgroundColor: theme.backgroundElement },
-      ]}>
+      ]}
+    >
       {rows.map((r, i) => (
         <View key={i} style={styles.answeredRow}>
           {r.header ? (
@@ -396,7 +389,8 @@ function AnsweredSummary({
               style={[
                 styles.headerChip,
                 { backgroundColor: theme.background, borderColor: theme.border },
-              ]}>
+              ]}
+            >
               <Text style={[styles.headerChipText, { color: theme.textSecondary }]}>
                 {r.header}
               </Text>
@@ -404,16 +398,15 @@ function AnsweredSummary({
           ) : (
             <Text
               numberOfLines={1}
-              style={[styles.answeredQuestion, { color: theme.textSecondary }]}>
+              style={[styles.answeredQuestion, { color: theme.textSecondary }]}
+            >
               {r.question}
             </Text>
           )}
           <Text
             numberOfLines={2}
-            style={[
-              styles.answeredValue,
-              { color: cancelled ? theme.textSecondary : theme.text },
-            ]}>
+            style={[styles.answeredValue, { color: cancelled ? theme.textSecondary : theme.text }]}
+          >
             {cancelled ? 'Dismissed' : (r.value ?? '—')}
           </Text>
         </View>

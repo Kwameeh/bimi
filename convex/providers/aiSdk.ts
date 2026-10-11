@@ -7,9 +7,9 @@ import {
   type LanguageModel,
   type ModelMessage,
   type ToolSet,
-} from "ai";
-import { assistantSelection, modelSelection } from "./config";
-import { languageModel } from "./language";
+} from 'ai';
+import { assistantSelection, modelSelection } from './config';
+import { languageModel } from './language';
 
 export function getAssistantModel(modelId?: string | null): LanguageModel {
   return languageModel(assistantSelection(modelId));
@@ -24,9 +24,7 @@ export type AssistantTurnArgs<T extends ToolSet> = {
   modelId?: string | null;
 };
 
-export async function runAssistantTurn<T extends ToolSet>(
-  args: AssistantTurnArgs<T>,
-) {
+export async function runAssistantTurn<T extends ToolSet>(args: AssistantTurnArgs<T>) {
   const result = await generateText({
     model: getAssistantModel(args.modelId),
     system: args.system,
@@ -51,7 +49,7 @@ export async function runJsonExtraction(args: {
   temperature?: number;
   maxTokens?: number;
 }): Promise<string> {
-  const model = languageModel(modelSelection("json"));
+  const model = languageModel(modelSelection('json'));
   try {
     const result = await generateObject({
       model,
@@ -63,7 +61,7 @@ export async function runJsonExtraction(args: {
     });
     return JSON.stringify(result.object);
   } catch (err) {
-    console.warn("[aiSdk] generateObject failed, falling back to text mode", {
+    console.warn('[aiSdk] generateObject failed, falling back to text mode', {
       error: err instanceof Error ? err.message : String(err),
     });
   }
@@ -78,19 +76,17 @@ export async function runJsonExtraction(args: {
   return (
     (result.text && result.text.length > 0
       ? result.text
-      : (result as unknown as { reasoningText?: string }).reasoningText) ?? ""
+      : (result as unknown as { reasoningText?: string }).reasoningText) ?? ''
   );
 }
 
-export function streamAssistantTurn<T extends ToolSet>(
-  args: AssistantTurnArgs<T>,
-) {
+export function streamAssistantTurn<T extends ToolSet>(args: AssistantTurnArgs<T>) {
   return streamText({
     model: getAssistantModel(args.modelId),
     system: args.system,
     messages: args.messages,
     tools: args.tools,
-    toolChoice: "auto",
+    toolChoice: 'auto',
     stopWhen: stepCountIs(args.maxSteps ?? 8),
     // Temperature 0 for deterministic tool calling, per AI SDK best practices.
     temperature: args.temperature ?? 0,

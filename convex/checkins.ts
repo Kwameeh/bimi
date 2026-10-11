@@ -1,20 +1,20 @@
-import { v } from "convex/values";
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
-import { internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
-import { refreshChatState } from "./chatState";
+import { v } from 'convex/values';
+import { internalAction, internalMutation, internalQuery } from './_generated/server';
+import { internal } from './_generated/api';
+import type { Doc, Id } from './_generated/dataModel';
+import { refreshChatState } from './chatState';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const RELATIONSHIP_TONE: Record<string, string> = {
-  vip: "Warm and personal. Two short sentences.",
-  client: "Professional and brief. Reference our last project lightly.",
-  family: "Casual and affectionate. One short check-in question.",
-  friend: "Casual and friendly. Reference a shared interest if obvious.",
-  classmate: "Casual and brief. Reference school/class lightly.",
-  team: "Professional and brief. Suggest a sync if appropriate.",
-  low_priority: "Brief and polite.",
-  unknown: "Polite and brief.",
+  vip: 'Warm and personal. Two short sentences.',
+  client: 'Professional and brief. Reference our last project lightly.',
+  family: 'Casual and affectionate. One short check-in question.',
+  friend: 'Casual and friendly. Reference a shared interest if obvious.',
+  classmate: 'Casual and brief. Reference school/class lightly.',
+  team: 'Professional and brief. Suggest a sync if appropriate.',
+  low_priority: 'Brief and polite.',
+  unknown: 'Polite and brief.',
 };
 
 export const listEligibleContactsInternal = internalQuery({
@@ -22,20 +22,18 @@ export const listEligibleContactsInternal = internalQuery({
   handler: async (ctx) => {
     // Fetch contacts in batches; we don't have an index on cadence, but
     // this scan is cheap (small N for a single user).
-    const rows = await ctx.db.query("contacts").take(500);
-    return rows.filter(
-      (c) => (c.checkInCadenceDays ?? 0) > 0 && c.autoReplyBlocked !== true,
-    );
+    const rows = await ctx.db.query('contacts').take(500);
+    return rows.filter((c) => (c.checkInCadenceDays ?? 0) > 0 && c.autoReplyBlocked !== true);
   },
 });
 
 export const hasPendingDraftInternal = internalQuery({
-  args: { contactId: v.id("contacts") },
+  args: { contactId: v.id('contacts') },
   handler: async (ctx, args) => {
     const draft = await ctx.db
-      .query("drafts")
-      .withIndex("by_contact_and_status", (q) =>
-        q.eq("contactId", args.contactId).eq("status", "pending"),
+      .query('drafts')
+      .withIndex('by_contact_and_status', (q) =>
+        q.eq('contactId', args.contactId).eq('status', 'pending'),
       )
       .first();
     return draft !== null;
@@ -45,18 +43,18 @@ export const hasPendingDraftInternal = internalQuery({
 export const insertCheckInDraftInternal = internalMutation({
   args: {
     instance: v.string(),
-    contactId: v.id("contacts"),
+    contactId: v.id('contacts'),
     text: v.string(),
     relationship: v.string(),
   },
   handler: async (ctx, args) => {
-    const draftId = await ctx.db.insert("drafts", {
+    const draftId = await ctx.db.insert('drafts', {
       instance: args.instance,
       contactId: args.contactId,
       text: args.text,
-      status: "pending",
-      style: "check_in",
-      sourceMode: "auto_pipeline",
+      status: 'pending',
+      style: 'check_in',
+      sourceMode: 'auto_pipeline',
       reason: `check_in:${args.relationship}`,
     });
     await ctx.db.patch(args.contactId, { lastCheckInAt: Date.now() });
@@ -65,7 +63,7 @@ export const insertCheckInDraftInternal = internalMutation({
   },
 });
 
-function shouldFireToday(contact: Doc<"contacts">, nowMs: number): boolean {
+function shouldFireToday(contact: Doc<'contacts'>, nowMs: number): boolean {
   const cadenceDays = contact.checkInCadenceDays ?? 0;
   if (cadenceDays <= 0) return false;
 
@@ -97,7 +95,7 @@ function shouldFireToday(contact: Doc<"contacts">, nowMs: number): boolean {
 export const scanForCheckInsInternal = internalAction({
   args: {},
   handler: async (ctx): Promise<{ generated: number }> => {
-    const candidates: Array<Doc<"contacts">> = await ctx.runQuery(
+    const candidates: Array<Doc<'contacts'>> = await ctx.runQuery(
       internal.checkins.listEligibleContactsInternal,
       {},
     );
@@ -107,28 +105,26 @@ export const scanForCheckInsInternal = internalAction({
     const due = candidates.filter((c) => shouldFireToday(c, nowMs));
     if (due.length === 0) return { generated: 0 };
 
-    const { generateText } = await import("./providers/processing");
+    const { generateText } = await import('./providers/processing');
     let generated = 0;
 
     for (const contact of due) {
       try {
-        const hasPending = await ctx.runQuery(
-          internal.checkins.hasPendingDraftInternal,
-          { contactId: contact._id },
-        );
+        const hasPending = await ctx.runQuery(internal.checkins.hasPendingDraftInternal, {
+          contactId: contact._id,
+        });
         if (hasPending) continue;
 
-        const relationship = contact.relationship ?? "unknown";
+        const relationship = contact.relationship ?? 'unknown';
         const tone = RELATIONSHIP_TONE[relationship] ?? RELATIONSHIP_TONE.unknown;
-        const name =
-          contact.displayName ?? contact.pushName ?? contact.normalizedPhone ?? "there";
+        const name = contact.displayName ?? contact.pushName ?? contact.normalizedPhone ?? 'there';
 
         const system = [
           "You write a short, sincere check-in message to a contact the user hasn't spoken to in a while.",
           `Tone: ${tone}`,
-          "Output ONLY the message text. No quotes, no labels.",
+          'Output ONLY the message text. No quotes, no labels.',
           "Keep it under 25 words. Don't mention dates or counts.",
-        ].join(" ");
+        ].join(' ');
         const user = `Contact name: ${name}. Relationship: ${relationship}.`;
 
         const text = await generateText({
@@ -138,18 +134,18 @@ export const scanForCheckInsInternal = internalAction({
           temperature: 0.7,
         });
 
-        const trimmed = text.replace(/^["']|["']$/g, "").trim();
+        const trimmed = text.replace(/^["']|["']$/g, '').trim();
         if (trimmed.length === 0) continue;
 
         await ctx.runMutation(internal.checkins.insertCheckInDraftInternal, {
           instance: contact.instance,
-          contactId: contact._id as Id<"contacts">,
+          contactId: contact._id as Id<'contacts'>,
           text: trimmed,
           relationship,
         });
         generated++;
       } catch (err) {
-        console.warn("check-in generation failed", {
+        console.warn('check-in generation failed', {
           contactId: contact._id,
           error: err instanceof Error ? err.message : String(err),
         });

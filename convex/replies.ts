@@ -1,20 +1,17 @@
-import { v } from "convex/values";
-import { internalAction } from "./_generated/server";
-import { internal } from "./_generated/api";
-import { generateReply, generateText, type ReplyStyle } from "./providers/processing";
-import { sendText } from "./providers/evolution";
+import { v } from 'convex/values';
+import { internalAction } from './_generated/server';
+import { internal } from './_generated/api';
+import { generateReply, generateText, type ReplyStyle } from './providers/processing';
+import { sendText } from './providers/evolution';
 import {
   AGENT_REPLY_MAX_CHARS,
   decideReplyMode,
   isSuspiciousAutoReply,
   type AiMode,
-} from "./replyRules";
-import { shouldSendComposed } from "./autoReply";
-import {
-  contactBypassesQuietHours,
-  isInQuietHoursNow,
-} from "./quietHours";
-import type { ClaimResult } from "./contactGoals";
+} from './replyRules';
+import { shouldSendComposed } from './autoReply';
+import { contactBypassesQuietHours, isInQuietHoursNow } from './quietHours';
+import type { ClaimResult } from './contactGoals';
 
 // Moved to replyRules.ts (pure decision logic, and the contact-goal engine
 // needs it too with a different maxChars). Re-exported so existing importers of
@@ -22,11 +19,11 @@ import type { ClaimResult } from "./contactGoals";
 export { isSuspiciousAutoReply };
 
 function reasonToStyle(reason: string): ReplyStyle {
-  if (reason === "greeting") return "greeting";
-  if (reason === "small_talk") return "small_talk";
-  if (reason === "acknowledgment") return "acknowledgment";
-  if (reason === "casual_conversation") return "casual";
-  return "default";
+  if (reason === 'greeting') return 'greeting';
+  if (reason === 'small_talk') return 'small_talk';
+  if (reason === 'acknowledgment') return 'acknowledgment';
+  if (reason === 'casual_conversation') return 'casual';
+  return 'default';
 }
 
 const SUMMARIZE_INCOMING_PROMPT =
@@ -34,7 +31,7 @@ const SUMMARIZE_INCOMING_PROMPT =
 
 export const decideAndDraft = internalAction({
   args: {
-    messageId: v.id("messages"),
+    messageId: v.id('messages'),
     /**
      * Set on the single retry we schedule when a contact goal already held its
      * turn lease. Present means "do not schedule another" — this is the loop
@@ -53,7 +50,7 @@ export const decideAndDraft = internalAction({
       messageId: args.messageId,
     });
     if (!context) {
-      console.warn("decideAndDraft: message not found", { messageId: args.messageId });
+      console.warn('decideAndDraft: message not found', { messageId: args.messageId });
       return null;
     }
     if (context.message.fromMe) return null;
@@ -65,12 +62,12 @@ export const decideAndDraft = internalAction({
     // of decideAndDraft inherits the takeover instead of bypassing it.
     const claim: ClaimResult =
       args.skipGoalTakeover === true
-        ? { kind: "none" }
-        : await ctx.runMutation(
-            internal.contactGoals.onInboundForContactInternal,
-            { contactId: context.message.contactId, nowMs: Date.now() },
-          );
-    if (claim.kind === "claimed" && claim.goalId && claim.leaseToken) {
+        ? { kind: 'none' }
+        : await ctx.runMutation(internal.contactGoals.onInboundForContactInternal, {
+            contactId: context.message.contactId,
+            nowMs: Date.now(),
+          });
+    if (claim.kind === 'claimed' && claim.goalId && claim.leaseToken) {
       await ctx.scheduler.runAfter(0, internal.contactGoals.runGoalTurnInternal, {
         goalId: claim.goalId,
         leaseToken: claim.leaseToken,
@@ -78,22 +75,21 @@ export const decideAndDraft = internalAction({
       });
       return null;
     }
-    if (claim.kind === "busy") {
+    if (claim.kind === 'busy') {
       // MUST return. Falling through to decideReplyMode here would emit a
       // second message for this same inbound while the in-flight goal turn
       // emits its own — the exact double-message the takeover exists to stop.
       if (args.goalRetry === true) {
-        console.warn("decideAndDraft: goal still busy after retry, giving up", {
+        console.warn('decideAndDraft: goal still busy after retry, giving up', {
           messageId: args.messageId,
           contactId: context.message.contactId,
         });
         return null;
       }
-      await ctx.scheduler.runAfter(
-        claim.retryAfterMs ?? 5000,
-        internal.replies.decideAndDraft,
-        { messageId: args.messageId, goalRetry: true },
-      );
+      await ctx.scheduler.runAfter(claim.retryAfterMs ?? 5000, internal.replies.decideAndDraft, {
+        messageId: args.messageId,
+        goalRetry: true,
+      });
       return null;
     }
 
@@ -101,14 +97,14 @@ export const decideAndDraft = internalAction({
       contactId: context.message.contactId,
     });
     if (!contact) {
-      console.warn("decideAndDraft: contact not found", {
+      console.warn('decideAndDraft: contact not found', {
         messageId: args.messageId,
       });
       return null;
     }
 
     // Inherit global default AI mode if contact has none set.
-    let effectiveAiMode: AiMode = (contact.aiMode as AiMode | undefined) ?? "manual";
+    let effectiveAiMode: AiMode = (contact.aiMode as AiMode | undefined) ?? 'manual';
     const pref = await ctx.runQuery(internal.userPreferences.getInternal, {
       instance: contact.instance,
     });
@@ -119,7 +115,7 @@ export const decideAndDraft = internalAction({
     const quietHoursActive = isInQuietHoursNow(pref ?? null).active;
     const contactBypassQuiet = contactBypassesQuietHours(contact, pref ?? null);
 
-    const isGroup = contact.isGroup === true || contact.remoteJid.endsWith("@g.us");
+    const isGroup = contact.isGroup === true || contact.remoteJid.endsWith('@g.us');
     // `ready` is set by media.ts only after the image description or voice
     // transcript actually landed in message.text; `failed`/`skipped` leave a
     // placeholder there, which is nothing to reply to.
@@ -127,7 +123,7 @@ export const decideAndDraft = internalAction({
       fromMe: false,
       messageType: context.message.messageType,
       text: context.message.text,
-      mediaTextReady: context.message.status === "ready",
+      mediaTextReady: context.message.status === 'ready',
       isGroup,
       aiMode: effectiveAiMode,
       autoReplyBlocked: contact.autoReplyBlocked ?? false,
@@ -140,7 +136,7 @@ export const decideAndDraft = internalAction({
       contactBypassQuiet,
     });
 
-    console.log("Reply decision", {
+    console.log('Reply decision', {
       messageId: args.messageId,
       contactId: context.message.contactId,
       aiMode: effectiveAiMode,
@@ -152,7 +148,7 @@ export const decideAndDraft = internalAction({
       reason: decision.reason,
     });
 
-    if (decision.mode === "skip") return null;
+    if (decision.mode === 'skip') return null;
 
     /** Send, and record the outbound. Returns false if the send itself failed. */
     const sendReply = async (text: string): Promise<boolean> => {
@@ -181,7 +177,7 @@ export const decideAndDraft = internalAction({
         });
         return true;
       } catch (error) {
-        console.error("decideAndDraft: send failed", {
+        console.error('decideAndDraft: send failed', {
           messageId: args.messageId,
           error: error instanceof Error ? error.message : String(error),
         });
@@ -189,11 +185,14 @@ export const decideAndDraft = internalAction({
       }
     };
 
-    const draftReply = async (text: string, opts: {
-      reason: string;
-      style?: string;
-      aiSummary?: string;
-    }): Promise<void> => {
+    const draftReply = async (
+      text: string,
+      opts: {
+        reason: string;
+        style?: string;
+        aiSummary?: string;
+      },
+    ): Promise<void> => {
       await ctx.runMutation(internal.drafts.insertDraftInternal, {
         instance: context.message.instance,
         contactId: context.message.contactId,
@@ -205,31 +204,28 @@ export const decideAndDraft = internalAction({
         confidence: context.message.classificationConfidence,
         aiSummary: opts.aiSummary,
         category: context.message.category,
-        sourceMode: "auto_pipeline",
+        sourceMode: 'auto_pipeline',
       });
     };
 
     // Full auto: research the answer, then send it. This is the path that makes
     // full auto mean "handle it" rather than "handle the greetings".
-    if (decision.mode === "auto_agent") {
+    if (decision.mode === 'auto_agent') {
       const composed = await ctx.runAction(internal.autoReply.composeReply, {
         messageId: args.messageId,
       });
       if (!composed || composed.reply.length === 0) {
         // Nothing usable came back. Leaving no trace would look like the app
         // ignored the message, so fall through to the template path below.
-        console.warn("decideAndDraft: agent produced nothing, using template", {
+        console.warn('decideAndDraft: agent produced nothing, using template', {
           messageId: args.messageId,
         });
       } else {
         // The agent's own judgement, then the injection guard on top of it —
         // this text goes to a third party with no human in the loop.
-        const suspicious = isSuspiciousAutoReply(
-          composed.reply,
-          AGENT_REPLY_MAX_CHARS,
-        );
+        const suspicious = isSuspiciousAutoReply(composed.reply, AGENT_REPLY_MAX_CHARS);
         const sendIt = shouldSendComposed(composed) && !suspicious;
-        console.log("Agentic reply", {
+        console.log('Agentic reply', {
           messageId: args.messageId,
           confidence: composed.confidence,
           needsHuman: composed.needsHuman,
@@ -247,47 +243,39 @@ export const decideAndDraft = internalAction({
         // draft plus the research behind it, so approving is one read.
         await draftReply(composed.reply, {
           reason: sendFailed
-            ? "send_failed"
+            ? 'send_failed'
             : suspicious
-              ? "agent_suspicious"
+              ? 'agent_suspicious'
               : composed.needsHuman
-                ? "agent_needs_human"
-                : "agent_low_confidence",
-          style: "agentic",
-          aiSummary:
-            [composed.reason, composed.notes].filter(Boolean).join("\n\n") ||
-            undefined,
+                ? 'agent_needs_human'
+                : 'agent_low_confidence',
+          style: 'agentic',
+          aiSummary: [composed.reason, composed.notes].filter(Boolean).join('\n\n') || undefined,
         });
         return null;
       }
     }
 
     // Load memory context for this contact (user + contact + chat scopes).
-    const memoryScopes = await ctx.runQuery(
-      internal.memories.retrieveForCallInternal,
-      {
-        instance: contact.instance,
-        contactId: contact._id,
-        chatId: contact._id,
-        charBudget: 3000,
-      },
-    );
-    const { formatMemoryBlock } = await import("./memoryPrompt");
+    const memoryScopes = await ctx.runQuery(internal.memories.retrieveForCallInternal, {
+      instance: contact.instance,
+      contactId: contact._id,
+      chatId: contact._id,
+      charBudget: 3000,
+    });
+    const { formatMemoryBlock } = await import('./memoryPrompt');
     const memoryBlock = formatMemoryBlock(memoryScopes, context.contactName);
-    const replyStyle = await ctx.runQuery(
-      internal.replyStyle.getForCallInternal,
-      {
-        instance: contact.instance,
-        contactId: contact._id,
-      },
-    );
+    const replyStyle = await ctx.runQuery(internal.replyStyle.getForCallInternal, {
+      instance: contact.instance,
+      contactId: contact._id,
+    });
     let generatedStyle = reasonToStyle(decision.reason);
     let customTonePrompt: string | undefined;
-    if (pref?.defaultTone === "professional") generatedStyle = "professional";
-    else if (pref?.defaultTone === "friendly") generatedStyle = "friendly";
-    else if (pref?.defaultTone === "concise") generatedStyle = "concise";
-    else if (pref?.defaultTone === "custom") {
-      generatedStyle = "default";
+    if (pref?.defaultTone === 'professional') generatedStyle = 'professional';
+    else if (pref?.defaultTone === 'friendly') generatedStyle = 'friendly';
+    else if (pref?.defaultTone === 'concise') generatedStyle = 'concise';
+    else if (pref?.defaultTone === 'custom') {
+      generatedStyle = 'default';
       customTonePrompt = pref.customTone;
     }
 
@@ -305,24 +293,23 @@ export const decideAndDraft = internalAction({
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error("decideAndDraft: generation failed", {
+      console.error('decideAndDraft: generation failed', {
         messageId: args.messageId,
         error: errorMessage,
       });
       return null;
     }
 
-    const suspiciousReply =
-      decision.mode === "auto_send" && isSuspiciousAutoReply(replyText);
+    const suspiciousReply = decision.mode === 'auto_send' && isSuspiciousAutoReply(replyText);
     if (suspiciousReply) {
-      console.warn("decideAndDraft: suspicious auto-reply downgraded to draft", {
+      console.warn('decideAndDraft: suspicious auto-reply downgraded to draft', {
         messageId: args.messageId,
         replyLength: replyText.length,
         replyPreview: replyText.slice(0, 120),
       });
     }
 
-    if (decision.mode === "auto_send" && !suspiciousReply) {
+    if (decision.mode === 'auto_send' && !suspiciousReply) {
       await sendReply(replyText);
       return null;
     }
@@ -338,7 +325,7 @@ export const decideAndDraft = internalAction({
         temperature: 0.2,
       });
     } catch (error) {
-      console.warn("decideAndDraft: summary failed (non-fatal)", {
+      console.warn('decideAndDraft: summary failed (non-fatal)', {
         messageId: args.messageId,
         error: error instanceof Error ? error.message : String(error),
       });

@@ -33,7 +33,8 @@ export function Composer({ onSend, placeholder = 'Message' }: Props) {
       style={[
         styles.container,
         { borderTopColor: theme.border, backgroundColor: theme.background },
-      ]}>
+      ]}
+    >
       <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement }]}>
         <TextInput
           value={value}
@@ -55,7 +56,8 @@ export function Composer({ onSend, placeholder = 'Message' }: Props) {
             backgroundColor: canSend ? theme.primary : theme.backgroundSelected,
           },
           pressed && canSend && { opacity: 0.85 },
-        ]}>
+        ]}
+      >
         {sending ? (
           <ActivityIndicator color={theme.primaryText} />
         ) : (

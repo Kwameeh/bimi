@@ -1,40 +1,40 @@
-import { v } from "convex/values";
-import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
-import { assertBulkSize, bulkResult } from "./bulkDelete";
+import { v } from 'convex/values';
+import { internalMutation, internalQuery, mutation, query } from './_generated/server';
+import type { Doc } from './_generated/dataModel';
+import { assertBulkSize, bulkResult } from './bulkDelete';
 
 const statusValidator = v.union(
-  v.literal("suggested"),
-  v.literal("pending"),
-  v.literal("fired"),
-  v.literal("dismissed"),
+  v.literal('suggested'),
+  v.literal('pending'),
+  v.literal('fired'),
+  v.literal('dismissed'),
 );
 
-const kindValidator = v.union(v.literal("user"), v.literal("ai_followup"));
+const kindValidator = v.union(v.literal('user'), v.literal('ai_followup'));
 
 export const create = mutation({
   args: {
     instance: v.string(),
-    contactId: v.optional(v.id("contacts")),
-    sourceMessageId: v.optional(v.id("messages")),
+    contactId: v.optional(v.id('contacts')),
+    sourceMessageId: v.optional(v.id('messages')),
     text: v.string(),
     remindAt: v.number(),
   },
   handler: async (ctx, args) => {
     if (args.text.trim().length === 0) {
-      throw new Error("Reminder text is required");
+      throw new Error('Reminder text is required');
     }
     if (args.remindAt <= Date.now()) {
-      throw new Error("Remind time must be in the future");
+      throw new Error('Remind time must be in the future');
     }
-    return await ctx.db.insert("reminders", {
+    return await ctx.db.insert('reminders', {
       instance: args.instance,
       contactId: args.contactId,
       sourceMessageId: args.sourceMessageId,
       text: args.text.trim(),
       remindAt: args.remindAt,
-      status: "pending",
-      kind: "user",
+      status: 'pending',
+      kind: 'user',
     });
   },
 });
@@ -42,52 +42,52 @@ export const create = mutation({
 export const createInternal = internalMutation({
   args: {
     instance: v.string(),
-    contactId: v.optional(v.id("contacts")),
-    sourceMessageId: v.optional(v.id("messages")),
+    contactId: v.optional(v.id('contacts')),
+    sourceMessageId: v.optional(v.id('messages')),
     text: v.string(),
     remindAt: v.number(),
     status: v.optional(statusValidator),
     kind: v.optional(kindValidator),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("reminders", {
+    return await ctx.db.insert('reminders', {
       instance: args.instance,
       contactId: args.contactId,
       sourceMessageId: args.sourceMessageId,
       text: args.text,
       remindAt: args.remindAt,
-      status: args.status ?? "pending",
+      status: args.status ?? 'pending',
       kind: args.kind,
     });
   },
 });
 
 export const dismiss = mutation({
-  args: { reminderId: v.id("reminders") },
+  args: { reminderId: v.id('reminders') },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.reminderId, { status: "dismissed" });
+    await ctx.db.patch(args.reminderId, { status: 'dismissed' });
     return null;
   },
 });
 
 export const dismissSuggested = mutation({
-  args: { reminderId: v.id("reminders") },
+  args: { reminderId: v.id('reminders') },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.reminderId, { status: "dismissed" });
+    await ctx.db.patch(args.reminderId, { status: 'dismissed' });
     return null;
   },
 });
 
 export const acceptSuggested = mutation({
   args: {
-    reminderId: v.id("reminders"),
+    reminderId: v.id('reminders'),
     remindAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const patch: Record<string, unknown> = { status: "pending" };
+    const patch: Record<string, unknown> = { status: 'pending' };
     if (args.remindAt !== undefined) {
       if (args.remindAt <= Date.now()) {
-        throw new Error("Remind time must be in the future");
+        throw new Error('Remind time must be in the future');
       }
       patch.remindAt = args.remindAt;
     }
@@ -97,7 +97,7 @@ export const acceptSuggested = mutation({
 });
 
 export const remove = mutation({
-  args: { reminderId: v.id("reminders") },
+  args: { reminderId: v.id('reminders') },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.reminderId);
     return null;
@@ -105,7 +105,7 @@ export const remove = mutation({
 });
 
 export const removeMany = mutation({
-  args: { reminderIds: v.array(v.id("reminders")) },
+  args: { reminderIds: v.array(v.id('reminders')) },
   returns: v.object({ deleted: v.number(), missing: v.number() }),
   handler: async (ctx, args) => {
     assertBulkSize(args.reminderIds);
@@ -123,7 +123,7 @@ export const list = query({
   args: {
     instance: v.string(),
     status: v.optional(statusValidator),
-    contactId: v.optional(v.id("contacts")),
+    contactId: v.optional(v.id('contacts')),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -132,47 +132,47 @@ export const list = query({
     const status = args.status;
     if (contactId !== undefined) {
       const rows = await ctx.db
-        .query("reminders")
-        .withIndex("by_contact", (q) => q.eq("contactId", contactId))
-        .order("desc")
+        .query('reminders')
+        .withIndex('by_contact', (q) => q.eq('contactId', contactId))
+        .order('desc')
         .take(limit);
       return status ? rows.filter((r) => r.status === status) : rows;
     }
     if (status !== undefined) {
       return await ctx.db
-        .query("reminders")
-        .withIndex("by_instance_and_status", (q) =>
-          q.eq("instance", args.instance).eq("status", status),
+        .query('reminders')
+        .withIndex('by_instance_and_status', (q) =>
+          q.eq('instance', args.instance).eq('status', status),
         )
-        .order("desc")
+        .order('desc')
         .take(limit);
     }
     return await ctx.db
-      .query("reminders")
-      .withIndex("by_instance_and_status", (q) => q.eq("instance", args.instance))
-      .order("desc")
+      .query('reminders')
+      .withIndex('by_instance_and_status', (q) => q.eq('instance', args.instance))
+      .order('desc')
       .take(limit);
   },
 });
 
 export const latestSuggestedForContact = query({
-  args: { contactId: v.id("contacts"), sinceMs: v.optional(v.number()) },
+  args: { contactId: v.id('contacts'), sinceMs: v.optional(v.number()) },
   handler: async (ctx, args) => {
     const sinceMs = args.sinceMs ?? Date.now() - 24 * 60 * 60 * 1000;
     const rows = await ctx.db
-      .query("reminders")
-      .withIndex("by_contact_and_status", (q) =>
-        q.eq("contactId", args.contactId).eq("status", "suggested"),
+      .query('reminders')
+      .withIndex('by_contact_and_status', (q) =>
+        q.eq('contactId', args.contactId).eq('status', 'suggested'),
       )
-      .order("desc")
+      .order('desc')
       .take(5);
     return rows.filter((r) => r._creationTime >= sinceMs);
   },
 });
 
 export const getReminderInternal = internalQuery({
-  args: { reminderId: v.id("reminders") },
-  handler: async (ctx, args): Promise<Doc<"reminders"> | null> => {
+  args: { reminderId: v.id('reminders') },
+  handler: async (ctx, args): Promise<Doc<'reminders'> | null> => {
     return await ctx.db.get(args.reminderId);
   },
 });

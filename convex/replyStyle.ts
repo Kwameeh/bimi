@@ -1,17 +1,17 @@
-import { v } from "convex/values";
+import { v } from 'convex/values';
 import {
   internalAction,
   internalMutation,
   internalQuery,
   mutation,
   query,
-} from "./_generated/server";
-import { internal } from "./_generated/api";
-import type { Doc } from "./_generated/dataModel";
+} from './_generated/server';
+import { internal } from './_generated/api';
+import type { Doc } from './_generated/dataModel';
 import {
   listAutomaticMessagesForContact,
   listAutomaticMessagesForInstance,
-} from "./messageProcessingPolicy";
+} from './messageProcessingPolicy';
 
 const DEFAULT_TARGET_WORDS = 12;
 export const DEFAULT_AUTO_REPLY_MAX_CHARS = 280;
@@ -35,7 +35,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function cleanText(value: string): string {
-  return value.replace(/\s+/g, " ").trim().slice(0, 280);
+  return value.replace(/\s+/g, ' ').trim().slice(0, 280);
 }
 
 function words(value: string): number {
@@ -99,11 +99,7 @@ export function deriveReplyStyle(args: {
     .map(cleanText)
     .filter(Boolean);
   const contactTexts = (args.contactTexts ?? []).map(cleanText).filter(Boolean);
-  const targetWords = clamp(
-    median(userTexts.map(words), DEFAULT_TARGET_WORDS),
-    4,
-    20,
-  );
+  const targetWords = clamp(median(userTexts.map(words), DEFAULT_TARGET_WORDS), 4, 20);
   const maxChars = clamp(
     percentile(
       userTexts.map((text) => text.length),
@@ -117,28 +113,23 @@ export function deriveReplyStyle(args: {
   const contactEmoji = emojiStats(contactTexts);
   // The user's own habits dominate. Contact behavior is only a weak signal
   // that an occasional emoji fits this particular conversation.
-  const emojiRate = clamp(
-    userEmoji.rate * 0.85 + contactEmoji.rate * 0.15,
+  const emojiRate = clamp(userEmoji.rate * 0.85 + contactEmoji.rate * 0.15, 0, 1);
+  const commonEmojis = Array.from(new Set([...userEmoji.common, ...contactEmoji.common])).slice(
     0,
-    1,
+    5,
   );
-  const commonEmojis = Array.from(
-    new Set([...userEmoji.common, ...contactEmoji.common]),
-  ).slice(0, 5);
   const mostlyLowercase =
     userTexts.length > 0 &&
-    userTexts.filter((text) => text === text.toLowerCase()).length /
-      userTexts.length >=
-      0.6;
+    userTexts.filter((text) => text === text.toLowerCase()).length / userTexts.length >= 0.6;
   const summary = [
     `Usually about ${targetWords} words`,
-    mostlyLowercase ? "relaxed casing" : "normal sentence casing",
+    mostlyLowercase ? 'relaxed casing' : 'normal sentence casing',
     emojiRate >= 0.45
-      ? "emojis are common"
+      ? 'emojis are common'
       : emojiRate >= 0.15
-        ? "an occasional emoji fits"
-        : "usually no emoji",
-  ].join("; ");
+        ? 'an occasional emoji fits'
+        : 'usually no emoji',
+  ].join('; ');
 
   return {
     summary,
@@ -154,14 +145,14 @@ export function deriveReplyStyle(args: {
 
 export function formatReplyStyleGuidance(args: {
   profile?: Pick<
-    Doc<"replyStyleProfiles">,
-    | "summary"
-    | "targetWords"
-    | "maxChars"
-    | "emojiRate"
-    | "commonEmojis"
-    | "examples"
-    | "contactExamples"
+    Doc<'replyStyleProfiles'>,
+    | 'summary'
+    | 'targetWords'
+    | 'maxChars'
+    | 'emojiRate'
+    | 'commonEmojis'
+    | 'examples'
+    | 'contactExamples'
   > | null;
   defaultTone?: string;
   customTone?: string;
@@ -173,9 +164,9 @@ export function formatReplyStyleGuidance(args: {
     DEFAULT_AUTO_REPLY_MAX_CHARS,
   );
   const lines = [
-    "REPLY STYLE:",
+    'REPLY STYLE:',
     `- Keep this message around ${profile?.targetWords ?? DEFAULT_TARGET_WORDS} words and under ${maxChars} characters.`,
-    "- Prefer one sentence. Use two short sentences only when the answer genuinely needs them.",
+    '- Prefer one sentence. Use two short sentences only when the answer genuinely needs them.',
   ];
   if (profile) {
     lines.push(`- Learned pattern: ${profile.summary}.`);
@@ -183,12 +174,12 @@ export function formatReplyStyleGuidance(args: {
       lines.push(
         `- At most one emoji when it feels natural${
           profile.commonEmojis.length > 0
-            ? `; familiar choices: ${profile.commonEmojis.join(" ")}`
-            : ""
+            ? `; familiar choices: ${profile.commonEmojis.join(' ')}`
+            : ''
         }.`,
       );
     } else {
-      lines.push("- Usually do not use an emoji.");
+      lines.push('- Usually do not use an emoji.');
     }
     if (profile.examples.length > 0) {
       lines.push(
@@ -203,7 +194,7 @@ export function formatReplyStyleGuidance(args: {
       );
     }
   } else {
-    lines.push("- Use at most one emoji, only if the incoming chat makes it natural.");
+    lines.push('- Use at most one emoji, only if the incoming chat makes it natural.');
   }
   if (args.defaultTone) {
     lines.push(`- Explicit tone setting: ${args.defaultTone}.`);
@@ -211,40 +202,39 @@ export function formatReplyStyleGuidance(args: {
   if (args.customTone?.trim()) {
     lines.push(`- Highest-priority custom instruction: ${args.customTone.trim()}.`);
   }
-  return { guidance: lines.join("\n"), maxChars };
+  return { guidance: lines.join('\n'), maxChars };
 }
 
 export const getLearningContextInternal = internalQuery({
-  args: { instance: v.string(), contactId: v.id("contacts") },
+  args: { instance: v.string(), contactId: v.id('contacts') },
   handler: async (ctx, args) => {
-    const [contactMessages, globalMessages, contactDrafts, globalDrafts] =
-      await Promise.all([
-        listAutomaticMessagesForContact(ctx, {
-          contactId: args.contactId,
-          order: "desc",
-          limit: 120,
-        }),
-        listAutomaticMessagesForInstance(ctx, {
-          instance: args.instance,
-          sinceTimestamp: 0,
-          order: "desc",
-          limit: 250,
-        }),
-        ctx.db
-          .query("drafts")
-          .withIndex("by_contact_and_status", (q) =>
-            q.eq("contactId", args.contactId).eq("status", "sent"),
-          )
-          .order("desc")
-          .take(50),
-        ctx.db
-          .query("drafts")
-          .withIndex("by_instance_and_status", (q) =>
-            q.eq("instance", args.instance).eq("status", "sent"),
-          )
-          .order("desc")
-          .take(100),
-      ]);
+    const [contactMessages, globalMessages, contactDrafts, globalDrafts] = await Promise.all([
+      listAutomaticMessagesForContact(ctx, {
+        contactId: args.contactId,
+        order: 'desc',
+        limit: 120,
+      }),
+      listAutomaticMessagesForInstance(ctx, {
+        instance: args.instance,
+        sinceTimestamp: 0,
+        order: 'desc',
+        limit: 250,
+      }),
+      ctx.db
+        .query('drafts')
+        .withIndex('by_contact_and_status', (q) =>
+          q.eq('contactId', args.contactId).eq('status', 'sent'),
+        )
+        .order('desc')
+        .take(50),
+      ctx.db
+        .query('drafts')
+        .withIndex('by_instance_and_status', (q) =>
+          q.eq('instance', args.instance).eq('status', 'sent'),
+        )
+        .order('desc')
+        .take(100),
+    ]);
     return {
       contactMessages: contactMessages.reverse(),
       globalMessages: globalMessages.reverse(),
@@ -257,8 +247,8 @@ export const getLearningContextInternal = internalQuery({
 export const upsertInternal = internalMutation({
   args: {
     instance: v.string(),
-    scope: v.union(v.literal("global"), v.literal("contact")),
-    contactId: v.optional(v.id("contacts")),
+    scope: v.union(v.literal('global'), v.literal('contact')),
+    contactId: v.optional(v.id('contacts')),
     summary: v.string(),
     targetWords: v.number(),
     maxChars: v.number(),
@@ -271,15 +261,15 @@ export const upsertInternal = internalMutation({
   },
   handler: async (ctx, args) => {
     const existing =
-      args.scope === "contact" && args.contactId
+      args.scope === 'contact' && args.contactId
         ? await ctx.db
-            .query("replyStyleProfiles")
-            .withIndex("by_contactId", (q) => q.eq("contactId", args.contactId))
+            .query('replyStyleProfiles')
+            .withIndex('by_contactId', (q) => q.eq('contactId', args.contactId))
             .unique()
         : await ctx.db
-            .query("replyStyleProfiles")
-            .withIndex("by_instance_and_scope", (q) =>
-              q.eq("instance", args.instance).eq("scope", "global"),
+            .query('replyStyleProfiles')
+            .withIndex('by_instance_and_scope', (q) =>
+              q.eq('instance', args.instance).eq('scope', 'global'),
             )
             .unique();
     const patch = {
@@ -298,25 +288,25 @@ export const upsertInternal = internalMutation({
       await ctx.db.patch(existing._id, patch);
       return existing._id;
     }
-    return await ctx.db.insert("replyStyleProfiles", {
+    return await ctx.db.insert('replyStyleProfiles', {
       instance: args.instance,
       scope: args.scope,
-      contactId: args.scope === "contact" ? args.contactId : undefined,
+      contactId: args.scope === 'contact' ? args.contactId : undefined,
       ...patch,
     });
   },
 });
 
-function messageTime(message: Doc<"messages">): number | undefined {
+function messageTime(message: Doc<'messages'>): number | undefined {
   const timestamp = message.timestamp;
-  if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) {
+  if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) {
     return undefined;
   }
   return timestamp > 1e12 ? timestamp : timestamp * 1000;
 }
 
 export const refreshForContactInternal = internalAction({
-  args: { instance: v.string(), contactId: v.id("contacts") },
+  args: { instance: v.string(), contactId: v.id('contacts') },
   handler: async (ctx, args): Promise<{ contact: boolean; global: boolean }> => {
     const pref = await ctx.runQuery(internal.userPreferences.getInternal, {
       instance: args.instance,
@@ -324,37 +314,30 @@ export const refreshForContactInternal = internalAction({
     if (pref?.replyStyleLearningEnabled === false) {
       return { contact: false, global: false };
     }
-    const context = await ctx.runQuery(
-      internal.replyStyle.getLearningContextInternal,
-      args,
-    );
-    const humanTexts = (messages: Doc<"messages">[]) =>
+    const context = await ctx.runQuery(internal.replyStyle.getLearningContextInternal, args);
+    const humanTexts = (messages: Doc<'messages'>[]) =>
       messages
         .filter((message) => message.fromMe && message.sentByAi !== true)
         .map((message) => message.text);
     const contactTexts = context.contactMessages
-      .filter((message: Doc<"messages">) => !message.fromMe)
-      .map((message: Doc<"messages">) => message.text);
+      .filter((message: Doc<'messages'>) => !message.fromMe)
+      .map((message: Doc<'messages'>) => message.text);
     const contactStyle = deriveReplyStyle({
       userTexts: humanTexts(context.contactMessages),
-      approvedDraftTexts: context.contactDrafts.map(
-        (draft: Doc<"drafts">) => draft.text,
-      ),
+      approvedDraftTexts: context.contactDrafts.map((draft: Doc<'drafts'>) => draft.text),
       contactTexts,
     });
     const globalStyle = deriveReplyStyle({
       userTexts: humanTexts(context.globalMessages),
-      approvedDraftTexts: context.globalDrafts.map(
-        (draft: Doc<"drafts">) => draft.text,
-      ),
+      approvedDraftTexts: context.globalDrafts.map((draft: Doc<'drafts'>) => draft.text),
     });
     const newest = [...context.contactMessages]
       .reverse()
-      .find((message: Doc<"messages">) => message.fromMe);
+      .find((message: Doc<'messages'>) => message.fromMe);
     if (contactStyle.sampleCount >= MIN_CONTACT_SAMPLES) {
       await ctx.runMutation(internal.replyStyle.upsertInternal, {
         instance: args.instance,
-        scope: "contact",
+        scope: 'contact',
         contactId: args.contactId,
         ...contactStyle,
         lastAnalyzedMessageAt: newest ? messageTime(newest) : undefined,
@@ -363,7 +346,7 @@ export const refreshForContactInternal = internalAction({
     if (globalStyle.sampleCount >= MIN_GLOBAL_SAMPLES) {
       await ctx.runMutation(internal.replyStyle.upsertInternal, {
         instance: args.instance,
-        scope: "global",
+        scope: 'global',
         ...globalStyle,
         lastAnalyzedMessageAt: newest ? messageTime(newest) : undefined,
       });
@@ -376,29 +359,28 @@ export const refreshForContactInternal = internalAction({
 });
 
 export const getForCallInternal = internalQuery({
-  args: { instance: v.string(), contactId: v.id("contacts") },
+  args: { instance: v.string(), contactId: v.id('contacts') },
   handler: async (ctx, args) => {
     const [contact, global, pref] = await Promise.all([
       ctx.db
-        .query("replyStyleProfiles")
-        .withIndex("by_contactId", (q) => q.eq("contactId", args.contactId))
+        .query('replyStyleProfiles')
+        .withIndex('by_contactId', (q) => q.eq('contactId', args.contactId))
         .unique(),
       ctx.db
-        .query("replyStyleProfiles")
-        .withIndex("by_instance_and_scope", (q) =>
-          q.eq("instance", args.instance).eq("scope", "global"),
+        .query('replyStyleProfiles')
+        .withIndex('by_instance_and_scope', (q) =>
+          q.eq('instance', args.instance).eq('scope', 'global'),
         )
         .unique(),
       ctx.db
-        .query("userPreferences")
-        .withIndex("by_instance", (q) => q.eq("instance", args.instance))
+        .query('userPreferences')
+        .withIndex('by_instance', (q) => q.eq('instance', args.instance))
         .unique(),
     ]);
-    const profile =
-      pref?.replyStyleLearningEnabled === false ? null : (contact ?? global);
+    const profile = pref?.replyStyleLearningEnabled === false ? null : (contact ?? global);
     return {
       profile,
-      source: contact ? ("contact" as const) : global ? ("global" as const) : null,
+      source: contact ? ('contact' as const) : global ? ('global' as const) : null,
       ...formatReplyStyleGuidance({
         profile,
         defaultTone: pref?.defaultTone,
@@ -409,21 +391,21 @@ export const getForCallInternal = internalQuery({
 });
 
 export const getForContact = query({
-  args: { contactId: v.id("contacts") },
+  args: { contactId: v.id('contacts') },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query("replyStyleProfiles")
-      .withIndex("by_contactId", (q) => q.eq("contactId", args.contactId))
+      .query('replyStyleProfiles')
+      .withIndex('by_contactId', (q) => q.eq('contactId', args.contactId))
       .unique();
   },
 });
 
 export const resetForContact = mutation({
-  args: { contactId: v.id("contacts") },
+  args: { contactId: v.id('contacts') },
   handler: async (ctx, args) => {
     const profile = await ctx.db
-      .query("replyStyleProfiles")
-      .withIndex("by_contactId", (q) => q.eq("contactId", args.contactId))
+      .query('replyStyleProfiles')
+      .withIndex('by_contactId', (q) => q.eq('contactId', args.contactId))
       .unique();
     if (profile) await ctx.db.delete(profile._id);
     return null;

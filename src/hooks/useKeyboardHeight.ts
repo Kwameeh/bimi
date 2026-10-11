@@ -1,11 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import {
-  Keyboard,
-  Platform,
-  Dimensions,
-  KeyboardEvent,
-  EmitterSubscription,
-} from 'react-native';
+import { Keyboard, Platform, Dimensions, KeyboardEvent, EmitterSubscription } from 'react-native';
 
 interface UseKeyboardHeightReturn {
   keyboardHeight: number;
@@ -16,8 +10,7 @@ interface UseKeyboardHeightReturn {
 export const useKeyboardHeight = (): UseKeyboardHeightReturn => {
   const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState<boolean>(false);
-  const [keyboardAnimationDuration, setKeyboardAnimationDuration] =
-    useState<number>(0);
+  const [keyboardAnimationDuration, setKeyboardAnimationDuration] = useState<number>(0);
 
   // Store previous height to handle edge cases
   const previousHeightRef = useRef<number>(0);
@@ -27,10 +20,8 @@ export const useKeyboardHeight = (): UseKeyboardHeightReturn => {
     let hideSubscription: EmitterSubscription;
 
     // Determine which events to listen to based on platform
-    const showEvent =
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent =
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
     // Handle keyboard show
     const handleKeyboardShow = (event: KeyboardEvent) => {
@@ -83,20 +74,14 @@ export const useKeyboardHeight = (): UseKeyboardHeightReturn => {
         // the height might be different
         if (screenWidth > screenHeight && Platform.OS === 'ios') {
           // iOS landscape keyboard is typically shorter
-          const estimatedLandscapeHeight = Math.min(
-            previousHeightRef.current,
-            screenHeight * 0.4
-          );
+          const estimatedLandscapeHeight = Math.min(previousHeightRef.current, screenHeight * 0.4);
           setKeyboardHeight(estimatedLandscapeHeight);
         }
       }
     };
 
     // Listen to dimension changes (rotation, split screen, etc.)
-    dimensionSubscription = Dimensions.addEventListener(
-      'change',
-      handleDimensionChange
-    );
+    dimensionSubscription = Dimensions.addEventListener('change', handleDimensionChange);
 
     return () => {
       dimensionSubscription?.remove();

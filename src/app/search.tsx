@@ -139,13 +139,15 @@ export default function SearchScreen() {
                     backgroundColor: theme.primary,
                     borderColor: theme.primary,
                   },
-                ]}>
+                ]}
+              >
                 <Text
                   style={{
                     color: mode === 'nl' ? theme.primaryText : theme.text,
                     fontWeight: '600',
                     fontSize: 12,
-                  }}>
+                  }}
+                >
                   Natural language
                 </Text>
               </Pressable>
@@ -158,13 +160,15 @@ export default function SearchScreen() {
                     backgroundColor: theme.primary,
                     borderColor: theme.primary,
                   },
-                ]}>
+                ]}
+              >
                 <Text
                   style={{
                     color: mode === 'keyword' ? theme.primaryText : theme.text,
                     fontWeight: '600',
                     fontSize: 12,
-                  }}>
+                  }}
+                >
                   Keyword
                 </Text>
               </Pressable>
@@ -176,7 +180,8 @@ export default function SearchScreen() {
                     styles.askBtn,
                     { backgroundColor: theme.primary },
                     (busy || trimmed.length === 0) && { opacity: 0.5 },
-                  ]}>
+                  ]}
+                >
                   {busy ? (
                     <ActivityIndicator size="small" color={theme.primaryText} />
                   ) : (
@@ -185,7 +190,8 @@ export default function SearchScreen() {
                         color: theme.primaryText,
                         fontWeight: '700',
                         fontSize: 12,
-                      }}>
+                      }}
+                    >
                       Ask
                     </Text>
                   )}
@@ -264,7 +270,8 @@ export default function SearchScreen() {
                     style={({ pressed }) => [
                       styles.row,
                       pressed && { backgroundColor: theme.backgroundSelected },
-                    ]}>
+                    ]}
+                  >
                     <View style={{ flex: 1 }}>
                       <ThemedText type="small" numberOfLines={2}>
                         {item.text}
@@ -305,7 +312,8 @@ export default function SearchScreen() {
                   style={({ pressed }) => [
                     styles.row,
                     pressed && { backgroundColor: theme.backgroundSelected },
-                  ]}>
+                  ]}
+                >
                   <Avatar
                     name={item.displayName}
                     isGroup={item.isGroup}
@@ -334,7 +342,7 @@ function LiveSearchResult({
   messages,
   onOpen,
 }: {
-  messages: Array<{
+  messages: {
     _id: Id<'assistantMessages'>;
     role: 'user' | 'assistant' | 'tool';
     content: string;
@@ -354,7 +362,7 @@ function LiveSearchResult({
     citedContactIds?: Id<'contacts'>[];
     threadId: Id<'assistantThreads'>;
     _creationTime: number;
-  }>;
+  }[];
   onOpen: (contactId: Id<'contacts'>) => void;
 }) {
   const theme = useTheme();
@@ -390,7 +398,8 @@ function LiveSearchResult({
                 backgroundColor: theme.backgroundElement,
                 borderColor: theme.border,
               },
-            ]}>
+            ]}
+          >
             <ThemedText type="small" themeColor="textSecondary" style={styles.answerLabel}>
               BIMI
             </ThemedText>
@@ -433,7 +442,8 @@ function TabButton({
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.tabButton, { borderBottomColor: active ? theme.primary : 'transparent' }]}>
+      style={[styles.tabButton, { borderBottomColor: active ? theme.primary : 'transparent' }]}
+    >
       <ThemedText type="smallBold" style={{ color: active ? theme.primary : theme.textSecondary }}>
         {label}
       </ThemedText>

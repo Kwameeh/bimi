@@ -28,7 +28,7 @@ import type { Id } from '../../../convex/_generated/dataModel';
 
 type Range = 'today' | 'since_opened' | 'yesterday' | 'this_week';
 
-const RANGE_OPTIONS: Array<{ key: Range; label: string }> = [
+const RANGE_OPTIONS: { key: Range; label: string }[] = [
   { key: 'today', label: 'Today' },
   { key: 'since_opened', label: 'Since I last opened' },
   { key: 'yesterday', label: 'Yesterday' },
@@ -77,43 +77,43 @@ function rangeToMs(
 }
 
 type LiveSections = {
-  urgent: Array<{
+  urgent: {
     messageId: Id<'messages'>;
     contactId: Id<'contacts'>;
     contactName?: string;
     preview: string;
-  }>;
-  needsReply: Array<{
+  }[];
+  needsReply: {
     messageId: Id<'messages'>;
     contactId: Id<'contacts'>;
     contactName?: string;
     preview: string;
-  }>;
-  meetings: Array<{
+  }[];
+  meetings: {
     messageId: Id<'messages'>;
     contactId: Id<'contacts'>;
     contactName?: string;
     preview: string;
-  }>;
-  documents: Array<{
+  }[];
+  documents: {
     messageId: Id<'messages'>;
     contactId: Id<'contacts'>;
     contactName?: string;
     fileName?: string;
-  }>;
-  autoReplied: Array<{
+  }[];
+  autoReplied: {
     messageId: Id<'messages'>;
     contactId: Id<'contacts'>;
     contactName?: string;
     preview: string;
-  }>;
-  fyi: Array<{
+  }[];
+  fyi: {
     messageId: Id<'messages'>;
     contactId: Id<'contacts'>;
     contactName?: string;
     preview: string;
     category?: string;
-  }>;
+  }[];
 };
 
 export default function BriefingScreen() {
@@ -132,20 +132,16 @@ export default function BriefingScreen() {
   const askMissed = useAction(api.summaries.askMissedSummary);
   const [refreshing, setRefreshing] = useState(false);
   const [range, setRange] = useState<Range>('today');
-  const [live, setLive] = useState<LiveSections | null>(null);
-  const [liveLoading, setLiveLoading] = useState(false);
+  const [live, setLive] = useState<{ range: Range; data: LiveSections } | null>(null);
 
   const openChat = (contactId: Id<'contacts'>) => {
     router.push({ pathname: '/chat/[contactId]', params: { contactId } });
   };
 
   useEffect(() => {
-    if (range === 'today') {
-      setLive(null);
-      return;
-    }
+    if (range === 'today') return;
+    let cancelled = false;
     const { sinceMs, untilMs } = rangeToMs(range, pref?.lastOpenedAt);
-    setLiveLoading(true);
     (async () => {
       try {
         const result = (await askMissed({
@@ -153,13 +149,15 @@ export default function BriefingScreen() {
           sinceMs,
           untilMs,
         })) as LiveSections;
-        setLive(result);
+        if (!cancelled) setLive({ range, data: result });
       } catch (err) {
-        Alert.alert('Load failed', err instanceof Error ? err.message : String(err));
-      } finally {
-        setLiveLoading(false);
+        if (!cancelled)
+          Alert.alert('Load failed', err instanceof Error ? err.message : String(err));
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [range, instance, pref?.lastOpenedAt, askMissed]);
 
   const onRefresh = async () => {
@@ -174,7 +172,7 @@ export default function BriefingScreen() {
           sinceMs,
           untilMs,
         })) as LiveSections;
-        setLive(result);
+        setLive({ range, data: result });
       }
     } catch (err) {
       Alert.alert('Refresh failed', err instanceof Error ? err.message : String(err));
@@ -216,7 +214,8 @@ export default function BriefingScreen() {
                   backgroundColor: theme.primary,
                   opacity: refreshing ? 0.6 : 1,
                 },
-              ]}>
+              ]}
+            >
               {refreshing ? (
                 <ActivityIndicator color={theme.primaryText} />
               ) : (
@@ -231,9 +230,12 @@ export default function BriefingScreen() {
     );
   }
 
+  const liveLoading = usingLive && live?.range !== range;
+  const liveData = live?.range === range ? live.data : null;
+
   // Choose source based on mode
   const data: LiveSections | null = usingLive
-    ? live
+    ? liveData
     : summary
       ? {
           urgent: summary.urgent,
@@ -337,10 +339,12 @@ export default function BriefingScreen() {
                       backgroundColor: theme.primary,
                       borderColor: theme.primary,
                     },
-                  ]}>
+                  ]}
+                >
                   <Text
                     numberOfLines={2}
-                    style={[styles.rangeLabel, { color: active ? theme.primaryText : theme.text }]}>
+                    style={[styles.rangeLabel, { color: active ? theme.primaryText : theme.text }]}
+                  >
                     {opt.label}
                   </Text>
                 </Pressable>
@@ -363,7 +367,8 @@ export default function BriefingScreen() {
                 onRefresh={onRefresh}
                 tintColor={theme.primary}
               />
-            }>
+            }
+          >
             <View
               style={[
                 styles.summaryStrip,
@@ -371,7 +376,8 @@ export default function BriefingScreen() {
                   backgroundColor: theme.backgroundElement,
                   borderColor: theme.border,
                 },
-              ]}>
+              ]}
+            >
               <View>
                 <Text style={[styles.summaryNumber, { color: theme.danger }]}>
                   {urgentRows.length}

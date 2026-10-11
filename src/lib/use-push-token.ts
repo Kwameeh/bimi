@@ -34,8 +34,7 @@ export function usePushTokenRegistration() {
         // expo-notifications throws at load time in Expo Go on Android
         // (remote push was removed from Expo Go in SDK 53), so skip there
         // and lazy-import the module everywhere else.
-        const isExpoGo =
-          Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+        const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
         if (isExpoGo && Platform.OS === 'android') {
           console.warn(
             'Push token registration skipped: not supported in Expo Go on Android. Use a development build.',
@@ -53,8 +52,7 @@ export function usePushTokenRegistration() {
         if (status !== 'granted') return;
 
         const projectId =
-          Constants.expoConfig?.extra?.eas?.projectId ??
-          Constants.easConfig?.projectId;
+          Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
         const tokenResponse = projectId
           ? await Notifications.getExpoPushTokenAsync({ projectId })

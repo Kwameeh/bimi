@@ -30,7 +30,7 @@ type Tone = 'casual' | 'professional' | 'friendly' | 'concise' | 'custom';
 type VoiceModePref = 'push_to_talk' | 'conversational';
 type VoiceEnginePref = 'device' | 'bimi';
 
-const VOICE_MODE_OPTIONS: Array<{ key: VoiceModePref; label: string; description: string }> = [
+const VOICE_MODE_OPTIONS: { key: VoiceModePref; label: string; description: string }[] = [
   {
     key: 'push_to_talk',
     label: 'Hold to talk',
@@ -43,7 +43,7 @@ const VOICE_MODE_OPTIONS: Array<{ key: VoiceModePref; label: string; description
   },
 ];
 
-const VOICE_ENGINE_OPTIONS: Array<{ key: VoiceEnginePref; label: string; description: string }> = [
+const VOICE_ENGINE_OPTIONS: { key: VoiceEnginePref; label: string; description: string }[] = [
   {
     key: 'device',
     label: 'Device voice',
@@ -56,7 +56,7 @@ const VOICE_ENGINE_OPTIONS: Array<{ key: VoiceEnginePref; label: string; descrip
   },
 ];
 
-const TONE_OPTIONS: Array<{ key: Tone; label: string; description: string }> = [
+const TONE_OPTIONS: { key: Tone; label: string; description: string }[] = [
   {
     key: 'casual',
     label: 'Casual',
@@ -76,11 +76,11 @@ const TONE_OPTIONS: Array<{ key: Tone; label: string; description: string }> = [
   },
 ];
 
-const MORE_SCREENS: Array<{
+const MORE_SCREENS: {
   route: '/approvals' | '/memory' | '/contacts';
   label: string;
   description: string;
-}> = [
+}[] = [
   {
     route: '/approvals',
     label: 'Approvals',
@@ -98,11 +98,11 @@ const MORE_SCREENS: Array<{
   },
 ];
 
-const MEMORY_INTERVAL_OPTIONS: Array<{
+const MEMORY_INTERVAL_OPTIONS: {
   hours: number;
   label: string;
   description: string;
-}> = [
+}[] = [
   {
     hours: 0,
     label: 'Off',
@@ -206,17 +206,15 @@ export default function SettingsTabScreen() {
   const [memoryDailyTimeInput, setMemoryDailyTimeInput] = useState('21:00');
   const [busyIdentity, setBusyIdentity] = useState(false);
 
-  React.useEffect(() => {
-    if (pref?.ownerName !== undefined && ownerNameInput === '') {
-      setOwnerNameInput(pref.ownerName ?? '');
-    }
-    if (pref?.ownerAliases && ownerAliasesInput === '') {
-      setOwnerAliasesInput(pref.ownerAliases.join(', '));
-    }
-    if (pref?.memoryExtractionDailyTime && memoryDailyTimeInput === '21:00') {
-      setMemoryDailyTimeInput(pref.memoryExtractionDailyTime);
-    }
-  }, [pref?.ownerName, pref?.ownerAliases, pref?.memoryExtractionDailyTime]);
+  const [syncedPrefId, setSyncedPrefId] = useState<string | null>(null);
+
+  if (pref && syncedPrefId !== pref._id) {
+    setSyncedPrefId(pref._id);
+    setOwnerNameInput(pref.ownerName ?? '');
+    setOwnerAliasesInput(pref.ownerAliases ? pref.ownerAliases.join(', ') : '');
+    setMemoryDailyTimeInput(pref.memoryExtractionDailyTime ?? '21:00');
+    setCustomInput(pref.customTone ?? '');
+  }
 
   const selectMemoryInterval = async (hours: number) => {
     if (busyMemorySchedule !== null) return;
@@ -267,12 +265,6 @@ export default function SettingsTabScreen() {
     }
   };
 
-  React.useEffect(() => {
-    if (pref?.customTone && customInput === '') {
-      setCustomInput(pref.customTone);
-    }
-  }, [pref?.customTone]);
-
   const selectTone = async (tone: Tone) => {
     if (busy) return;
     if (tone === 'custom' && customInput.trim().length === 0) {
@@ -297,464 +289,482 @@ export default function SettingsTabScreen() {
     <ThemedView style={styles.container}>
       <KeyboardAvoidingContainer style={{ flex: 1 }}>
         <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.header}>
-          <ThemedText style={styles.headerTitle}>Settings</ThemedText>
-        </View>
+          <View style={styles.header}>
+            <ThemedText style={styles.headerTitle}>Settings</ThemedText>
+          </View>
 
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}>
-          <ThemedView type="backgroundElement" style={styles.section}>
-            {MORE_SCREENS.map((item, i) => (
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            <ThemedView type="backgroundElement" style={styles.section}>
+              {MORE_SCREENS.map((item, i) => (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${item.label}`}
+                  key={item.route}
+                  onPress={() => router.push(item.route)}
+                  style={[styles.toneRow, { borderColor: theme.border }, i > 0 && { marginTop: 8 }]}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.toneLabel, { color: theme.text }]}>{item.label}</Text>
+                    <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
+                      {item.description}
+                    </Text>
+                  </View>
+                  <AppIcon name="chevronRight" tintColor={theme.textSecondary} size={18} />
+                </Pressable>
+              ))}
+            </ThemedView>
+
+            <ThemedView type="backgroundElement" style={styles.section}>
+              <ThemedText type="smallBold">Voice</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                How the mic behaves when you open voice mode, and what Bimi sounds like.
+              </ThemedText>
+
+              <View style={styles.toneList}>
+                {VOICE_MODE_OPTIONS.map((option) => {
+                  const active = voiceMode === option.key;
+                  return (
+                    <Pressable
+                      key={option.key}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      onPress={() => saveVoice({ mode: option.key }, `mode:${option.key}`)}
+                      disabled={busyVoice !== null}
+                      style={[
+                        styles.toneRow,
+                        {
+                          borderColor: active ? theme.primary : theme.border,
+                          backgroundColor: active ? theme.backgroundSelected : 'transparent',
+                        },
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.toneLabel, { color: theme.text }]}>
+                          {option.label}
+                        </Text>
+                        <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
+                          {option.description}
+                        </Text>
+                      </View>
+                      {busyVoice === `mode:${option.key}` ? (
+                        <ActivityIndicator size="small" color={theme.primary} />
+                      ) : active ? (
+                        <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <ThemedText type="small" themeColor="textSecondary" style={{ marginTop: 8 }}>
+                Bimi&apos;s voice
+              </ThemedText>
+              <View style={styles.toneList}>
+                {VOICE_ENGINE_OPTIONS.map((option) => {
+                  const active = voiceEngine === option.key;
+                  return (
+                    <Pressable
+                      key={option.key}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      onPress={() => saveVoice({ ttsEngine: option.key }, `engine:${option.key}`)}
+                      disabled={busyVoice !== null}
+                      style={[
+                        styles.toneRow,
+                        {
+                          borderColor: active ? theme.primary : theme.border,
+                          backgroundColor: active ? theme.backgroundSelected : 'transparent',
+                        },
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.toneLabel, { color: theme.text }]}>
+                          {option.label}
+                        </Text>
+                        <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
+                          {option.description}
+                        </Text>
+                      </View>
+                      {busyVoice === `engine:${option.key}` ? (
+                        <ActivityIndicator size="small" color={theme.primary} />
+                      ) : active ? (
+                        <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+
               <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Open ${item.label}`}
-                key={item.route}
-                onPress={() => router.push(item.route)}
-                style={[styles.toneRow, { borderColor: theme.border }, i > 0 && { marginTop: 8 }]}>
+                accessibilityRole="switch"
+                accessibilityState={{ checked: voiceAutoSpeak }}
+                onPress={() => saveVoice({ autoSpeak: !voiceAutoSpeak }, 'autoSpeak')}
+                disabled={busyVoice !== null}
+                style={[
+                  styles.toneRow,
+                  {
+                    borderColor: voiceAutoSpeak ? theme.primary : theme.border,
+                    backgroundColor: voiceAutoSpeak ? theme.backgroundSelected : 'transparent',
+                    marginTop: 8,
+                  },
+                ]}
+              >
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.toneLabel, { color: theme.text }]}>{item.label}</Text>
+                  <Text style={[styles.toneLabel, { color: theme.text }]}>
+                    {voiceAutoSpeak ? 'Speaks answers aloud' : 'Stays silent'}
+                  </Text>
                   <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
-                    {item.description}
+                    Turn this off to read replies on screen without hearing them.
                   </Text>
                 </View>
-                <AppIcon name="chevronRight" tintColor={theme.textSecondary} size={18} />
+                {busyVoice === 'autoSpeak' ? (
+                  <ActivityIndicator size="small" color={theme.primary} />
+                ) : voiceAutoSpeak ? (
+                  <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+                ) : null}
               </Pressable>
-            ))}
-          </ThemedView>
+            </ThemedView>
 
-          <ThemedView type="backgroundElement" style={styles.section}>
-            <ThemedText type="smallBold">Voice</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              How the mic behaves when you open voice mode, and what Bimi sounds like.
-            </ThemedText>
-
-            <View style={styles.toneList}>
-              {VOICE_MODE_OPTIONS.map((option) => {
-                const active = voiceMode === option.key;
-                return (
-                  <Pressable
-                    key={option.key}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                    onPress={() => saveVoice({ mode: option.key }, `mode:${option.key}`)}
-                    disabled={busyVoice !== null}
-                    style={[
-                      styles.toneRow,
-                      {
-                        borderColor: active ? theme.primary : theme.border,
-                        backgroundColor: active ? theme.backgroundSelected : 'transparent',
-                      },
-                    ]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.toneLabel, { color: theme.text }]}>{option.label}</Text>
-                      <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
-                        {option.description}
-                      </Text>
-                    </View>
-                    {busyVoice === `mode:${option.key}` ? (
-                      <ActivityIndicator size="small" color={theme.primary} />
-                    ) : active ? (
-                      <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <ThemedText type="small" themeColor="textSecondary" style={{ marginTop: 8 }}>
-              Bimi&apos;s voice
-            </ThemedText>
-            <View style={styles.toneList}>
-              {VOICE_ENGINE_OPTIONS.map((option) => {
-                const active = voiceEngine === option.key;
-                return (
-                  <Pressable
-                    key={option.key}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                    onPress={() => saveVoice({ ttsEngine: option.key }, `engine:${option.key}`)}
-                    disabled={busyVoice !== null}
-                    style={[
-                      styles.toneRow,
-                      {
-                        borderColor: active ? theme.primary : theme.border,
-                        backgroundColor: active ? theme.backgroundSelected : 'transparent',
-                      },
-                    ]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.toneLabel, { color: theme.text }]}>{option.label}</Text>
-                      <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
-                        {option.description}
-                      </Text>
-                    </View>
-                    {busyVoice === `engine:${option.key}` ? (
-                      <ActivityIndicator size="small" color={theme.primary} />
-                    ) : active ? (
-                      <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <Pressable
-              accessibilityRole="switch"
-              accessibilityState={{ checked: voiceAutoSpeak }}
-              onPress={() => saveVoice({ autoSpeak: !voiceAutoSpeak }, 'autoSpeak')}
-              disabled={busyVoice !== null}
-              style={[
-                styles.toneRow,
-                {
-                  borderColor: voiceAutoSpeak ? theme.primary : theme.border,
-                  backgroundColor: voiceAutoSpeak ? theme.backgroundSelected : 'transparent',
-                  marginTop: 8,
-                },
-              ]}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.toneLabel, { color: theme.text }]}>
-                  {voiceAutoSpeak ? 'Speaks answers aloud' : 'Stays silent'}
-                </Text>
-                <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
-                  Turn this off to read replies on screen without hearing them.
-                </Text>
-              </View>
-              {busyVoice === 'autoSpeak' ? (
-                <ActivityIndicator size="small" color={theme.primary} />
-              ) : voiceAutoSpeak ? (
-                <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
-              ) : null}
-            </Pressable>
-          </ThemedView>
-
-          <ThemedView type="backgroundElement" style={styles.section}>
-            <ThemedText type="smallBold">Learn my reply style</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Learns shortness, wording, casing, and emoji habits per contact. Your explicit tone
-              setting still wins.
-            </ThemedText>
-            <Pressable
-              accessibilityRole="switch"
-              accessibilityState={{ checked: styleLearningEnabled }}
-              onPress={toggleStyleLearning}
-              disabled={busyStyleLearning}
-              style={[
-                styles.toneRow,
-                {
-                  borderColor: styleLearningEnabled ? theme.primary : theme.border,
-                  backgroundColor: styleLearningEnabled
-                    ? theme.backgroundSelected
-                    : 'transparent',
-                  marginTop: 8,
-                },
-              ]}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.toneLabel, { color: theme.text }]}>
-                  {styleLearningEnabled ? 'Enabled' : 'Disabled'}
-                </Text>
-                <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
-                  Uses messages you wrote and drafts you approved or edited.
-                </Text>
-              </View>
-              {busyStyleLearning ? (
-                <ActivityIndicator size="small" color={theme.primary} />
-              ) : styleLearningEnabled ? (
-                <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
-              ) : null}
-            </Pressable>
-          </ThemedView>
-
-          <ThemedView type="backgroundElement" style={styles.section}>
-            <ThemedText type="smallBold">Your identity</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Used to detect when someone mentions you in a group.
-            </ThemedText>
-            {pref?.ownerPhone ? (
+            <ThemedView type="backgroundElement" style={styles.section}>
+              <ThemedText type="smallBold">Learn my reply style</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                Phone: {pref.ownerPhone}
+                Learns shortness, wording, casing, and emoji habits per contact. Your explicit tone
+                setting still wins.
               </ThemedText>
-            ) : null}
-            <Text style={[styles.toneDesc, { color: theme.textSecondary, marginTop: 8 }]}>
-              Your name (as people address you)
-            </Text>
-            <TextInput
-              value={ownerNameInput}
-              onChangeText={setOwnerNameInput}
-              placeholder="Sydney"
-              placeholderTextColor={theme.textSecondary}
-              style={[
-                styles.customInput,
-                {
-                  color: theme.text,
-                  borderColor: theme.border,
-                  backgroundColor: theme.background,
-                },
-              ]}
-            />
-            <Text style={[styles.toneDesc, { color: theme.textSecondary, marginTop: 8 }]}>
-              Nicknames (comma-separated)
-            </Text>
-            <TextInput
-              value={ownerAliasesInput}
-              onChangeText={setOwnerAliasesInput}
-              placeholder="Syd, Sydney T"
-              placeholderTextColor={theme.textSecondary}
-              style={[
-                styles.customInput,
-                {
-                  color: theme.text,
-                  borderColor: theme.border,
-                  backgroundColor: theme.background,
-                },
-              ]}
-            />
-            <Pressable
-              onPress={saveIdentity}
-              disabled={busyIdentity}
-              style={[
-                styles.saveBtn,
-                { backgroundColor: theme.primary, marginTop: 8 },
-                busyIdentity && { opacity: 0.5 },
-              ]}>
-              {busyIdentity ? (
-                <ActivityIndicator size="small" color={theme.primaryText} />
-              ) : (
-                <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Save identity</Text>
-              )}
-            </Pressable>
-          </ThemedView>
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityState={{ checked: styleLearningEnabled }}
+                onPress={toggleStyleLearning}
+                disabled={busyStyleLearning}
+                style={[
+                  styles.toneRow,
+                  {
+                    borderColor: styleLearningEnabled ? theme.primary : theme.border,
+                    backgroundColor: styleLearningEnabled
+                      ? theme.backgroundSelected
+                      : 'transparent',
+                    marginTop: 8,
+                  },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.toneLabel, { color: theme.text }]}>
+                    {styleLearningEnabled ? 'Enabled' : 'Disabled'}
+                  </Text>
+                  <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
+                    Uses messages you wrote and drafts you approved or edited.
+                  </Text>
+                </View>
+                {busyStyleLearning ? (
+                  <ActivityIndicator size="small" color={theme.primary} />
+                ) : styleLearningEnabled ? (
+                  <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+                ) : null}
+              </Pressable>
+            </ThemedView>
 
-          <ThemedView type="backgroundElement" style={styles.section}>
-            <ThemedText type="smallBold">Default AI mode</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Applies to contacts you haven&apos;t set a per-chat mode for.
-            </ThemedText>
-            <View style={styles.toneList}>
-              {AI_MODE_OPTIONS.map((opt) => {
-                const selected = currentAiMode === opt.value;
-                return (
-                  <Pressable
-                    key={opt.value}
-                    onPress={() => selectAiMode(opt.value)}
-                    disabled={busyAiMode !== null}
-                    style={[
-                      styles.toneRow,
-                      {
-                        borderColor: selected ? theme.primary : theme.border,
-                        backgroundColor: selected ? theme.backgroundSelected : 'transparent',
-                      },
-                    ]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.toneLabel, { color: theme.text }]}>{opt.label}</Text>
-                      <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
-                        {opt.description}
-                      </Text>
-                    </View>
-                    {busyAiMode === opt.value ? (
-                      <ActivityIndicator size="small" color={theme.primary} />
-                    ) : selected ? (
-                      <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          </ThemedView>
-
-          <ThemedView type="backgroundElement" style={styles.section}>
-            <ThemedText type="smallBold">Auto-extract tasks</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Let Bimi automatically pull tasks, reminders, and deadlines out of incoming messages.
-            </ThemedText>
-            <Pressable
-              onPress={toggleAutoExtract}
-              disabled={busyAutoExtract}
-              style={[
-                styles.toneRow,
-                {
-                  borderColor: autoExtractEnabled ? theme.primary : theme.border,
-                  backgroundColor: autoExtractEnabled ? theme.backgroundSelected : 'transparent',
-                  marginTop: 8,
-                },
-              ]}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.toneLabel, { color: theme.text }]}>
-                  {autoExtractEnabled ? 'Enabled' : 'Disabled'}
-                </Text>
-                <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
-                  {autoExtractEnabled
-                    ? 'Tasks appear in the Tasks tab automatically.'
-                    : 'Tap to enable. You can still create tasks manually.'}
-                </Text>
-              </View>
-              {busyAutoExtract ? (
-                <ActivityIndicator size="small" color={theme.primary} />
-              ) : autoExtractEnabled ? (
-                <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+            <ThemedView type="backgroundElement" style={styles.section}>
+              <ThemedText type="smallBold">Your identity</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Used to detect when someone mentions you in a group.
+              </ThemedText>
+              {pref?.ownerPhone ? (
+                <ThemedText type="small" themeColor="textSecondary">
+                  Phone: {pref.ownerPhone}
+                </ThemedText>
               ) : null}
-            </Pressable>
-          </ThemedView>
+              <Text style={[styles.toneDesc, { color: theme.textSecondary, marginTop: 8 }]}>
+                Your name (as people address you)
+              </Text>
+              <TextInput
+                value={ownerNameInput}
+                onChangeText={setOwnerNameInput}
+                placeholder="Sydney"
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.customInput,
+                  {
+                    color: theme.text,
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                  },
+                ]}
+              />
+              <Text style={[styles.toneDesc, { color: theme.textSecondary, marginTop: 8 }]}>
+                Nicknames (comma-separated)
+              </Text>
+              <TextInput
+                value={ownerAliasesInput}
+                onChangeText={setOwnerAliasesInput}
+                placeholder="Syd, Sydney T"
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.customInput,
+                  {
+                    color: theme.text,
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                  },
+                ]}
+              />
+              <Pressable
+                onPress={saveIdentity}
+                disabled={busyIdentity}
+                style={[
+                  styles.saveBtn,
+                  { backgroundColor: theme.primary, marginTop: 8 },
+                  busyIdentity && { opacity: 0.5 },
+                ]}
+              >
+                {busyIdentity ? (
+                  <ActivityIndicator size="small" color={theme.primaryText} />
+                ) : (
+                  <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Save identity</Text>
+                )}
+              </Pressable>
+            </ThemedView>
 
-          <ThemedView type="backgroundElement" style={styles.section}>
-            <ThemedText type="smallBold">Contact memory extraction</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Builds the living memory profile on each contact and group from recent chats.
-            </ThemedText>
-            <View style={styles.toneList}>
-              {MEMORY_INTERVAL_OPTIONS.map((opt) => {
-                const selected = (pref?.memoryExtractionIntervalHours ?? 24) === opt.hours;
-                return (
-                  <Pressable
-                    key={opt.hours}
-                    onPress={() => selectMemoryInterval(opt.hours)}
-                    disabled={busyMemorySchedule !== null}
-                    style={[
-                      styles.toneRow,
-                      {
-                        borderColor: selected ? theme.primary : theme.border,
-                        backgroundColor: selected ? theme.backgroundSelected : 'transparent',
-                      },
-                    ]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.toneLabel, { color: theme.text }]}>{opt.label}</Text>
-                      <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
-                        {opt.description}
-                      </Text>
-                    </View>
-                    {busyMemorySchedule === opt.hours ? (
-                      <ActivityIndicator size="small" color={theme.primary} />
-                    ) : selected ? (
-                      <Text style={[styles.check, { color: theme.primary }]}>âœ“</Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Text style={[styles.toneDesc, { color: theme.textSecondary, marginTop: 8 }]}>
-              Daily time
-            </Text>
-            <TextInput
-              value={memoryDailyTimeInput}
-              onChangeText={setMemoryDailyTimeInput}
-              placeholder="21:00"
-              placeholderTextColor={theme.textSecondary}
-              style={[
-                styles.customInput,
-                {
-                  color: theme.text,
-                  borderColor: theme.border,
-                  backgroundColor: theme.background,
-                },
-              ]}
-            />
-            <Pressable
-              onPress={() => selectMemoryInterval(pref?.memoryExtractionIntervalHours ?? 24)}
-              disabled={busyMemorySchedule !== null}
-              style={[
-                styles.saveBtn,
-                { backgroundColor: theme.primary, marginTop: 8 },
-                busyMemorySchedule !== null && { opacity: 0.5 },
-              ]}>
-              {busyMemorySchedule !== null ? (
-                <ActivityIndicator size="small" color={theme.primaryText} />
-              ) : (
-                <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
-                  Save memory schedule
-                </Text>
-              )}
-            </Pressable>
-          </ThemedView>
-
-          <ThemedView type="backgroundElement" style={styles.section}>
-            <ThemedText type="smallBold">Default reply tone</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Bimi uses this tone when drafting replies. You can override per draft.
-            </ThemedText>
-            <View style={styles.toneList}>
-              {TONE_OPTIONS.map((opt) => {
-                const selected = currentTone === opt.key;
-                return (
-                  <Pressable
-                    key={opt.key}
-                    onPress={() => selectTone(opt.key)}
-                    disabled={busy !== null}
-                    style={[
-                      styles.toneRow,
-                      {
-                        borderColor: selected ? theme.primary : theme.border,
-                        backgroundColor: selected ? theme.backgroundSelected : 'transparent',
-                      },
-                    ]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.toneLabel, { color: theme.text }]}>{opt.label}</Text>
-                      <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
-                        {opt.description}
-                      </Text>
-                    </View>
-                    {busy === opt.key ? (
-                      <ActivityIndicator size="small" color={theme.primary} />
-                    ) : selected ? (
-                      <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
-                    ) : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-            {currentTone === 'custom' || customInput.length > 0 ? (
-              <View style={styles.customWrap}>
-                <TextInput
-                  value={customInput}
-                  onChangeText={setCustomInput}
-                  placeholder='e.g. "in pidgin" or "more apologetic"'
-                  placeholderTextColor={theme.textSecondary}
-                  style={[
-                    styles.customInput,
-                    {
-                      color: theme.text,
-                      borderColor: theme.border,
-                      backgroundColor: theme.background,
-                    },
-                  ]}
-                />
-                <Pressable
-                  onPress={() => selectTone('custom')}
-                  disabled={busy !== null || customInput.trim().length === 0}
-                  style={[
-                    styles.saveBtn,
-                    { backgroundColor: theme.primary },
-                    (busy !== null || customInput.trim().length === 0) && {
-                      opacity: 0.5,
-                    },
-                  ]}>
-                  {busy === 'custom' ? (
-                    <ActivityIndicator size="small" color={theme.primaryText} />
-                  ) : (
-                    <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
-                      Save custom tone
-                    </Text>
-                  )}
-                </Pressable>
+            <ThemedView type="backgroundElement" style={styles.section}>
+              <ThemedText type="smallBold">Default AI mode</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Applies to contacts you haven&apos;t set a per-chat mode for.
+              </ThemedText>
+              <View style={styles.toneList}>
+                {AI_MODE_OPTIONS.map((opt) => {
+                  const selected = currentAiMode === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => selectAiMode(opt.value)}
+                      disabled={busyAiMode !== null}
+                      style={[
+                        styles.toneRow,
+                        {
+                          borderColor: selected ? theme.primary : theme.border,
+                          backgroundColor: selected ? theme.backgroundSelected : 'transparent',
+                        },
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.toneLabel, { color: theme.text }]}>{opt.label}</Text>
+                        <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
+                          {opt.description}
+                        </Text>
+                      </View>
+                      {busyAiMode === opt.value ? (
+                        <ActivityIndicator size="small" color={theme.primary} />
+                      ) : selected ? (
+                        <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
               </View>
-            ) : null}
-          </ThemedView>
+            </ThemedView>
 
-          <ThemedView type="backgroundElement" style={styles.section}>
-            <ThemedText type="smallBold">Appearance</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Following system theme — currently {themeLabel.toLowerCase()}.
-            </ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Manual override coming soon.
-            </ThemedText>
-          </ThemedView>
+            <ThemedView type="backgroundElement" style={styles.section}>
+              <ThemedText type="smallBold">Auto-extract tasks</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Let Bimi automatically pull tasks, reminders, and deadlines out of incoming
+                messages.
+              </ThemedText>
+              <Pressable
+                onPress={toggleAutoExtract}
+                disabled={busyAutoExtract}
+                style={[
+                  styles.toneRow,
+                  {
+                    borderColor: autoExtractEnabled ? theme.primary : theme.border,
+                    backgroundColor: autoExtractEnabled ? theme.backgroundSelected : 'transparent',
+                    marginTop: 8,
+                  },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.toneLabel, { color: theme.text }]}>
+                    {autoExtractEnabled ? 'Enabled' : 'Disabled'}
+                  </Text>
+                  <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
+                    {autoExtractEnabled
+                      ? 'Tasks appear in the Tasks tab automatically.'
+                      : 'Tap to enable. You can still create tasks manually.'}
+                  </Text>
+                </View>
+                {busyAutoExtract ? (
+                  <ActivityIndicator size="small" color={theme.primary} />
+                ) : autoExtractEnabled ? (
+                  <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+                ) : null}
+              </Pressable>
+            </ThemedView>
 
-          <ThemedView type="backgroundElement" style={styles.section}>
-            <ThemedText type="smallBold">About</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Bimi · {Constants.expoConfig?.version ?? 'dev'}
-            </ThemedText>
-          </ThemedView>
-        </ScrollView>
+            <ThemedView type="backgroundElement" style={styles.section}>
+              <ThemedText type="smallBold">Contact memory extraction</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Builds the living memory profile on each contact and group from recent chats.
+              </ThemedText>
+              <View style={styles.toneList}>
+                {MEMORY_INTERVAL_OPTIONS.map((opt) => {
+                  const selected = (pref?.memoryExtractionIntervalHours ?? 24) === opt.hours;
+                  return (
+                    <Pressable
+                      key={opt.hours}
+                      onPress={() => selectMemoryInterval(opt.hours)}
+                      disabled={busyMemorySchedule !== null}
+                      style={[
+                        styles.toneRow,
+                        {
+                          borderColor: selected ? theme.primary : theme.border,
+                          backgroundColor: selected ? theme.backgroundSelected : 'transparent',
+                        },
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.toneLabel, { color: theme.text }]}>{opt.label}</Text>
+                        <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
+                          {opt.description}
+                        </Text>
+                      </View>
+                      {busyMemorySchedule === opt.hours ? (
+                        <ActivityIndicator size="small" color={theme.primary} />
+                      ) : selected ? (
+                        <Text style={[styles.check, { color: theme.primary }]}>âœ“</Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={[styles.toneDesc, { color: theme.textSecondary, marginTop: 8 }]}>
+                Daily time
+              </Text>
+              <TextInput
+                value={memoryDailyTimeInput}
+                onChangeText={setMemoryDailyTimeInput}
+                placeholder="21:00"
+                placeholderTextColor={theme.textSecondary}
+                style={[
+                  styles.customInput,
+                  {
+                    color: theme.text,
+                    borderColor: theme.border,
+                    backgroundColor: theme.background,
+                  },
+                ]}
+              />
+              <Pressable
+                onPress={() => selectMemoryInterval(pref?.memoryExtractionIntervalHours ?? 24)}
+                disabled={busyMemorySchedule !== null}
+                style={[
+                  styles.saveBtn,
+                  { backgroundColor: theme.primary, marginTop: 8 },
+                  busyMemorySchedule !== null && { opacity: 0.5 },
+                ]}
+              >
+                {busyMemorySchedule !== null ? (
+                  <ActivityIndicator size="small" color={theme.primaryText} />
+                ) : (
+                  <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
+                    Save memory schedule
+                  </Text>
+                )}
+              </Pressable>
+            </ThemedView>
+
+            <ThemedView type="backgroundElement" style={styles.section}>
+              <ThemedText type="smallBold">Default reply tone</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Bimi uses this tone when drafting replies. You can override per draft.
+              </ThemedText>
+              <View style={styles.toneList}>
+                {TONE_OPTIONS.map((opt) => {
+                  const selected = currentTone === opt.key;
+                  return (
+                    <Pressable
+                      key={opt.key}
+                      onPress={() => selectTone(opt.key)}
+                      disabled={busy !== null}
+                      style={[
+                        styles.toneRow,
+                        {
+                          borderColor: selected ? theme.primary : theme.border,
+                          backgroundColor: selected ? theme.backgroundSelected : 'transparent',
+                        },
+                      ]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.toneLabel, { color: theme.text }]}>{opt.label}</Text>
+                        <Text style={[styles.toneDesc, { color: theme.textSecondary }]}>
+                          {opt.description}
+                        </Text>
+                      </View>
+                      {busy === opt.key ? (
+                        <ActivityIndicator size="small" color={theme.primary} />
+                      ) : selected ? (
+                        <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {currentTone === 'custom' || customInput.length > 0 ? (
+                <View style={styles.customWrap}>
+                  <TextInput
+                    value={customInput}
+                    onChangeText={setCustomInput}
+                    placeholder='e.g. "in pidgin" or "more apologetic"'
+                    placeholderTextColor={theme.textSecondary}
+                    style={[
+                      styles.customInput,
+                      {
+                        color: theme.text,
+                        borderColor: theme.border,
+                        backgroundColor: theme.background,
+                      },
+                    ]}
+                  />
+                  <Pressable
+                    onPress={() => selectTone('custom')}
+                    disabled={busy !== null || customInput.trim().length === 0}
+                    style={[
+                      styles.saveBtn,
+                      { backgroundColor: theme.primary },
+                      (busy !== null || customInput.trim().length === 0) && {
+                        opacity: 0.5,
+                      },
+                    ]}
+                  >
+                    {busy === 'custom' ? (
+                      <ActivityIndicator size="small" color={theme.primaryText} />
+                    ) : (
+                      <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
+                        Save custom tone
+                      </Text>
+                    )}
+                  </Pressable>
+                </View>
+              ) : null}
+            </ThemedView>
+
+            <ThemedView type="backgroundElement" style={styles.section}>
+              <ThemedText type="smallBold">Appearance</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Following system theme — currently {themeLabel.toLowerCase()}.
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Manual override coming soon.
+              </ThemedText>
+            </ThemedView>
+
+            <ThemedView type="backgroundElement" style={styles.section}>
+              <ThemedText type="smallBold">About</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Bimi · {Constants.expoConfig?.version ?? 'dev'}
+              </ThemedText>
+            </ThemedView>
+          </ScrollView>
         </SafeAreaView>
       </KeyboardAvoidingContainer>
     </ThemedView>

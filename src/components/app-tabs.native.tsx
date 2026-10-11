@@ -14,7 +14,8 @@ export default function AppTabs() {
       backgroundColor={colors.background}
       indicatorColor={colors.backgroundElement}
       iconColor={{ default: colors.textSecondary, selected: colors.primary }}
-      labelStyle={{ selected: { color: colors.primary } }}>
+      labelStyle={{ selected: { color: colors.primary } }}
+    >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Chats</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon

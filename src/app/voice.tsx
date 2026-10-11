@@ -116,14 +116,11 @@ export default function VoiceScreen() {
           accessibilityLabel="Close voice mode"
           onPress={close}
           hitSlop={12}
-          style={styles.iconBtn}>
+          style={styles.iconBtn}
+        >
           <AppIcon name="close" tintColor={theme.textSecondary} size={22} />
         </Pressable>
-        <ModeSwitch
-          mode={mode}
-          onChange={switchMode}
-          disabled={!session.supportsConversational}
-        />
+        <ModeSwitch mode={mode} onChange={switchMode} disabled={!session.supportsConversational} />
         <View style={styles.iconBtn} />
       </View>
 
@@ -137,7 +134,8 @@ export default function VoiceScreen() {
       <ScrollView
         style={styles.transcript}
         contentContainerStyle={styles.transcriptContent}
-        showsVerticalScrollIndicator={false}>
+        showsVerticalScrollIndicator={false}
+      >
         {session.error ? (
           <Text style={[styles.error, { color: theme.danger }]}>{session.error}</Text>
         ) : null}
@@ -145,9 +143,7 @@ export default function VoiceScreen() {
         {session.partial.length > 0 ? (
           <Text style={[styles.you, { color: theme.textSecondary }]}>{session.partial}</Text>
         ) : session.lastUtterance.length > 0 ? (
-          <Text style={[styles.you, { color: theme.textSecondary }]}>
-            {session.lastUtterance}
-          </Text>
+          <Text style={[styles.you, { color: theme.textSecondary }]}>{session.lastUtterance}</Text>
         ) : null}
 
         {spokenReply.length > 0 ? (
@@ -177,7 +173,11 @@ export default function VoiceScreen() {
             accessibilityRole="button"
             accessibilityLabel="Tap to interrupt"
             onPress={interrupt}
-            style={[styles.interrupt, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+            style={[
+              styles.interrupt,
+              { borderColor: theme.border, backgroundColor: theme.backgroundElement },
+            ]}
+          >
             <AppIcon name="stop" tintColor={theme.text} size={20} />
             <Text style={[styles.interruptText, { color: theme.text }]}>Tap to interrupt</Text>
           </Pressable>
@@ -185,7 +185,9 @@ export default function VoiceScreen() {
           <Pressable
             accessibilityRole="switch"
             accessibilityState={{ checked: conversationOpen }}
-            accessibilityLabel={conversationOpen ? 'Stop the conversation' : 'Start the conversation'}
+            accessibilityLabel={
+              conversationOpen ? 'Stop the conversation' : 'Start the conversation'
+            }
             onPress={toggleConversation}
             style={[
               styles.mic,
@@ -193,7 +195,8 @@ export default function VoiceScreen() {
                 backgroundColor: conversationOpen ? theme.primary : theme.backgroundElement,
                 borderColor: conversationOpen ? theme.primary : theme.border,
               },
-            ]}>
+            ]}
+          >
             {busy ? (
               <ActivityIndicator color={conversationOpen ? theme.primaryText : theme.text} />
             ) : (
@@ -219,7 +222,8 @@ export default function VoiceScreen() {
                 borderColor: session.phase === 'listening' ? theme.primary : theme.border,
               },
               busy && { opacity: 0.5 },
-            ]}>
+            ]}
+          >
             {busy ? (
               <ActivityIndicator color={theme.text} />
             ) : (
@@ -271,12 +275,11 @@ function ModeSwitch({
               styles.segmentItem,
               active && { backgroundColor: theme.background },
               blocked && { opacity: 0.4 },
-            ]}>
+            ]}
+          >
             <Text
-              style={[
-                styles.segmentText,
-                { color: active ? theme.text : theme.textSecondary },
-              ]}>
+              style={[styles.segmentText, { color: active ? theme.text : theme.textSecondary }]}
+            >
               {option.label}
             </Text>
           </Pressable>

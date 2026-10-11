@@ -1,25 +1,20 @@
-import { v } from "convex/values";
-import {
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from "./_generated/server";
-import type { Doc } from "./_generated/dataModel";
-import { assertBulkSize, bulkResult } from "./bulkDelete";
+import { v } from 'convex/values';
+import { internalMutation, internalQuery, mutation, query } from './_generated/server';
+import type { Doc } from './_generated/dataModel';
+import { assertBulkSize, bulkResult } from './bulkDelete';
 
 const priorityValidator = v.union(
-  v.literal("urgent"),
-  v.literal("high"),
-  v.literal("normal"),
-  v.literal("low"),
+  v.literal('urgent'),
+  v.literal('high'),
+  v.literal('normal'),
+  v.literal('low'),
 );
 
 export const create = mutation({
   args: {
     instance: v.string(),
-    contactId: v.optional(v.id("contacts")),
-    sourceMessageId: v.optional(v.id("messages")),
+    contactId: v.optional(v.id('contacts')),
+    sourceMessageId: v.optional(v.id('messages')),
     title: v.string(),
     description: v.optional(v.string()),
     dueAt: v.optional(v.number()),
@@ -27,9 +22,9 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     if (args.title.trim().length === 0) {
-      throw new Error("Task title is required");
+      throw new Error('Task title is required');
     }
-    return await ctx.db.insert("tasks", {
+    return await ctx.db.insert('tasks', {
       instance: args.instance,
       contactId: args.contactId,
       sourceMessageId: args.sourceMessageId,
@@ -37,8 +32,8 @@ export const create = mutation({
       description: args.description,
       dueAt: args.dueAt,
       priority: args.priority,
-      status: "open",
-      createdBy: "user",
+      status: 'open',
+      createdBy: 'user',
     });
   },
 });
@@ -46,15 +41,15 @@ export const create = mutation({
 export const createInternal = internalMutation({
   args: {
     instance: v.string(),
-    contactId: v.optional(v.id("contacts")),
-    sourceMessageId: v.optional(v.id("messages")),
+    contactId: v.optional(v.id('contacts')),
+    sourceMessageId: v.optional(v.id('messages')),
     title: v.string(),
     description: v.optional(v.string()),
     dueAt: v.optional(v.number()),
     priority: v.optional(priorityValidator),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("tasks", {
+    return await ctx.db.insert('tasks', {
       instance: args.instance,
       contactId: args.contactId,
       sourceMessageId: args.sourceMessageId,
@@ -62,20 +57,20 @@ export const createInternal = internalMutation({
       description: args.description,
       dueAt: args.dueAt,
       priority: args.priority,
-      status: "open",
-      createdBy: "ai",
+      status: 'open',
+      createdBy: 'ai',
     });
   },
 });
 
 export const setStatus = mutation({
   args: {
-    taskId: v.id("tasks"),
-    status: v.union(v.literal("open"), v.literal("done")),
+    taskId: v.id('tasks'),
+    status: v.union(v.literal('open'), v.literal('done')),
   },
   handler: async (ctx, args) => {
     const patch: Record<string, unknown> = { status: args.status };
-    if (args.status === "done") patch.completedAt = Date.now();
+    if (args.status === 'done') patch.completedAt = Date.now();
     else patch.completedAt = undefined;
     await ctx.db.patch(args.taskId, patch);
     return null;
@@ -83,7 +78,7 @@ export const setStatus = mutation({
 });
 
 export const remove = mutation({
-  args: { taskId: v.id("tasks") },
+  args: { taskId: v.id('tasks') },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.taskId);
     return null;
@@ -91,7 +86,7 @@ export const remove = mutation({
 });
 
 export const removeMany = mutation({
-  args: { taskIds: v.array(v.id("tasks")) },
+  args: { taskIds: v.array(v.id('tasks')) },
   returns: v.object({ deleted: v.number(), missing: v.number() }),
   handler: async (ctx, args) => {
     assertBulkSize(args.taskIds);
@@ -106,8 +101,8 @@ export const removeMany = mutation({
 });
 
 export const getTaskInternal = internalQuery({
-  args: { taskId: v.id("tasks") },
-  handler: async (ctx, args): Promise<Doc<"tasks"> | null> => {
+  args: { taskId: v.id('tasks') },
+  handler: async (ctx, args): Promise<Doc<'tasks'> | null> => {
     return await ctx.db.get(args.taskId);
   },
 });
@@ -115,8 +110,8 @@ export const getTaskInternal = internalQuery({
 export const list = query({
   args: {
     instance: v.string(),
-    status: v.optional(v.union(v.literal("open"), v.literal("done"))),
-    contactId: v.optional(v.id("contacts")),
+    status: v.optional(v.union(v.literal('open'), v.literal('done'))),
+    contactId: v.optional(v.id('contacts')),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -125,25 +120,25 @@ export const list = query({
     const status = args.status;
     if (contactId !== undefined) {
       const rows = await ctx.db
-        .query("tasks")
-        .withIndex("by_contact", (q) => q.eq("contactId", contactId))
-        .order("desc")
+        .query('tasks')
+        .withIndex('by_contact', (q) => q.eq('contactId', contactId))
+        .order('desc')
         .take(limit);
       return status ? rows.filter((r) => r.status === status) : rows;
     }
     if (status !== undefined) {
       return await ctx.db
-        .query("tasks")
-        .withIndex("by_instance_and_status", (q) =>
-          q.eq("instance", args.instance).eq("status", status),
+        .query('tasks')
+        .withIndex('by_instance_and_status', (q) =>
+          q.eq('instance', args.instance).eq('status', status),
         )
-        .order("desc")
+        .order('desc')
         .take(limit);
     }
     return await ctx.db
-      .query("tasks")
-      .withIndex("by_instance_and_status", (q) => q.eq("instance", args.instance))
-      .order("desc")
+      .query('tasks')
+      .withIndex('by_instance_and_status', (q) => q.eq('instance', args.instance))
+      .order('desc')
       .take(limit);
   },
 });
@@ -152,9 +147,9 @@ export const countOpen = query({
   args: { instance: v.string() },
   handler: async (ctx, args) => {
     const rows = await ctx.db
-      .query("tasks")
-      .withIndex("by_instance_and_status", (q) =>
-        q.eq("instance", args.instance).eq("status", "open"),
+      .query('tasks')
+      .withIndex('by_instance_and_status', (q) =>
+        q.eq('instance', args.instance).eq('status', 'open'),
       )
       .take(200);
     return rows.length;

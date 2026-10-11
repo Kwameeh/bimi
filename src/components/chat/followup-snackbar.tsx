@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from 'convex/react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -28,48 +28,31 @@ function nextAt(hour: number, dayOffset = 0): number {
   return d.getTime();
 }
 
-type Props = { contactId: Id<'contacts'> | null };
+const PRESET_OPTIONS = [
+  { label: 'In 1 hour', getTime: () => Date.now() + HOUR_MS },
+  { label: 'Tomorrow 9am', getTime: () => nextAt(9, 1) },
+  { label: 'Tomorrow 3pm', getTime: () => nextAt(15, 1) },
+];
 
-export function FollowupSnackbar({ contactId }: Props) {
+type FollowupCardProps = {
+  active: Doc<'reminders'>;
+  onDismissed: (id: string) => void;
+};
+
+function FollowupCard({ active, onDismissed }: FollowupCardProps) {
   const theme = useTheme();
-  const sessionStart = useRef(Date.now());
-  const suggested = useQuery(
-    api.reminders.latestSuggestedForContact,
-    contactId ? { contactId, sinceMs: sessionStart.current } : 'skip',
-  );
   const accept = useMutation(api.reminders.acceptSuggested);
   const dismiss = useMutation(api.reminders.dismissSuggested);
 
-  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [picking, setPicking] = useState(false);
   const [customInput, setCustomInput] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
-
-  const active: Doc<'reminders'> | null =
-    suggested?.find((r) => !dismissedIds.has(r._id)) ?? null;
-
-  useEffect(() => {
-    if (!active) {
-      setPicking(false);
-      setCustomInput('');
-    }
-  }, [active?._id]);
-
-  if (!active) return null;
-
-  const hide = (id: string) => {
-    setDismissedIds((prev) => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
-    });
-  };
 
   const onSetReminder = async (remindAt?: number) => {
     setBusy('accept');
     try {
       await accept({ reminderId: active._id, remindAt });
-      hide(active._id);
+      onDismissed(active._id);
     } catch (err) {
       Alert.alert('Failed', err instanceof Error ? err.message : String(err));
     } finally {
@@ -81,7 +64,7 @@ export function FollowupSnackbar({ contactId }: Props) {
     setBusy('dismiss');
     try {
       await dismiss({ reminderId: active._id });
-      hide(active._id);
+      onDismissed(active._id);
     } catch (err) {
       Alert.alert('Failed', err instanceof Error ? err.message : String(err));
     } finally {
@@ -98,22 +81,12 @@ export function FollowupSnackbar({ contactId }: Props) {
     return d.getTime();
   };
 
-  const presets: Array<{ label: string; value: number }> = [
-    { label: 'In 1 hour', value: Date.now() + HOUR_MS },
-    { label: 'Tomorrow 9am', value: nextAt(9, 1) },
-    { label: 'Tomorrow 3pm', value: nextAt(15, 1) },
-  ];
-
   return (
     <View
-      style={[
-        styles.bar,
-        { backgroundColor: theme.backgroundElement, borderColor: theme.border },
-      ]}>
+      style={[styles.bar, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+    >
       <View style={styles.headerRow}>
-        <Text style={[styles.title, { color: theme.text }]}>
-          ✦ Bimi noticed a follow-up
-        </Text>
+        <Text style={[styles.title, { color: theme.text }]}>✦ Bimi noticed a follow-up</Text>
         <Pressable onPress={onDismiss} disabled={busy !== null} hitSlop={6}>
           <Text style={{ color: theme.textSecondary, fontSize: 18 }}>×</Text>
         </Pressable>
@@ -127,7 +100,8 @@ export function FollowupSnackbar({ contactId }: Props) {
           <Pressable
             onPress={() => setPicking(true)}
             disabled={busy !== null}
-            style={[styles.btn, { borderColor: theme.border }]}>
+            style={[styles.btn, { borderColor: theme.border }]}
+          >
             <Text style={{ color: theme.text }}>Pick time</Text>
           </Pressable>
           <Pressable
@@ -138,25 +112,25 @@ export function FollowupSnackbar({ contactId }: Props) {
               styles.btnPrimary,
               { backgroundColor: theme.primary },
               busy !== null && { opacity: 0.5 },
-            ]}>
+            ]}
+          >
             {busy === 'accept' ? (
               <ActivityIndicator size="small" color={theme.primaryText} />
             ) : (
-              <Text style={{ color: theme.primaryText, fontWeight: '700' }}>
-                Set reminder
-              </Text>
+              <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Set reminder</Text>
             )}
           </Pressable>
         </View>
       ) : (
         <View style={{ gap: 6 }}>
           <View style={styles.chipRow}>
-            {presets.map((p) => (
+            {PRESET_OPTIONS.map((p) => (
               <Pressable
                 key={p.label}
-                onPress={() => onSetReminder(p.value)}
+                onPress={() => onSetReminder(p.getTime())}
                 disabled={busy !== null}
-                style={[styles.chip, { borderColor: theme.border }]}>
+                style={[styles.chip, { borderColor: theme.border }]}
+              >
                 <Text style={[styles.chipText, { color: theme.text }]}>{p.label}</Text>
               </Pressable>
             ))}
@@ -178,23 +152,22 @@ export function FollowupSnackbar({ contactId }: Props) {
           <View style={styles.actionRow}>
             <Pressable
               onPress={() => setPicking(false)}
-              style={[styles.btn, { borderColor: theme.border }]}>
+              style={[styles.btn, { borderColor: theme.border }]}
+            >
               <Text style={{ color: theme.text }}>Back</Text>
             </Pressable>
             <Pressable
               onPress={() => {
                 const ts = resolveCustom();
                 if (!ts) {
-                  Alert.alert(
-                    'Pick a time',
-                    'Choose a preset or enter a valid future date.',
-                  );
+                  Alert.alert('Pick a time', 'Choose a preset or enter a valid future date.');
                   return;
                 }
                 void onSetReminder(ts);
               }}
               disabled={busy !== null}
-              style={[styles.btn, styles.btnPrimary, { backgroundColor: theme.primary }]}>
+              style={[styles.btn, styles.btnPrimary, { backgroundColor: theme.primary }]}
+            >
               {busy === 'accept' ? (
                 <ActivityIndicator size="small" color={theme.primaryText} />
               ) : (
@@ -206,6 +179,32 @@ export function FollowupSnackbar({ contactId }: Props) {
       )}
     </View>
   );
+}
+
+type Props = { contactId: Id<'contacts'> | null };
+
+export function FollowupSnackbar({ contactId }: Props) {
+  const [sessionStart] = useState(() => Date.now());
+  const suggested = useQuery(
+    api.reminders.latestSuggestedForContact,
+    contactId ? { contactId, sinceMs: sessionStart } : 'skip',
+  );
+
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+
+  const active: Doc<'reminders'> | null = suggested?.find((r) => !dismissedIds.has(r._id)) ?? null;
+
+  if (!active) return null;
+
+  const handleDismissed = (id: string) => {
+    setDismissedIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  };
+
+  return <FollowupCard key={active._id} active={active} onDismissed={handleDismissed} />;
 }
 
 const styles = StyleSheet.create({

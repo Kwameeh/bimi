@@ -1,14 +1,14 @@
-import type { ModelMessage, ToolSet } from "ai";
-import type { ActionCtx } from "./_generated/server";
-import { internal } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
-import { runAssistantTurn, streamAssistantTurn } from "./providers/aiSdk";
+import type { ModelMessage, ToolSet } from 'ai';
+import type { ActionCtx } from './_generated/server';
+import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
+import { runAssistantTurn, streamAssistantTurn } from './providers/aiSdk';
 
 const DELTA_FLUSH_MS = 150;
 const DELTA_FLUSH_CHARS = 40;
 
 type StreamArgs<T extends ToolSet> = {
-  threadId: Id<"assistantThreads">;
+  threadId: Id<'assistantThreads'>;
   system: string;
   conversation: ModelMessage[];
   tools: T;
@@ -25,7 +25,7 @@ function safeJsonStringify(value: unknown): string {
   try {
     return JSON.stringify(value);
   } catch {
-    return "[unserializable]";
+    return '[unserializable]';
   }
 }
 
@@ -60,7 +60,7 @@ function detectJsonToolCall(text: string): {
   if (tagMatch) candidate = tagMatch[1].trim();
 
   // Try to find the first {...} block.
-  const firstBrace = candidate.indexOf("{");
+  const firstBrace = candidate.indexOf('{');
   if (firstBrace < 0) return null;
 
   // Find matching closing brace by depth counting.
@@ -74,7 +74,7 @@ function detectJsonToolCall(text: string): {
       escape = false;
       continue;
     }
-    if (ch === "\\") {
+    if (ch === '\\') {
       escape = true;
       continue;
     }
@@ -83,8 +83,8 @@ function detectJsonToolCall(text: string): {
       continue;
     }
     if (inString) continue;
-    if (ch === "{") depth++;
-    else if (ch === "}") {
+    if (ch === '{') depth++;
+    else if (ch === '}') {
       depth--;
       if (depth === 0) {
         endIdx = i;
@@ -96,16 +96,16 @@ function detectJsonToolCall(text: string): {
 
   const jsonStr = candidate.slice(firstBrace, endIdx + 1);
   const parsed = tryParseJsonObject(jsonStr);
-  if (!parsed || typeof parsed !== "object") return null;
+  if (!parsed || typeof parsed !== 'object') return null;
 
   const rec = parsed as Record<string, unknown>;
 
   const name =
-    typeof rec.name === "string"
+    typeof rec.name === 'string'
       ? rec.name
-      : typeof rec.tool === "string"
+      : typeof rec.tool === 'string'
         ? rec.tool
-        : typeof rec.function === "object" && rec.function !== null
+        : typeof rec.function === 'object' && rec.function !== null
           ? ((rec.function as { name?: string }).name ?? null)
           : null;
   if (!name) return null;
@@ -115,14 +115,14 @@ function detectJsonToolCall(text: string): {
     rec.arguments ??
     rec.input ??
     rec.args ??
-    (typeof rec.function === "object" && rec.function !== null
-      ? (rec.function as { parameters?: unknown; arguments?: unknown }).parameters ??
-        (rec.function as { arguments?: unknown }).arguments
+    (typeof rec.function === 'object' && rec.function !== null
+      ? ((rec.function as { parameters?: unknown; arguments?: unknown }).parameters ??
+        (rec.function as { arguments?: unknown }).arguments)
       : undefined) ??
     {};
 
   const argsObj =
-    argsCandidate && typeof argsCandidate === "object"
+    argsCandidate && typeof argsCandidate === 'object'
       ? (argsCandidate as Record<string, unknown>)
       : {};
 
@@ -136,13 +136,10 @@ async function manuallyRunTool(
 ): Promise<unknown> {
   const tool = (tools as Record<string, unknown>)[name] as
     | {
-        execute?: (
-          input: unknown,
-          opts: unknown,
-        ) => Promise<unknown> | unknown;
+        execute?: (input: unknown, opts: unknown) => Promise<unknown> | unknown;
       }
     | undefined;
-  if (!tool || typeof tool.execute !== "function") {
+  if (!tool || typeof tool.execute !== 'function') {
     throw new Error(`Tool '${name}' not found in registry`);
   }
   return await tool.execute(args, {
@@ -154,8 +151,8 @@ async function manuallyRunTool(
 export async function streamAssistantIntoThread<T extends ToolSet>(
   ctx: ActionCtx,
   args: StreamArgs<T>,
-): Promise<{ assistantMessageId: Id<"assistantMessages"> }> {
-  console.log("[assistantStream] start", {
+): Promise<{ assistantMessageId: Id<'assistantMessages'> }> {
+  console.log('[assistantStream] start', {
     threadId: args.threadId,
     conversationLength: args.conversation.length,
     toolCount: Object.keys(args.tools as Record<string, unknown>).length,
@@ -163,9 +160,8 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
     lastUser: (() => {
       const last = args.conversation[args.conversation.length - 1];
       if (!last) return null;
-      const content = typeof last.content === "string"
-        ? last.content
-        : safeJsonStringify(last.content);
+      const content =
+        typeof last.content === 'string' ? last.content : safeJsonStringify(last.content);
       return content.slice(0, 200);
     })(),
   });
@@ -175,13 +171,13 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
   const assistantMessageId = (await ctx.runMutation(
     internal.assistant.appendStreamingAssistantInternal,
     { threadId: args.threadId },
-  )) as Id<"assistantMessages">;
+  )) as Id<'assistantMessages'>;
 
-  const toolRowByCallId = new Map<string, Id<"assistantMessages">>();
+  const toolRowByCallId = new Map<string, Id<'assistantMessages'>>();
   const citedMessageIds: string[] = [];
   const citedContactIds: string[] = [];
 
-  let buffer = "";
+  let buffer = '';
   let lastFlushAt = Date.now();
   let pendingFlushTimer: ReturnType<typeof setTimeout> | null = null;
   let pendingFlush: Promise<unknown> | null = null;
@@ -196,7 +192,7 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
   const flushDelta = async () => {
     if (buffer.length === 0) return;
     const delta = buffer;
-    buffer = "";
+    buffer = '';
     lastFlushAt = Date.now();
     totalFlushes++;
     pendingFlush = ctx
@@ -205,7 +201,7 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
         delta,
       })
       .catch((err) => {
-        console.warn("[assistantStream] appendDelta failed", { err: String(err) });
+        console.warn('[assistantStream] appendDelta failed', { err: String(err) });
       });
     await pendingFlush;
     pendingFlush = null;
@@ -222,21 +218,21 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
   const harvestCited = (out: unknown) => {
     if (Array.isArray(out)) {
       for (const row of out) {
-        if (row && typeof row === "object") {
+        if (row && typeof row === 'object') {
           const rec = row as { messageId?: unknown; contactId?: unknown };
-          if (typeof rec.messageId === "string") citedMessageIds.push(rec.messageId);
-          if (typeof rec.contactId === "string") citedContactIds.push(rec.contactId);
+          if (typeof rec.messageId === 'string') citedMessageIds.push(rec.messageId);
+          if (typeof rec.contactId === 'string') citedContactIds.push(rec.contactId);
         }
       }
-    } else if (out && typeof out === "object") {
+    } else if (out && typeof out === 'object') {
       const rec = out as {
         recent?: unknown;
         messageId?: unknown;
         contactId?: unknown;
       };
       if (Array.isArray(rec.recent)) harvestCited(rec.recent);
-      if (typeof rec.messageId === "string") citedMessageIds.push(rec.messageId);
-      if (typeof rec.contactId === "string") citedContactIds.push(rec.contactId);
+      if (typeof rec.messageId === 'string') citedMessageIds.push(rec.messageId);
+      if (typeof rec.contactId === 'string') citedContactIds.push(rec.contactId);
     }
   };
 
@@ -251,30 +247,29 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
     if (now - lastCancelCheckAt < CANCEL_POLL_MS) return false;
     lastCancelCheckAt = now;
     try {
-      return (await ctx.runQuery(
-        internal.assistant.isCancelRequestedInternal,
-        { messageId: assistantMessageId },
-      )) as boolean;
+      return (await ctx.runQuery(internal.assistant.isCancelRequestedInternal, {
+        messageId: assistantMessageId,
+      })) as boolean;
     } catch {
       return false;
     }
   };
 
   // Reasoning buffer (separate from main text buffer).
-  let reasoningBuffer = "";
+  let reasoningBuffer = '';
   let lastReasoningFlushAt = Date.now();
   const flushReasoning = async () => {
     if (reasoningBuffer.length === 0) return;
     const delta = reasoningBuffer;
-    reasoningBuffer = "";
+    reasoningBuffer = '';
     lastReasoningFlushAt = Date.now();
     try {
-      await ctx.runMutation(
-        internal.assistant.appendReasoningDeltaInternal,
-        { messageId: assistantMessageId, delta },
-      );
+      await ctx.runMutation(internal.assistant.appendReasoningDeltaInternal, {
+        messageId: assistantMessageId,
+        delta,
+      });
     } catch (err) {
-      console.warn("[assistantStream] appendReasoningDelta failed", {
+      console.warn('[assistantStream] appendReasoningDelta failed', {
         err: String(err),
       });
     }
@@ -292,19 +287,19 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
     for await (const part of stream.fullStream) {
       if (await checkCancel()) {
         cancelled = true;
-        console.log("[assistantStream] cancel requested — breaking loop");
+        console.log('[assistantStream] cancel requested — breaking loop');
         break;
       }
-      const type = (part as { type?: string }).type ?? "unknown";
+      const type = (part as { type?: string }).type ?? 'unknown';
       eventTypeCounts[type] = (eventTypeCounts[type] ?? 0) + 1;
 
-      if (type === "reasoning" || type === "reasoning-delta") {
+      if (type === 'reasoning' || type === 'reasoning-delta') {
         const p = part as {
           text?: string;
           textDelta?: string;
           delta?: string;
         };
-        const delta = p.text ?? p.textDelta ?? p.delta ?? "";
+        const delta = p.text ?? p.textDelta ?? p.delta ?? '';
         if (delta.length === 0) continue;
         reasoningBuffer += delta;
         if (
@@ -316,18 +311,18 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
         continue;
       }
 
-      if (type === "text-delta") {
+      if (type === 'text-delta') {
         // AI SDK versions disagree on the field name. Try them all.
         const p = part as {
           text?: string;
           textDelta?: string;
           delta?: string;
         };
-        const delta = p.text ?? p.textDelta ?? p.delta ?? "";
+        const delta = p.text ?? p.textDelta ?? p.delta ?? '';
 
         if (firstTextDeltaShape === null) {
           firstTextDeltaShape = safeJsonStringify(part).slice(0, 300);
-          console.log("[assistantStream] first text-delta shape", {
+          console.log('[assistantStream] first text-delta shape', {
             shape: firstTextDeltaShape,
             extractedLen: delta.length,
           });
@@ -335,7 +330,7 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
 
         if (delta.length === 0) {
           if (!unknownDeltaFieldLogged) {
-            console.warn("[assistantStream] text-delta with empty extracted delta", {
+            console.warn('[assistantStream] text-delta with empty extracted delta', {
               keys: Object.keys(part as object),
               raw: safeJsonStringify(part).slice(0, 200),
             });
@@ -345,10 +340,7 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
         }
         totalCharsBuffered += delta.length;
         buffer += delta;
-        if (
-          buffer.length >= DELTA_FLUSH_CHARS ||
-          Date.now() - lastFlushAt >= DELTA_FLUSH_MS
-        ) {
+        if (buffer.length >= DELTA_FLUSH_CHARS || Date.now() - lastFlushAt >= DELTA_FLUSH_MS) {
           if (pendingFlushTimer) {
             clearTimeout(pendingFlushTimer);
             pendingFlushTimer = null;
@@ -357,37 +349,34 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
         } else {
           scheduleFlush();
         }
-      } else if (type === "tool-call") {
+      } else if (type === 'tool-call') {
         const p = part as {
           toolCallId?: string;
           toolName?: string;
           input?: unknown;
           args?: unknown;
         };
-        console.log("[assistantStream] tool-call", {
+        console.log('[assistantStream] tool-call', {
           toolName: p.toolName,
           toolCallId: p.toolCallId,
           argsPreview: safeJsonStringify(p.input ?? p.args).slice(0, 200),
         });
         if (!p.toolCallId || !p.toolName) continue;
-        const id = (await ctx.runMutation(
-          internal.assistant.appendToolRunningInternal,
-          {
-            threadId: args.threadId,
-            toolName: p.toolName,
-            toolArgs: p.input ?? p.args,
-            toolCallId: p.toolCallId,
-          },
-        )) as Id<"assistantMessages">;
+        const id = (await ctx.runMutation(internal.assistant.appendToolRunningInternal, {
+          threadId: args.threadId,
+          toolName: p.toolName,
+          toolArgs: p.input ?? p.args,
+          toolCallId: p.toolCallId,
+        })) as Id<'assistantMessages'>;
         toolRowByCallId.set(p.toolCallId, id);
-      } else if (type === "tool-result") {
+      } else if (type === 'tool-result') {
         const p = part as {
           toolCallId?: string;
           output?: unknown;
           result?: unknown;
         };
         const output = p.output ?? p.result;
-        console.log("[assistantStream] tool-result", {
+        console.log('[assistantStream] tool-result', {
           toolCallId: p.toolCallId,
           outputKind: Array.isArray(output) ? `array(${output.length})` : typeof output,
           outputPreview: safeJsonStringify(output).slice(0, 200),
@@ -395,7 +384,7 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
         if (!p.toolCallId) continue;
         const rowId = toolRowByCallId.get(p.toolCallId);
         if (!rowId) {
-          console.warn("[assistantStream] tool-result without matching call", {
+          console.warn('[assistantStream] tool-result without matching call', {
             toolCallId: p.toolCallId,
           });
           continue;
@@ -404,25 +393,25 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
         await ctx.runMutation(internal.assistant.completeToolInternal, {
           messageId: rowId,
           toolResult: output,
-          status: "done",
+          status: 'done',
         });
-      } else if (type === "error") {
+      } else if (type === 'error') {
         streamErrored = true;
         const errMsg = safeJsonStringify((part as { error?: unknown }).error);
-        console.warn("[assistantStream] stream emitted error event", { err: errMsg });
+        console.warn('[assistantStream] stream emitted error event', { err: errMsg });
       } else if (
-        type !== "text-start" &&
-        type !== "text-end" &&
-        type !== "step-start" &&
-        type !== "step-finish" &&
-        type !== "finish" &&
-        type !== "start" &&
-        type !== "tool-input-start" &&
-        type !== "tool-input-delta" &&
-        type !== "tool-input-end"
+        type !== 'text-start' &&
+        type !== 'text-end' &&
+        type !== 'step-start' &&
+        type !== 'step-finish' &&
+        type !== 'finish' &&
+        type !== 'start' &&
+        type !== 'tool-input-start' &&
+        type !== 'tool-input-delta' &&
+        type !== 'tool-input-end'
       ) {
         // Unknown event — surface its shape once.
-        console.log("[assistantStream] unknown event type", {
+        console.log('[assistantStream] unknown event type', {
           type,
           preview: safeJsonStringify(part).slice(0, 200),
         });
@@ -432,7 +421,7 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
     streamErrored = true;
     const errorMessage = err instanceof Error ? err.message : String(err);
     const stack = err instanceof Error ? err.stack : undefined;
-    console.warn("[assistantStream] iteration failed", {
+    console.warn('[assistantStream] iteration failed', {
       err: errorMessage,
       stack: stack?.slice(0, 600),
     });
@@ -452,15 +441,15 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
       const row = await ctx.runQuery(internal.assistant.getMessageByIdInternal, {
         messageId: rowId,
       });
-      if (row && row.status === "running") {
+      if (row && row.status === 'running') {
         await ctx.runMutation(internal.assistant.completeToolInternal, {
           messageId: rowId,
           toolResult: null,
-          status: "error",
+          status: 'error',
         });
       }
     } catch (err) {
-      console.warn("tool row finalize check failed", { err: String(err) });
+      console.warn('tool row finalize check failed', { err: String(err) });
     }
   }
 
@@ -468,31 +457,27 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
   // the native function-calling protocol, detect it, execute it ourselves,
   // and re-prompt for a natural-language answer.
   if (toolRowByCallId.size === 0) {
-    const finalRow = await ctx.runQuery(
-      internal.assistant.getMessageByIdInternal,
-      { messageId: assistantMessageId },
-    );
-    const finalText = finalRow?.content ?? "";
+    const finalRow = await ctx.runQuery(internal.assistant.getMessageByIdInternal, {
+      messageId: assistantMessageId,
+    });
+    const finalText = finalRow?.content ?? '';
     const detected = detectJsonToolCall(finalText);
     if (detected) {
-      console.log("[assistantStream] JSON-as-text tool call detected", {
+      console.log('[assistantStream] JSON-as-text tool call detected', {
         toolName: detected.name,
         argsPreview: safeJsonStringify(detected.args).slice(0, 200),
       });
       try {
         const fallbackCallId = `manual-${Date.now()}`;
-        const toolRowId = (await ctx.runMutation(
-          internal.assistant.appendToolRunningInternal,
-          {
-            threadId: args.threadId,
-            toolName: detected.name,
-            toolArgs: detected.args,
-            toolCallId: fallbackCallId,
-          },
-        )) as Id<"assistantMessages">;
+        const toolRowId = (await ctx.runMutation(internal.assistant.appendToolRunningInternal, {
+          threadId: args.threadId,
+          toolName: detected.name,
+          toolArgs: detected.args,
+          toolCallId: fallbackCallId,
+        })) as Id<'assistantMessages'>;
 
         let toolResult: unknown = null;
-        let toolStatus: "done" | "error" = "done";
+        let toolStatus: 'done' | 'error' = 'done';
         try {
           toolResult = await manuallyRunTool(args.tools, detected.name, detected.args);
           harvestCited(toolResult);
@@ -500,7 +485,7 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
           toolResult = {
             error: err instanceof Error ? err.message : String(err),
           };
-          toolStatus = "error";
+          toolStatus = 'error';
         }
 
         await ctx.runMutation(internal.assistant.completeToolInternal, {
@@ -523,83 +508,79 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
             messages: [
               ...args.conversation,
               {
-                role: "assistant",
+                role: 'assistant',
                 content: `(I'll look that up via ${detected.name}.)`,
               },
               {
-                role: "user",
+                role: 'user',
                 content: `Here is the data the ${detected.name} tool returned:\n${JSON.stringify(
                   toolResult,
                   null,
                   2,
-                ).slice(0, 4000)}\n\nWrite a concise, conversational answer to my original question using this data. Plain text only.`,
+                ).slice(
+                  0,
+                  4000,
+                )}\n\nWrite a concise, conversational answer to my original question using this data. Plain text only.`,
               },
             ],
             tools: {} as ToolSet,
             maxSteps: 1,
             modelId: args.modelId ?? null,
           });
-          const text = (naturalAnswer.text ?? "").trim();
+          const text = (naturalAnswer.text ?? '').trim();
           if (text.length > 0) {
-            await ctx.runMutation(
-              internal.assistant.appendDeltaToAssistantInternal,
-              { messageId: assistantMessageId, delta: text },
-            );
+            await ctx.runMutation(internal.assistant.appendDeltaToAssistantInternal, {
+              messageId: assistantMessageId,
+              delta: text,
+            });
           } else {
-            await ctx.runMutation(
-              internal.assistant.appendDeltaToAssistantInternal,
-              {
-                messageId: assistantMessageId,
-                delta: "Here's what I found.",
-              },
-            );
-          }
-        } catch (err) {
-          console.warn("[assistantStream] natural-answer pass failed", {
-            err: err instanceof Error ? err.message : String(err),
-          });
-          await ctx.runMutation(
-            internal.assistant.appendDeltaToAssistantInternal,
-            {
+            await ctx.runMutation(internal.assistant.appendDeltaToAssistantInternal, {
               messageId: assistantMessageId,
               delta: "Here's what I found.",
-            },
-          );
+            });
+          }
+        } catch (err) {
+          console.warn('[assistantStream] natural-answer pass failed', {
+            err: err instanceof Error ? err.message : String(err),
+          });
+          await ctx.runMutation(internal.assistant.appendDeltaToAssistantInternal, {
+            messageId: assistantMessageId,
+            delta: "Here's what I found.",
+          });
         }
       } catch (err) {
-        console.warn("[assistantStream] JSON fallback failed", {
+        console.warn('[assistantStream] JSON fallback failed', {
           err: err instanceof Error ? err.message : String(err),
         });
       }
     }
   }
 
-  const finalStatus: "done" | "error" = cancelled || streamErrored ? "error" : "done";
+  const finalStatus: 'done' | 'error' = cancelled || streamErrored ? 'error' : 'done';
   const finalSuffix = cancelled
-    ? "\n\n_(stopped)_"
+    ? '\n\n_(stopped)_'
     : streamErrored
-      ? "\n\n(Run ended with an error.)"
+      ? '\n\n(Run ended with an error.)'
       : undefined;
 
   await ctx.runMutation(internal.assistant.completeAssistantInternal, {
     messageId: assistantMessageId,
-    citedMessageIds: uniq(citedMessageIds).slice(0, 20) as Id<"messages">[],
-    citedContactIds: uniq(citedContactIds).slice(0, 20) as Id<"contacts">[],
+    citedMessageIds: uniq(citedMessageIds).slice(0, 20) as Id<'messages'>[],
+    citedContactIds: uniq(citedContactIds).slice(0, 20) as Id<'contacts'>[],
     titleIfEmpty: args.titleIfEmpty,
     status: finalStatus,
     contentSuffix: finalSuffix,
   });
 
   // Schedule follow-up suggestions (non-blocking, only on clean completions).
-  if (finalStatus === "done") {
+  if (finalStatus === 'done') {
     try {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.assistantFollowUps.generateFollowUpsInternal,
-        { assistantMessageId, threadId: args.threadId },
-      );
+      await ctx.scheduler.runAfter(0, internal.assistantFollowUps.generateFollowUpsInternal, {
+        assistantMessageId,
+        threadId: args.threadId,
+      });
     } catch (err) {
-      console.warn("[assistantStream] scheduling follow-ups failed", {
+      console.warn('[assistantStream] scheduling follow-ups failed', {
         err: String(err),
       });
     }
@@ -607,20 +588,19 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
 
   // Read back the final content so we can see what the model actually
   // produced — critical when it streams XML-format tool calls as text.
-  let finalPreview = "";
+  let finalPreview = '';
   try {
-    const finalRow = await ctx.runQuery(
-      internal.assistant.getMessageByIdInternal,
-      { messageId: assistantMessageId },
-    );
-    finalPreview = (finalRow?.content ?? "").slice(0, 400);
+    const finalRow = await ctx.runQuery(internal.assistant.getMessageByIdInternal, {
+      messageId: assistantMessageId,
+    });
+    finalPreview = (finalRow?.content ?? '').slice(0, 400);
   } catch {
     // ignore
   }
 
-  console.log("[assistantStream] done", {
+  console.log('[assistantStream] done', {
     threadId: args.threadId,
-    status: streamErrored ? "error" : "done",
+    status: streamErrored ? 'error' : 'done',
     totalCharsBuffered,
     totalFlushes,
     toolCalls: toolRowByCallId.size,

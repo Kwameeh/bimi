@@ -1,25 +1,16 @@
-import { v } from "convex/values";
-import {
-  action,
-  internalMutation,
-  internalQuery,
-  mutation,
-  query,
-} from "./_generated/server";
-import { internal, api } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
-import {
-  buildAssistantActionTools,
-  buildAssistantTools,
-} from "./assistantTools";
-import { streamAssistantIntoThread } from "./assistantStream";
-import { configuredModels, modelSelection, selectionId } from "./providers/config";
-import { formatDateContext } from "./dateContext";
-import type { ActionCtx } from "./_generated/server";
+import { v } from 'convex/values';
+import { action, internalMutation, internalQuery, mutation, query } from './_generated/server';
+import { internal, api } from './_generated/api';
+import type { Doc, Id } from './_generated/dataModel';
+import { buildAssistantActionTools, buildAssistantTools } from './assistantTools';
+import { streamAssistantIntoThread } from './assistantStream';
+import { configuredModels, modelSelection, selectionId } from './providers/config';
+import { formatDateContext } from './dateContext';
+import type { ActionCtx } from './_generated/server';
 
 function deriveTitle(firstUserMessage: string): string {
   const t = firstUserMessage.trim().slice(0, 60);
-  return t.length === 0 ? "Untitled" : t;
+  return t.length === 0 ? 'Untitled' : t;
 }
 
 /**
@@ -27,10 +18,7 @@ function deriveTitle(firstUserMessage: string): string {
  * "Wednesday, 2026-06-04 17:30 GMT+01:00 (Africa/Lagos)" — so the model can
  * resolve "today"/"tomorrow" in the user's local time, not UTC.
  */
-async function loadNowContext(
-  ctx: ActionCtx,
-  instance: string,
-): Promise<string> {
+async function loadNowContext(ctx: ActionCtx, instance: string): Promise<string> {
   const pref = await ctx.runQuery(internal.userPreferences.getInternal, {
     instance,
   });
@@ -72,16 +60,13 @@ export function buildAssistantSystemPrompt(
   const prefBlock =
     preferences && preferences.trim().length > 0
       ? `\n\n# Your preferences\nThe user has told you the following about how they want you to respond. Treat this as load-bearing — it overrides defaults in tone, length, and format:\n\n${preferences.trim()}\n`
-      : "";
+      : '';
   const knowledgeBlock =
     pinnedKnowledge && pinnedKnowledge.length > 0
       ? `\n\n# Knowledge base (pinned)\nThe user has saved this knowledge — use it whenever it's relevant. If they ask about something that's not pinned, use the \`searchKnowledge\` tool before giving up.\n\n${pinnedKnowledge
-          .map(
-            (k) =>
-              `- **${k.title}** (${k.kind}): ${k.body.slice(0, 400)}`,
-          )
-          .join("\n")}\n`
-      : "";
+          .map((k) => `- **${k.title}** (${k.kind}): ${k.body.slice(0, 400)}`)
+          .join('\n')}\n`
+      : '';
   return `You are Bimi — a warm, conversational WhatsApp assistant. Think ChatGPT or Claude, not a search bot. You're friendly, helpful, a little informal. You chat with the user about their WhatsApp life: messages, contacts, tasks, meetings, drafts.
 
 When the user is just chatting ("hey", "thanks", "how are you"), reply in kind — short and warm, no tool calls.
@@ -153,21 +138,21 @@ When you mention a contact or message, write it as a markdown link with a custom
 - For messages: \`[the deadline message](message:m9xyz789)\` where the id is a \`messageId\` from any list/search tool.
 Do this for every contact or message you reference. The text inside the brackets is what the user sees; the scheme + id powers the tap action.
 
-Now: ${nowContext}.${knowledgeBlock}${memoryBlock ?? ""}${prefBlock}${voice ? VOICE_STYLE_ADDENDUM : ""}`;
+Now: ${nowContext}.${knowledgeBlock}${memoryBlock ?? ''}${prefBlock}${voice ? VOICE_STYLE_ADDENDUM : ''}`;
 }
 
 export const createThread = mutation({
   args: {
     instance: v.string(),
     title: v.optional(v.string()),
-    kind: v.optional(v.union(v.literal("chat"), v.literal("search"))),
+    kind: v.optional(v.union(v.literal('chat'), v.literal('search'))),
   },
   handler: async (ctx, args) => {
-    const id = await ctx.db.insert("assistantThreads", {
+    const id = await ctx.db.insert('assistantThreads', {
       instance: args.instance,
       title: args.title,
       lastMessageAt: Date.now(),
-      kind: args.kind ?? "chat",
+      kind: args.kind ?? 'chat',
     });
     return id;
   },
@@ -184,14 +169,12 @@ export const listThreads = query({
     // Fetch a bit more than `limit` so the kind/archived filters still have
     // enough rows.
     const rows = await ctx.db
-      .query("assistantThreads")
-      .withIndex("by_instance_and_lastMessageAt", (q) =>
-        q.eq("instance", args.instance),
-      )
-      .order("desc")
+      .query('assistantThreads')
+      .withIndex('by_instance_and_lastMessageAt', (q) => q.eq('instance', args.instance))
+      .order('desc')
       .take(limit * 3);
     const filtered = rows.filter((t) => {
-      if (t.kind !== undefined && t.kind !== "chat") return false;
+      if (t.kind !== undefined && t.kind !== 'chat') return false;
       if (!args.includeArchived && t.archived === true) return false;
       return true;
     });
@@ -217,17 +200,15 @@ export const searchThreads = query({
     if (q.length === 0) return [];
     const limit = Math.min(args.limit ?? 30, 50);
     const rows = await ctx.db
-      .query("assistantThreads")
-      .withSearchIndex("search_title", (b) =>
-        b.search("title", q).eq("instance", args.instance),
-      )
+      .query('assistantThreads')
+      .withSearchIndex('search_title', (b) => b.search('title', q).eq('instance', args.instance))
       .take(limit);
-    return rows.filter((t) => t.kind === undefined || t.kind === "chat");
+    return rows.filter((t) => t.kind === undefined || t.kind === 'chat');
   },
 });
 
 export const setThreadPinned = mutation({
-  args: { threadId: v.id("assistantThreads"), pinned: v.boolean() },
+  args: { threadId: v.id('assistantThreads'), pinned: v.boolean() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.threadId, { pinned: args.pinned });
     return null;
@@ -235,7 +216,7 @@ export const setThreadPinned = mutation({
 });
 
 export const setThreadArchived = mutation({
-  args: { threadId: v.id("assistantThreads"), archived: v.boolean() },
+  args: { threadId: v.id('assistantThreads'), archived: v.boolean() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.threadId, { archived: args.archived });
     return null;
@@ -243,18 +224,18 @@ export const setThreadArchived = mutation({
 });
 
 export const listMessages = query({
-  args: { threadId: v.id("assistantThreads") },
+  args: { threadId: v.id('assistantThreads') },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query("assistantMessages")
-      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
-      .order("asc")
+      .query('assistantMessages')
+      .withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+      .order('asc')
       .take(200);
   },
 });
 
 export const renameThread = mutation({
-  args: { threadId: v.id("assistantThreads"), title: v.string() },
+  args: { threadId: v.id('assistantThreads'), title: v.string() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.threadId, { title: args.title });
     return null;
@@ -267,7 +248,7 @@ export const renameThread = mutation({
  * once you go back to typing in it.
  */
 export const setThreadVoice = mutation({
-  args: { threadId: v.id("assistantThreads"), voice: v.boolean() },
+  args: { threadId: v.id('assistantThreads'), voice: v.boolean() },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.threadId, { voice: args.voice });
     return null;
@@ -279,16 +260,20 @@ export const listModels = query({
   handler: async () => {
     const models = configuredModels();
     let defaultModelId: string | null = null;
-    try { defaultModelId = selectionId(modelSelection()); } catch { /* Unconfigured deployment. */ }
+    try {
+      defaultModelId = selectionId(modelSelection());
+    } catch {
+      /* Unconfigured deployment. */
+    }
     return { models, defaultModelId };
   },
 });
 
 export const setThreadModel = mutation({
-  args: { threadId: v.id("assistantThreads"), modelId: v.string() },
+  args: { threadId: v.id('assistantThreads'), modelId: v.string() },
   handler: async (ctx, args) => {
     if (!configuredModels().some((model) => model.id === args.modelId)) {
-      throw new Error("Model is not configured for this deployment");
+      throw new Error('Model is not configured for this deployment');
     }
     await ctx.db.patch(args.threadId, { modelId: args.modelId });
     return null;
@@ -296,11 +281,11 @@ export const setThreadModel = mutation({
 });
 
 export const deleteThread = mutation({
-  args: { threadId: v.id("assistantThreads") },
+  args: { threadId: v.id('assistantThreads') },
   handler: async (ctx, args) => {
     const msgs = await ctx.db
-      .query("assistantMessages")
-      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
+      .query('assistantMessages')
+      .withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
       .take(500);
     for (const m of msgs) {
       await ctx.db.delete(m._id);
@@ -311,39 +296,39 @@ export const deleteThread = mutation({
 });
 
 export const getThreadInternal = internalQuery({
-  args: { threadId: v.id("assistantThreads") },
-  handler: async (ctx, args): Promise<Doc<"assistantThreads"> | null> => {
+  args: { threadId: v.id('assistantThreads') },
+  handler: async (ctx, args): Promise<Doc<'assistantThreads'> | null> => {
     return await ctx.db.get(args.threadId);
   },
 });
 
 export const listMessagesInternal = internalQuery({
-  args: { threadId: v.id("assistantThreads") },
-  handler: async (ctx, args): Promise<Array<Doc<"assistantMessages">>> => {
+  args: { threadId: v.id('assistantThreads') },
+  handler: async (ctx, args): Promise<Array<Doc<'assistantMessages'>>> => {
     return await ctx.db
-      .query("assistantMessages")
-      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
-      .order("asc")
+      .query('assistantMessages')
+      .withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+      .order('asc')
       .take(200);
   },
 });
 
 export const getMessageByIdInternal = internalQuery({
-  args: { messageId: v.id("assistantMessages") },
-  handler: async (ctx, args): Promise<Doc<"assistantMessages"> | null> => {
+  args: { messageId: v.id('assistantMessages') },
+  handler: async (ctx, args): Promise<Doc<'assistantMessages'> | null> => {
     return await ctx.db.get(args.messageId);
   },
 });
 
 export const appendUserMessageInternal = internalMutation({
   args: {
-    threadId: v.id("assistantThreads"),
+    threadId: v.id('assistantThreads'),
     content: v.string(),
   },
   handler: async (ctx, args) => {
-    const id = await ctx.db.insert("assistantMessages", {
+    const id = await ctx.db.insert('assistantMessages', {
       threadId: args.threadId,
-      role: "user",
+      role: 'user',
       content: args.content,
     });
     await ctx.db.patch(args.threadId, { lastMessageAt: Date.now() });
@@ -353,16 +338,16 @@ export const appendUserMessageInternal = internalMutation({
 
 export const appendAssistantMessageInternal = internalMutation({
   args: {
-    threadId: v.id("assistantThreads"),
+    threadId: v.id('assistantThreads'),
     content: v.string(),
-    citedMessageIds: v.optional(v.array(v.id("messages"))),
-    citedContactIds: v.optional(v.array(v.id("contacts"))),
+    citedMessageIds: v.optional(v.array(v.id('messages'))),
+    citedContactIds: v.optional(v.array(v.id('contacts'))),
     titleIfEmpty: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const id = await ctx.db.insert("assistantMessages", {
+    const id = await ctx.db.insert('assistantMessages', {
       threadId: args.threadId,
-      role: "assistant",
+      role: 'assistant',
       content: args.content,
       citedMessageIds: args.citedMessageIds,
       citedContactIds: args.citedContactIds,
@@ -379,16 +364,16 @@ export const appendAssistantMessageInternal = internalMutation({
 
 export const appendToolMessageInternal = internalMutation({
   args: {
-    threadId: v.id("assistantThreads"),
+    threadId: v.id('assistantThreads'),
     toolName: v.string(),
     toolArgs: v.optional(v.any()),
     toolResult: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert("assistantMessages", {
+    await ctx.db.insert('assistantMessages', {
       threadId: args.threadId,
-      role: "tool",
-      content: "",
+      role: 'tool',
+      content: '',
       toolName: args.toolName,
       toolArgs: args.toolArgs,
       toolResult: args.toolResult,
@@ -398,13 +383,13 @@ export const appendToolMessageInternal = internalMutation({
 });
 
 export const appendStreamingAssistantInternal = internalMutation({
-  args: { threadId: v.id("assistantThreads") },
+  args: { threadId: v.id('assistantThreads') },
   handler: async (ctx, args) => {
-    const id = await ctx.db.insert("assistantMessages", {
+    const id = await ctx.db.insert('assistantMessages', {
       threadId: args.threadId,
-      role: "assistant",
-      content: "",
-      status: "running",
+      role: 'assistant',
+      content: '',
+      status: 'running',
     });
     await ctx.db.patch(args.threadId, { lastMessageAt: Date.now() });
     return id;
@@ -412,23 +397,23 @@ export const appendStreamingAssistantInternal = internalMutation({
 });
 
 export const clearAssistantContentInternal = internalMutation({
-  args: { messageId: v.id("assistantMessages") },
+  args: { messageId: v.id('assistantMessages') },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.messageId, { content: "" });
+    await ctx.db.patch(args.messageId, { content: '' });
     return null;
   },
 });
 
 export const appendDeltaToAssistantInternal = internalMutation({
   args: {
-    messageId: v.id("assistantMessages"),
+    messageId: v.id('assistantMessages'),
     delta: v.string(),
   },
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.messageId);
     if (!row) return null;
     await ctx.db.patch(args.messageId, {
-      content: (row.content ?? "") + args.delta,
+      content: (row.content ?? '') + args.delta,
     });
     return null;
   },
@@ -436,14 +421,14 @@ export const appendDeltaToAssistantInternal = internalMutation({
 
 export const appendReasoningDeltaInternal = internalMutation({
   args: {
-    messageId: v.id("assistantMessages"),
+    messageId: v.id('assistantMessages'),
     delta: v.string(),
   },
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.messageId);
     if (!row) return null;
     await ctx.db.patch(args.messageId, {
-      reasoning: (row.reasoning ?? "") + args.delta,
+      reasoning: (row.reasoning ?? '') + args.delta,
     });
     return null;
   },
@@ -451,7 +436,7 @@ export const appendReasoningDeltaInternal = internalMutation({
 
 export const setSuggestedFollowUpsInternal = internalMutation({
   args: {
-    messageId: v.id("assistantMessages"),
+    messageId: v.id('assistantMessages'),
     followUps: v.array(v.string()),
   },
   handler: async (ctx, args) => {
@@ -461,17 +446,17 @@ export const setSuggestedFollowUpsInternal = internalMutation({
 });
 
 export const requestCancelTurn = mutation({
-  args: { messageId: v.id("assistantMessages") },
+  args: { messageId: v.id('assistantMessages') },
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.messageId);
-    if (!row || row.status !== "running") return null;
+    if (!row || row.status !== 'running') return null;
     await ctx.db.patch(args.messageId, { cancelRequested: true });
     return null;
   },
 });
 
 export const isCancelRequestedInternal = internalQuery({
-  args: { messageId: v.id("assistantMessages") },
+  args: { messageId: v.id('assistantMessages') },
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.messageId);
     return row?.cancelRequested === true;
@@ -480,20 +465,20 @@ export const isCancelRequestedInternal = internalQuery({
 
 export const appendToolRunningInternal = internalMutation({
   args: {
-    threadId: v.id("assistantThreads"),
+    threadId: v.id('assistantThreads'),
     toolName: v.string(),
     toolArgs: v.optional(v.any()),
     toolCallId: v.string(),
   },
   handler: async (ctx, args) => {
-    const id = await ctx.db.insert("assistantMessages", {
+    const id = await ctx.db.insert('assistantMessages', {
       threadId: args.threadId,
-      role: "tool",
-      content: "",
+      role: 'tool',
+      content: '',
       toolName: args.toolName,
       toolArgs: args.toolArgs,
       toolCallId: args.toolCallId,
-      status: "running",
+      status: 'running',
     });
     return id;
   },
@@ -501,13 +486,9 @@ export const appendToolRunningInternal = internalMutation({
 
 export const completeToolInternal = internalMutation({
   args: {
-    messageId: v.id("assistantMessages"),
+    messageId: v.id('assistantMessages'),
     toolResult: v.optional(v.any()),
-    status: v.union(
-      v.literal("done"),
-      v.literal("error"),
-      v.literal("cancelled"),
-    ),
+    status: v.union(v.literal('done'), v.literal('error'), v.literal('cancelled')),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.messageId, {
@@ -520,19 +501,19 @@ export const completeToolInternal = internalMutation({
 
 export const insertAwaitingChoiceInternal = internalMutation({
   args: {
-    threadId: v.id("assistantThreads"),
+    threadId: v.id('assistantThreads'),
     toolArgs: v.any(),
     toolCallId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const id = await ctx.db.insert("assistantMessages", {
+    const id = await ctx.db.insert('assistantMessages', {
       threadId: args.threadId,
-      role: "tool",
-      content: "",
-      toolName: "askUserForChoice",
+      role: 'tool',
+      content: '',
+      toolName: 'askUserForChoice',
       toolArgs: args.toolArgs,
       toolCallId: args.toolCallId,
-      status: "awaiting_choice",
+      status: 'awaiting_choice',
     });
     return id;
   },
@@ -540,19 +521,19 @@ export const insertAwaitingChoiceInternal = internalMutation({
 
 export const insertAwaitingQuestionsInternal = internalMutation({
   args: {
-    threadId: v.id("assistantThreads"),
+    threadId: v.id('assistantThreads'),
     toolArgs: v.any(),
     toolCallId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const id = await ctx.db.insert("assistantMessages", {
+    const id = await ctx.db.insert('assistantMessages', {
       threadId: args.threadId,
-      role: "tool",
-      content: "",
-      toolName: "askUserQuestion",
+      role: 'tool',
+      content: '',
+      toolName: 'askUserQuestion',
       toolArgs: args.toolArgs,
       toolCallId: args.toolCallId,
-      status: "awaiting_questions",
+      status: 'awaiting_questions',
     });
     return id;
   },
@@ -560,20 +541,20 @@ export const insertAwaitingQuestionsInternal = internalMutation({
 
 export const insertAwaitingConfirmationToolInternal = internalMutation({
   args: {
-    threadId: v.id("assistantThreads"),
+    threadId: v.id('assistantThreads'),
     toolName: v.string(),
     toolArgs: v.optional(v.any()),
     toolCallId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const id = await ctx.db.insert("assistantMessages", {
+    const id = await ctx.db.insert('assistantMessages', {
       threadId: args.threadId,
-      role: "tool",
-      content: "",
+      role: 'tool',
+      content: '',
       toolName: args.toolName,
       toolArgs: args.toolArgs,
       toolCallId: args.toolCallId,
-      status: "awaiting_confirmation",
+      status: 'awaiting_confirmation',
     });
     return id;
   },
@@ -581,130 +562,116 @@ export const insertAwaitingConfirmationToolInternal = internalMutation({
 
 export const resolveConfirmation = action({
   args: {
-    confirmationMessageId: v.id("assistantMessages"),
+    confirmationMessageId: v.id('assistantMessages'),
     approved: v.boolean(),
   },
   handler: async (ctx, args): Promise<{ status: string }> => {
     const row = await ctx.runQuery(internal.assistant.getMessageByIdInternal, {
       messageId: args.confirmationMessageId,
     });
-    if (!row) throw new Error("Confirmation row not found");
-    if (row.role !== "tool") throw new Error("Not a tool row");
-    if (row.status !== "awaiting_confirmation") {
-      return { status: row.status ?? "unknown" };
+    if (!row) throw new Error('Confirmation row not found');
+    if (row.role !== 'tool') throw new Error('Not a tool row');
+    if (row.status !== 'awaiting_confirmation') {
+      return { status: row.status ?? 'unknown' };
     }
 
     if (!args.approved) {
       await ctx.runMutation(internal.assistant.completeToolInternal, {
         messageId: args.confirmationMessageId,
-        toolResult: { status: "cancelled", reason: "user_denied" },
-        status: "cancelled",
+        toolResult: { status: 'cancelled', reason: 'user_denied' },
+        status: 'cancelled',
       });
-      return { status: "cancelled" };
+      return { status: 'cancelled' };
     }
 
-    const toolName = row.toolName ?? "";
+    const toolName = row.toolName ?? '';
     const args2 = (row.toolArgs ?? {}) as Record<string, unknown>;
 
     try {
       const threadRow = await ctx.runQuery(internal.assistant.getThreadInternal, {
         threadId: row.threadId,
       });
-      const instance = threadRow?.instance ?? "";
+      const instance = threadRow?.instance ?? '';
       let result: unknown = null;
-      if (toolName === "rejectDraft") {
+      if (toolName === 'rejectDraft') {
         await ctx.runMutation(api.drafts.rejectAndClearNeedsReply, {
-          draftId: args2.draftId as Id<"drafts">,
+          draftId: args2.draftId as Id<'drafts'>,
         });
         result = { ok: true };
-      } else if (toolName === "dismissReminder") {
+      } else if (toolName === 'dismissReminder') {
         await ctx.runMutation(api.reminders.dismiss, {
-          reminderId: args2.reminderId as Id<"reminders">,
+          reminderId: args2.reminderId as Id<'reminders'>,
         });
         result = { ok: true };
-      } else if (toolName === "deleteTask") {
+      } else if (toolName === 'deleteTask') {
         await ctx.runMutation(api.tasks.remove, {
-          taskId: args2.taskId as Id<"tasks">,
+          taskId: args2.taskId as Id<'tasks'>,
         });
         result = { ok: true };
-      } else if (toolName === "declineMeeting") {
+      } else if (toolName === 'declineMeeting') {
         await ctx.runMutation(api.meetings.declineMeeting, {
-          meetingId: args2.meetingId as Id<"meetings">,
+          meetingId: args2.meetingId as Id<'meetings'>,
         });
         result = { ok: true };
-      } else if (toolName === "draftReply") {
-        const draftId = await ctx.runMutation(
-          internal.drafts.insertDraftInternal,
-          {
-            instance,
-            contactId: args2.contactId as Id<"contacts">,
-            text: String(args2.text ?? ""),
-            sourceMode: "manual_request",
-          },
-        );
+      } else if (toolName === 'draftReply') {
+        const draftId = await ctx.runMutation(internal.drafts.insertDraftInternal, {
+          instance,
+          contactId: args2.contactId as Id<'contacts'>,
+          text: String(args2.text ?? ''),
+          sourceMode: 'manual_request',
+        });
         result = { ok: true, draftId };
-      } else if (toolName === "sendWhatsappMessage") {
-        const contactId = args2.contactId as Id<"contacts">;
-        const text = String(args2.text ?? "").trim();
-        if (text.length === 0) throw new Error("Empty message");
-        const contact = await ctx.runQuery(
-          internal.contacts.getContactInternal,
-          { contactId },
-        );
-        if (!contact) throw new Error("Contact not found");
+      } else if (toolName === 'sendWhatsappMessage') {
+        const contactId = args2.contactId as Id<'contacts'>;
+        const text = String(args2.text ?? '').trim();
+        if (text.length === 0) throw new Error('Empty message');
+        const contact = await ctx.runQuery(internal.contacts.getContactInternal, { contactId });
+        if (!contact) throw new Error('Contact not found');
 
         const quotedWamid =
-          typeof args2.quotedWamid === "string" && args2.quotedWamid.length > 0
+          typeof args2.quotedWamid === 'string' && args2.quotedWamid.length > 0
             ? args2.quotedWamid
             : undefined;
         const quotedPreview =
-          typeof args2.quotedPreview === "string" ? args2.quotedPreview : undefined;
+          typeof args2.quotedPreview === 'string' ? args2.quotedPreview : undefined;
 
         // Quiet-hours defer: if active and contact doesn't bypass, save as a
         // draft instead of sending.
-        const userPref = await ctx.runQuery(
-          internal.userPreferences.getInternal,
-          { instance: contact.instance },
-        );
-        const { isInQuietHoursNow, contactBypassesQuietHours } = await import(
-          "./quietHours"
-        );
+        const userPref = await ctx.runQuery(internal.userPreferences.getInternal, {
+          instance: contact.instance,
+        });
+        const { isInQuietHoursNow, contactBypassesQuietHours } = await import('./quietHours');
         const quietActive = isInQuietHoursNow(userPref ?? null).active;
         const bypass = contactBypassesQuietHours(contact, userPref ?? null);
         if (quietActive && !bypass) {
-          const draftId = await ctx.runMutation(
-            internal.drafts.insertDraftInternal,
-            {
-              instance: contact.instance,
-              contactId,
-              text,
-              sourceMode: "manual_request",
-            },
-          );
+          const draftId = await ctx.runMutation(internal.drafts.insertDraftInternal, {
+            instance: contact.instance,
+            contactId,
+            text,
+            sourceMode: 'manual_request',
+          });
           result = {
             ok: true,
             deferred: true,
             draftId,
-            reason: "quiet_hours",
+            reason: 'quiet_hours',
           };
           await ctx.runMutation(internal.assistant.completeToolInternal, {
             messageId: args.confirmationMessageId,
             toolResult: result,
-            status: "done",
+            status: 'done',
           });
           // Skip the rest of the send path.
           // (mirrors the normal completion flow below)
-          return { status: "done" };
+          return { status: 'done' };
         }
 
-        const { sendText } = await import("./providers/evolution");
+        const { sendText } = await import('./providers/evolution');
         const sendResult = await sendText({
           instance: contact.instance,
           to: contact.remoteJid,
           text,
-          quoted: quotedWamid
-            ? { messageId: quotedWamid, originalText: quotedPreview }
-            : undefined,
+          quoted: quotedWamid ? { messageId: quotedWamid, originalText: quotedPreview } : undefined,
         });
 
         if (sendResult.messageId) {
@@ -719,14 +686,14 @@ export const resolveConfirmation = action({
         }
         // If the user replied to a specific message, that message no longer
         // needs a reply.
-        if (typeof args2.quotedMessageId === "string" && args2.quotedMessageId) {
+        if (typeof args2.quotedMessageId === 'string' && args2.quotedMessageId) {
           try {
             await ctx.runMutation(api.messageActions.setNeedsReply, {
-              messageId: args2.quotedMessageId as Id<"messages">,
+              messageId: args2.quotedMessageId as Id<'messages'>,
               needsReply: false,
             });
           } catch (err) {
-            console.warn("[sendWhatsappMessage] clear needsReply failed", {
+            console.warn('[sendWhatsappMessage] clear needsReply failed', {
               err: String(err),
             });
           }
@@ -736,190 +703,164 @@ export const resolveConfirmation = action({
           sentMessageId: sendResult.messageId ?? null,
           quoted: quotedWamid ? { messageId: quotedWamid } : null,
         };
-      } else if (toolName === "createTask") {
-        const taskId = await ctx.runMutation(
-          internal.tasks.createInternal,
-          {
-            instance,
-            title: String(args2.title ?? ""),
-            dueAt:
-              typeof args2.dueAt === "number" ? (args2.dueAt as number) : undefined,
-            contactId:
-              typeof args2.contactId === "string"
-                ? (args2.contactId as Id<"contacts">)
-                : undefined,
-          },
-        );
+      } else if (toolName === 'createTask') {
+        const taskId = await ctx.runMutation(internal.tasks.createInternal, {
+          instance,
+          title: String(args2.title ?? ''),
+          dueAt: typeof args2.dueAt === 'number' ? (args2.dueAt as number) : undefined,
+          contactId:
+            typeof args2.contactId === 'string' ? (args2.contactId as Id<'contacts'>) : undefined,
+        });
         result = { ok: true, taskId };
-      } else if (toolName === "markTaskDone") {
+      } else if (toolName === 'markTaskDone') {
         await ctx.runMutation(api.tasks.setStatus, {
-          taskId: args2.taskId as Id<"tasks">,
-          status: "done",
+          taskId: args2.taskId as Id<'tasks'>,
+          status: 'done',
         });
         result = { ok: true };
-      } else if (toolName === "markNeedsReply") {
+      } else if (toolName === 'markNeedsReply') {
         await ctx.runMutation(api.messageActions.setNeedsReply, {
-          messageId: args2.messageId as Id<"messages">,
+          messageId: args2.messageId as Id<'messages'>,
           needsReply: Boolean(args2.value),
         });
         result = { ok: true };
-      } else if (toolName === "acceptMeeting") {
-        const startAt =
-          typeof args2.startAt === "number"
-            ? (args2.startAt as number)
-            : undefined;
+      } else if (toolName === 'acceptMeeting') {
+        const startAt = typeof args2.startAt === 'number' ? (args2.startAt as number) : undefined;
         const r = await ctx.runMutation(api.meetings.acceptMeeting, {
-          meetingId: args2.meetingId as Id<"meetings">,
+          meetingId: args2.meetingId as Id<'meetings'>,
           startAt,
         });
         result = { ok: true, ...r };
-      } else if (toolName === "markActionPlanItemDone") {
-        const summaryId = args2.summaryId as Id<"dailySummaries">;
+      } else if (toolName === 'markActionPlanItemDone') {
+        const summaryId = args2.summaryId as Id<'dailySummaries'>;
         const order = Number(args2.order);
         await ctx.runMutation(api.summaries.markActionPlanItemDone, {
           summaryId,
           order,
         });
         result = { ok: true, summaryId, order };
-      } else if (toolName === "createReminder") {
+      } else if (toolName === 'createReminder') {
         const reminderId = await ctx.runMutation(api.reminders.create, {
           instance,
-          text: String(args2.text ?? ""),
+          text: String(args2.text ?? ''),
           remindAt: Number(args2.remindAt),
           contactId:
-            typeof args2.contactId === "string"
-              ? (args2.contactId as Id<"contacts">)
-              : undefined,
+            typeof args2.contactId === 'string' ? (args2.contactId as Id<'contacts'>) : undefined,
         });
         result = { ok: true, reminderId };
-      } else if (toolName === "sendDraft") {
+      } else if (toolName === 'sendDraft') {
         const sent = await ctx.runAction(api.drafts.send, {
-          draftId: args2.draftId as Id<"drafts">,
+          draftId: args2.draftId as Id<'drafts'>,
         });
         result = { ok: true, ...sent };
-      } else if (toolName === "rememberThis") {
-        const scope = args2.scope === "contact" ? "contact" : "user";
+      } else if (toolName === 'rememberThis') {
+        const scope = args2.scope === 'contact' ? 'contact' : 'user';
         const contactId =
-          typeof args2.contactId === "string"
-            ? (args2.contactId as Id<"contacts">)
-            : undefined;
-        if (scope === "contact" && !contactId) {
-          throw new Error("A contact-scoped memory needs a contactId");
+          typeof args2.contactId === 'string' ? (args2.contactId as Id<'contacts'>) : undefined;
+        if (scope === 'contact' && !contactId) {
+          throw new Error('A contact-scoped memory needs a contactId');
         }
         const memoryId = await ctx.runMutation(api.memories.create, {
           instance,
           scope,
           contactId,
-          type: (args2.type ?? "fact") as
-            | "fact"
-            | "preference"
-            | "commitment"
-            | "ongoing"
-            | "relationship",
-          content: String(args2.content ?? ""),
+          type: (args2.type ?? 'fact') as
+            | 'fact'
+            | 'preference'
+            | 'commitment'
+            | 'ongoing'
+            | 'relationship',
+          content: String(args2.content ?? ''),
         });
         result = { ok: true, memoryId };
-      } else if (toolName === "forgetMemory") {
+      } else if (toolName === 'forgetMemory') {
         await ctx.runMutation(api.memories.remove, {
-          memoryId: args2.memoryId as Id<"memories">,
+          memoryId: args2.memoryId as Id<'memories'>,
         });
         result = { ok: true };
-      } else if (toolName === "saveKnowledge") {
+      } else if (toolName === 'saveKnowledge') {
         const entryId = await ctx.runMutation(api.knowledgeEntries.create, {
           instance,
-          kind: (args2.kind ?? "note") as
-            | "project"
-            | "url"
-            | "template"
-            | "client_note"
-            | "availability"
-            | "note",
-          title: String(args2.title ?? ""),
-          body: String(args2.body ?? ""),
+          kind: (args2.kind ?? 'note') as
+            | 'project'
+            | 'url'
+            | 'template'
+            | 'client_note'
+            | 'availability'
+            | 'note',
+          title: String(args2.title ?? ''),
+          body: String(args2.body ?? ''),
           pinned: args2.pinned === true,
         });
         result = { ok: true, entryId };
-      } else if (toolName === "updateChatSettings") {
+      } else if (toolName === 'updateChatSettings') {
         // One tool, several backend mutations — apply only the fields the
         // model actually set, so an unmentioned setting is never clobbered.
-        const contactId = args2.contactId as Id<"contacts">;
+        const contactId = args2.contactId as Id<'contacts'>;
         const applied: string[] = [];
-        if (typeof args2.priority === "string") {
+        if (typeof args2.priority === 'string') {
           await ctx.runMutation(api.chatSettings.setPriority, {
             contactId,
-            priority: args2.priority as "urgent" | "high" | "normal" | "low",
+            priority: args2.priority as 'urgent' | 'high' | 'normal' | 'low',
           });
-          applied.push("priority");
+          applied.push('priority');
         }
-        if (typeof args2.muted === "boolean") {
+        if (typeof args2.muted === 'boolean') {
           await ctx.runMutation(api.chatSettings.setMuted, {
             contactId,
             muted: args2.muted,
           });
-          applied.push("muted");
+          applied.push('muted');
         }
-        if (typeof args2.relationship === "string") {
+        if (typeof args2.relationship === 'string') {
           await ctx.runMutation(api.chatSettings.setRelationship, {
             contactId,
             relationship: args2.relationship as
-              | "vip"
-              | "client"
-              | "family"
-              | "friend"
-              | "classmate"
-              | "team"
-              | "low_priority"
-              | "unknown",
+              | 'vip'
+              | 'client'
+              | 'family'
+              | 'friend'
+              | 'classmate'
+              | 'team'
+              | 'low_priority'
+              | 'unknown',
           });
-          applied.push("relationship");
+          applied.push('relationship');
         }
-        if (typeof args2.aiMode === "string") {
+        if (typeof args2.aiMode === 'string') {
           await ctx.runMutation(api.chatSettings.setAiMode, {
             contactId,
-            aiMode: args2.aiMode as
-              | "manual"
-              | "semi_auto"
-              | "full_auto"
-              | "silent",
+            aiMode: args2.aiMode as 'manual' | 'semi_auto' | 'full_auto' | 'silent',
           });
-          applied.push("aiMode");
+          applied.push('aiMode');
         }
-        if (typeof args2.checkInCadenceDays === "number") {
+        if (typeof args2.checkInCadenceDays === 'number') {
           await ctx.runMutation(api.chatSettings.setCheckInCadence, {
             contactId,
             days: args2.checkInCadenceDays,
           });
-          applied.push("checkInCadence");
+          applied.push('checkInCadence');
         }
         if (applied.length === 0) {
-          throw new Error("No settings were specified to change");
+          throw new Error('No settings were specified to change');
         }
         result = { ok: true, applied };
-      } else if (toolName === "createContactGoal") {
+      } else if (toolName === 'createContactGoal') {
         const goalId = await ctx.runMutation(api.contactGoals.create, {
-          contactId: args2.contactId as Id<"contacts">,
-          title: String(args2.title ?? ""),
-          instructions: String(args2.instructions ?? ""),
-          kind: (args2.kind ?? "custom") as
-            | "check_in"
-            | "meeting"
-            | "relationship"
-            | "custom",
-          recurrence: (args2.recurrence ?? "once") as
-            | "once"
-            | "daily"
-            | "weekly"
-            | "interval"
-            | "until_done",
-          intervalHours:
-            typeof args2.intervalHours === "number"
-              ? args2.intervalHours
-              : undefined,
+          contactId: args2.contactId as Id<'contacts'>,
+          title: String(args2.title ?? ''),
+          instructions: String(args2.instructions ?? ''),
+          kind: (args2.kind ?? 'custom') as 'check_in' | 'meeting' | 'relationship' | 'custom',
+          recurrence: (args2.recurrence ?? 'once') as
+            | 'once'
+            | 'daily'
+            | 'weekly'
+            | 'interval'
+            | 'until_done',
+          intervalHours: typeof args2.intervalHours === 'number' ? args2.intervalHours : undefined,
           successCriteria:
-            typeof args2.successCriteria === "string"
-              ? args2.successCriteria
-              : undefined,
-          mode: args2.mode === "auto" ? "auto" : "draft",
+            typeof args2.successCriteria === 'string' ? args2.successCriteria : undefined,
+          mode: args2.mode === 'auto' ? 'auto' : 'draft',
         });
         result = { ok: true, goalId };
       } else {
@@ -929,18 +870,17 @@ export const resolveConfirmation = action({
       await ctx.runMutation(internal.assistant.completeToolInternal, {
         messageId: args.confirmationMessageId,
         toolResult: result,
-        status: "done",
+        status: 'done',
       });
       // Replay the assistant turn so it can react to the action's success.
       if (threadRow) {
-        const history = await ctx.runQuery(
-          internal.assistant.listMessagesInternal,
-          { threadId: row.threadId },
-        );
+        const history = await ctx.runQuery(internal.assistant.listMessagesInternal, {
+          threadId: row.threadId,
+        });
         const conversation = history
-          .filter((m) => m.role === "user" || m.role === "assistant")
+          .filter((m) => m.role === 'user' || m.role === 'assistant')
           .map((m) => ({
-            role: m.role as "user" | "assistant",
+            role: m.role as 'user' | 'assistant',
             content: m.content,
           }));
         const [preferences, pinnedKnowledge, memoryScopes] = await Promise.all([
@@ -955,7 +895,7 @@ export const resolveConfirmation = action({
             charBudget: 4000,
           }),
         ]);
-        const { formatMemoryBlock } = await import("./memoryPrompt");
+        const { formatMemoryBlock } = await import('./memoryPrompt');
         const nowContext = await loadNowContext(ctx, threadRow.instance);
         const system = buildAssistantSystemPrompt(
           nowContext,
@@ -980,7 +920,7 @@ export const resolveConfirmation = action({
         };
         // Slip in a synthetic user message so the model knows the user approved.
         conversation.push({
-          role: "user",
+          role: 'user',
           content: `(approved: ${toolName}) — please confirm in one short sentence.`,
         });
         await streamAssistantIntoThread(ctx, {
@@ -991,36 +931,36 @@ export const resolveConfirmation = action({
           modelId: threadRow.modelId ?? null,
         });
       }
-      return { status: "done" };
+      return { status: 'done' };
     } catch (err) {
       await ctx.runMutation(internal.assistant.completeToolInternal, {
         messageId: args.confirmationMessageId,
         toolResult: {
-          status: "error",
+          status: 'error',
           message: err instanceof Error ? err.message : String(err),
         },
-        status: "error",
+        status: 'error',
       });
-      return { status: "error" };
+      return { status: 'error' };
     }
   },
 });
 
 export const submitChoice = action({
   args: {
-    choiceMessageId: v.id("assistantMessages"),
+    choiceMessageId: v.id('assistantMessages'),
     choice: v.string(),
   },
   handler: async (ctx, args): Promise<{ status: string }> => {
     const row = await ctx.runQuery(internal.assistant.getMessageByIdInternal, {
       messageId: args.choiceMessageId,
     });
-    if (!row) throw new Error("Choice row not found");
-    if (row.role !== "tool" || row.toolName !== "askUserForChoice") {
-      throw new Error("Not a choice row");
+    if (!row) throw new Error('Choice row not found');
+    if (row.role !== 'tool' || row.toolName !== 'askUserForChoice') {
+      throw new Error('Not a choice row');
     }
-    if (row.status !== "awaiting_choice") {
-      return { status: row.status ?? "unknown" };
+    if (row.status !== 'awaiting_choice') {
+      return { status: row.status ?? 'unknown' };
     }
 
     const toolArgs = (row.toolArgs ?? {}) as {
@@ -1029,14 +969,14 @@ export const submitChoice = action({
     };
     const options = Array.isArray(toolArgs.options) ? toolArgs.options : [];
     if (!options.includes(args.choice)) {
-      throw new Error("Choice not in original options");
+      throw new Error('Choice not in original options');
     }
 
     // Patch the row to record the user's pick.
     await ctx.runMutation(internal.assistant.completeToolInternal, {
       messageId: args.choiceMessageId,
       toolResult: { chosen: args.choice },
-      status: "done",
+      status: 'done',
     });
 
     // Append the choice as a user turn so the conversation history contains it.
@@ -1049,15 +989,15 @@ export const submitChoice = action({
     const thread = await ctx.runQuery(internal.assistant.getThreadInternal, {
       threadId: row.threadId,
     });
-    if (!thread) throw new Error("Thread not found");
+    if (!thread) throw new Error('Thread not found');
 
     const history = await ctx.runQuery(internal.assistant.listMessagesInternal, {
       threadId: row.threadId,
     });
     const conversation = history
-      .filter((m) => m.role === "user" || m.role === "assistant")
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({
-        role: m.role as "user" | "assistant",
+        role: m.role as 'user' | 'assistant',
         content: m.content,
       }));
 
@@ -1073,7 +1013,7 @@ export const submitChoice = action({
         charBudget: 4000,
       }),
     ]);
-    const { formatMemoryBlock } = await import("./memoryPrompt");
+    const { formatMemoryBlock } = await import('./memoryPrompt');
     const nowContext = await loadNowContext(ctx, thread.instance);
     const system = buildAssistantSystemPrompt(
       nowContext,
@@ -1105,7 +1045,7 @@ export const submitChoice = action({
       modelId: thread.modelId ?? null,
     });
 
-    return { status: "done" };
+    return { status: 'done' };
   },
 });
 
@@ -1118,7 +1058,7 @@ type AskedQuestion = {
 
 export const submitAnswers = action({
   args: {
-    questionMessageId: v.id("assistantMessages"),
+    questionMessageId: v.id('assistantMessages'),
     answers: v.array(
       v.object({
         header: v.string(),
@@ -1131,20 +1071,18 @@ export const submitAnswers = action({
     const row = await ctx.runQuery(internal.assistant.getMessageByIdInternal, {
       messageId: args.questionMessageId,
     });
-    if (!row) throw new Error("Question row not found");
-    if (row.role !== "tool" || row.toolName !== "askUserQuestion") {
-      throw new Error("Not a question row");
+    if (!row) throw new Error('Question row not found');
+    if (row.role !== 'tool' || row.toolName !== 'askUserQuestion') {
+      throw new Error('Not a question row');
     }
-    if (row.status !== "awaiting_questions") {
+    if (row.status !== 'awaiting_questions') {
       // Already answered/cancelled (e.g. double-tap) — no-op.
-      return { status: row.status ?? "unknown" };
+      return { status: row.status ?? 'unknown' };
     }
 
     const toolArgs = (row.toolArgs ?? {}) as { questions?: AskedQuestion[] };
-    const questions = Array.isArray(toolArgs.questions)
-      ? toolArgs.questions
-      : [];
-    if (questions.length === 0) throw new Error("Question row has no questions");
+    const questions = Array.isArray(toolArgs.questions) ? toolArgs.questions : [];
+    if (questions.length === 0) throw new Error('Question row has no questions');
 
     // Validate: every question answered, every selected value is a real
     // option label unless it came through the free-text "Other" path.
@@ -1156,13 +1094,13 @@ export const submitAnswers = action({
       other?: string;
     }> = [];
     for (const q of questions) {
-      const header = q.header ?? "";
+      const header = q.header ?? '';
       const a = args.answers.find((x) => x.header === header);
       if (!a) throw new Error(`Missing answer for "${header}"`);
       const other = a.other?.trim();
       const labels = (q.options ?? [])
         .map((o) => o.label)
-        .filter((l): l is string => typeof l === "string");
+        .filter((l): l is string => typeof l === 'string');
       const selected = other
         ? [other]
         : a.selected.map((s) => s.trim()).filter((s) => s.length > 0);
@@ -1181,7 +1119,7 @@ export const submitAnswers = action({
       }
       answered.push({
         header,
-        question: q.question ?? "",
+        question: q.question ?? '',
         multiSelect: q.multiSelect === true,
         selected,
         other: other || undefined,
@@ -1192,14 +1130,12 @@ export const submitAnswers = action({
     await ctx.runMutation(internal.assistant.completeToolInternal, {
       messageId: args.questionMessageId,
       toolResult: { answers: answered },
-      status: "done",
+      status: 'done',
     });
 
     // Append a self-contained user turn — tool rows are stripped from model
     // history, so this string is the model's only record of the answers.
-    const content = answered
-      .map((a) => `${a.header}: ${a.selected.join(", ")}`)
-      .join("; ");
+    const content = answered.map((a) => `${a.header}: ${a.selected.join(', ')}`).join('; ');
     await ctx.runMutation(internal.assistant.appendUserMessageInternal, {
       threadId: row.threadId,
       content,
@@ -1209,15 +1145,15 @@ export const submitAnswers = action({
     const thread = await ctx.runQuery(internal.assistant.getThreadInternal, {
       threadId: row.threadId,
     });
-    if (!thread) throw new Error("Thread not found");
+    if (!thread) throw new Error('Thread not found');
 
     const history = await ctx.runQuery(internal.assistant.listMessagesInternal, {
       threadId: row.threadId,
     });
     const conversation = history
-      .filter((m) => m.role === "user" || m.role === "assistant")
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({
-        role: m.role as "user" | "assistant",
+        role: m.role as 'user' | 'assistant',
         content: m.content,
       }));
 
@@ -1233,7 +1169,7 @@ export const submitAnswers = action({
         charBudget: 4000,
       }),
     ]);
-    const { formatMemoryBlock } = await import("./memoryPrompt");
+    const { formatMemoryBlock } = await import('./memoryPrompt');
     const nowContext = await loadNowContext(ctx, thread.instance);
     const system = buildAssistantSystemPrompt(
       nowContext,
@@ -1265,17 +1201,17 @@ export const submitAnswers = action({
       modelId: thread.modelId ?? null,
     });
 
-    return { status: "done" };
+    return { status: 'done' };
   },
 });
 
 export const completeAssistantInternal = internalMutation({
   args: {
-    messageId: v.id("assistantMessages"),
-    citedMessageIds: v.optional(v.array(v.id("messages"))),
-    citedContactIds: v.optional(v.array(v.id("contacts"))),
+    messageId: v.id('assistantMessages'),
+    citedMessageIds: v.optional(v.array(v.id('messages'))),
+    citedContactIds: v.optional(v.array(v.id('contacts'))),
     titleIfEmpty: v.optional(v.string()),
-    status: v.union(v.literal("done"), v.literal("error")),
+    status: v.union(v.literal('done'), v.literal('error')),
     contentSuffix: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -1287,7 +1223,7 @@ export const completeAssistantInternal = internalMutation({
       citedContactIds: args.citedContactIds,
     };
     if (args.contentSuffix) {
-      patch.content = (row.content ?? "") + args.contentSuffix;
+      patch.content = (row.content ?? '') + args.contentSuffix;
     }
     await ctx.db.patch(args.messageId, patch);
 
@@ -1307,20 +1243,21 @@ function uniqueIds<T extends string>(xs: T[]): T[] {
 
 export const deleteMessagesAfterInternal = internalMutation({
   args: {
-    threadId: v.id("assistantThreads"),
+    threadId: v.id('assistantThreads'),
     afterCreationTime: v.number(),
     includeBoundary: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const rows = await ctx.db
-      .query("assistantMessages")
-      .withIndex("by_thread", (q) => q.eq("threadId", args.threadId))
-      .order("asc")
+      .query('assistantMessages')
+      .withIndex('by_thread', (q) => q.eq('threadId', args.threadId))
+      .order('asc')
       .take(500);
     for (const r of rows) {
-      const include = args.includeBoundary === true
-        ? r._creationTime >= args.afterCreationTime
-        : r._creationTime > args.afterCreationTime;
+      const include =
+        args.includeBoundary === true
+          ? r._creationTime >= args.afterCreationTime
+          : r._creationTime > args.afterCreationTime;
       if (include) await ctx.db.delete(r._id);
     }
     return null;
@@ -1328,11 +1265,11 @@ export const deleteMessagesAfterInternal = internalMutation({
 });
 
 export const patchUserMessageContentInternal = internalMutation({
-  args: { messageId: v.id("assistantMessages"), content: v.string() },
+  args: { messageId: v.id('assistantMessages'), content: v.string() },
   handler: async (ctx, args) => {
     const row = await ctx.db.get(args.messageId);
-    if (!row || row.role !== "user") {
-      throw new Error("Not a user message");
+    if (!row || row.role !== 'user') {
+      throw new Error('Not a user message');
     }
     await ctx.db.patch(args.messageId, { content: args.content });
     return null;
@@ -1340,12 +1277,12 @@ export const patchUserMessageContentInternal = internalMutation({
 });
 
 export const regenerateLastTurn = action({
-  args: { threadId: v.id("assistantThreads") },
+  args: { threadId: v.id('assistantThreads') },
   handler: async (ctx, args): Promise<{ ok: true }> => {
     const thread = await ctx.runQuery(internal.assistant.getThreadInternal, {
       threadId: args.threadId,
     });
-    if (!thread) throw new Error("Thread not found");
+    if (!thread) throw new Error('Thread not found');
 
     const history = await ctx.runQuery(internal.assistant.listMessagesInternal, {
       threadId: args.threadId,
@@ -1354,12 +1291,12 @@ export const regenerateLastTurn = action({
     // it (assistant + tool rows) gets discarded.
     let lastUserIdx = -1;
     for (let i = history.length - 1; i >= 0; i--) {
-      if (history[i].role === "user") {
+      if (history[i].role === 'user') {
         lastUserIdx = i;
         break;
       }
     }
-    if (lastUserIdx < 0) throw new Error("No user message to regenerate from");
+    if (lastUserIdx < 0) throw new Error('No user message to regenerate from');
 
     const lastUser = history[lastUserIdx];
     await ctx.runMutation(internal.assistant.deleteMessagesAfterInternal, {
@@ -1370,9 +1307,9 @@ export const regenerateLastTurn = action({
 
     const truncated = history.slice(0, lastUserIdx + 1);
     const conversation = truncated
-      .filter((m) => m.role === "user" || m.role === "assistant")
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({
-        role: m.role as "user" | "assistant",
+        role: m.role as 'user' | 'assistant',
         content: m.content,
       }));
 
@@ -1388,7 +1325,7 @@ export const regenerateLastTurn = action({
         charBudget: 4000,
       }),
     ]);
-    const { formatMemoryBlock } = await import("./memoryPrompt");
+    const { formatMemoryBlock } = await import('./memoryPrompt');
     const nowContext = await loadNowContext(ctx, thread.instance);
     const system = buildAssistantSystemPrompt(
       nowContext,
@@ -1418,22 +1355,22 @@ export const regenerateLastTurn = action({
 
 export const editUserMessageAndRetry = action({
   args: {
-    messageId: v.id("assistantMessages"),
+    messageId: v.id('assistantMessages'),
     content: v.string(),
   },
   handler: async (ctx, args): Promise<{ ok: true }> => {
     const content = args.content.trim();
-    if (content.length === 0) throw new Error("Empty message");
+    if (content.length === 0) throw new Error('Empty message');
 
     const row = await ctx.runQuery(internal.assistant.getMessageByIdInternal, {
       messageId: args.messageId,
     });
-    if (!row || row.role !== "user") throw new Error("Not a user message");
+    if (!row || row.role !== 'user') throw new Error('Not a user message');
 
     const thread = await ctx.runQuery(internal.assistant.getThreadInternal, {
       threadId: row.threadId,
     });
-    if (!thread) throw new Error("Thread not found");
+    if (!thread) throw new Error('Thread not found');
 
     // Patch content, then delete everything that came after this row.
     await ctx.runMutation(internal.assistant.patchUserMessageContentInternal, {
@@ -1450,9 +1387,9 @@ export const editUserMessageAndRetry = action({
       threadId: row.threadId,
     });
     const conversation = history
-      .filter((m) => m.role === "user" || m.role === "assistant")
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({
-        role: m.role as "user" | "assistant",
+        role: m.role as 'user' | 'assistant',
         content: m.content,
       }));
 
@@ -1468,7 +1405,7 @@ export const editUserMessageAndRetry = action({
         charBudget: 4000,
       }),
     ]);
-    const { formatMemoryBlock } = await import("./memoryPrompt");
+    const { formatMemoryBlock } = await import('./memoryPrompt');
     const nowContext = await loadNowContext(ctx, thread.instance);
     const system = buildAssistantSystemPrompt(
       nowContext,
@@ -1498,14 +1435,14 @@ export const editUserMessageAndRetry = action({
 
 export const sendMessage = action({
   args: {
-    threadId: v.id("assistantThreads"),
+    threadId: v.id('assistantThreads'),
     content: v.string(),
   },
   handler: async (ctx, args): Promise<{ ok: true }> => {
     const content = args.content.trim();
-    if (content.length === 0) throw new Error("Empty message");
+    if (content.length === 0) throw new Error('Empty message');
 
-    console.log("[assistant.sendMessage] enter", {
+    console.log('[assistant.sendMessage] enter', {
       threadId: args.threadId,
       contentPreview: content.slice(0, 120),
     });
@@ -1513,7 +1450,7 @@ export const sendMessage = action({
     const thread = await ctx.runQuery(internal.assistant.getThreadInternal, {
       threadId: args.threadId,
     });
-    if (!thread) throw new Error("Thread not found");
+    if (!thread) throw new Error('Thread not found');
 
     await ctx.runMutation(internal.assistant.appendUserMessageInternal, {
       threadId: args.threadId,
@@ -1527,9 +1464,9 @@ export const sendMessage = action({
     // Replay user + assistant turns into the model (skip tool turns; the model
     // sees only the visible conversation).
     const conversation = history
-      .filter((m) => m.role === "user" || m.role === "assistant")
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({
-        role: m.role as "user" | "assistant",
+        role: m.role as 'user' | 'assistant',
         content: m.content,
       }));
 
@@ -1545,7 +1482,7 @@ export const sendMessage = action({
         charBudget: 4000,
       }),
     ]);
-    const { formatMemoryBlock } = await import("./memoryPrompt");
+    const { formatMemoryBlock } = await import('./memoryPrompt');
     const nowContext = await loadNowContext(ctx, thread.instance);
     const system = buildAssistantSystemPrompt(
       nowContext,

@@ -22,39 +22,39 @@ export function toSpeakable(markdown: string): string {
   let s = markdown;
 
   // Fenced code blocks read as noise out loud.
-  s = s.replace(/```[\s\S]*?```/g, " ");
-  s = s.replace(/`([^`]+)`/g, "$1");
+  s = s.replace(/```[\s\S]*?```/g, ' ');
+  s = s.replace(/`([^`]+)`/g, '$1');
 
   // Links: [label](href) -> label. Covers contact:/message: citations and
   // ordinary URLs alike; a spoken URL helps nobody.
-  s = s.replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1");
+  s = s.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1');
 
   // Emphasis and headings.
-  s = s.replace(/(\*\*|__)(.*?)\1/g, "$2");
-  s = s.replace(/(\*|_)(?=\S)(.*?)(?<=\S)\1/g, "$2");
-  s = s.replace(/~~(.*?)~~/g, "$1");
-  s = s.replace(/^\s{0,3}#{1,6}\s+/gm, "");
-  s = s.replace(/^\s{0,3}>\s?/gm, "");
+  s = s.replace(/(\*\*|__)(.*?)\1/g, '$2');
+  s = s.replace(/(\*|_)(?=\S)(.*?)(?<=\S)\1/g, '$2');
+  s = s.replace(/~~(.*?)~~/g, '$1');
+  s = s.replace(/^\s{0,3}#{1,6}\s+/gm, '');
+  s = s.replace(/^\s{0,3}>\s?/gm, '');
 
   // List markers become sentence breaks so the voice pauses between items
   // instead of running them together.
-  s = s.replace(/^\s*[-*+]\s+/gm, "");
-  s = s.replace(/^\s*\d+[.)]\s+/gm, "");
+  s = s.replace(/^\s*[-*+]\s+/gm, '');
+  s = s.replace(/^\s*\d+[.)]\s+/gm, '');
 
   // Horizontal rules and stray table pipes.
-  s = s.replace(/^\s*([-*_]\s*){3,}$/gm, " ");
-  s = s.replace(/\|/g, " ");
+  s = s.replace(/^\s*([-*_]\s*){3,}$/gm, ' ');
+  s = s.replace(/\|/g, ' ');
 
   // Collapse whitespace; a blank line becomes a sentence break.
-  s = s.replace(/\r\n/g, "\n");
+  s = s.replace(/\r\n/g, '\n');
   s = s
     .split(/\n+/)
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
     .map((line) => (/[.!?:,;]$/.test(line) ? line : `${line}.`))
-    .join(" ");
+    .join(' ');
 
-  return s.replace(/[ \t]+/g, " ").trim();
+  return s.replace(/[ \t]+/g, ' ').trim();
 }
 
 const SENTENCE_END = /[.!?]["')\]]?\s/;
@@ -92,13 +92,11 @@ export function nextSpeakableChunk(
   return { chunk, nextIndex: spokenUpTo + end };
 }
 
-export type VoiceIntent = "approve" | "reject" | "stop" | "none";
+export type VoiceIntent = 'approve' | 'reject' | 'stop' | 'none';
 
 function argString(args: Record<string, unknown>, key: string): string | null {
   const value = args[key];
-  return typeof value === "string" && value.trim().length > 0
-    ? value.trim()
-    : null;
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
 /**
@@ -111,149 +109,146 @@ function argString(args: Record<string, unknown>, key: string): string | null {
  * hearing "Bimi wants to send a WhatsApp message to Alvin" tells you nothing
  * about what it is about to say on your behalf.
  */
-export function describeConfirmationForSpeech(
-  toolName: string,
-  rawArgs: unknown,
-): string {
+export function describeConfirmationForSpeech(toolName: string, rawArgs: unknown): string {
   const args = (rawArgs ?? {}) as Record<string, unknown>;
-  const to = argString(args, "contactName") ?? "this contact";
-  const text = argString(args, "text");
+  const to = argString(args, 'contactName') ?? 'this contact';
+  const text = argString(args, 'text');
 
   switch (toolName) {
-    case "sendWhatsappMessage":
+    case 'sendWhatsappMessage':
       return text
         ? `I'll send this to ${to}: ${text}. Send it?`
         : `I'll send a message to ${to}. Send it?`;
-    case "draftReply":
+    case 'draftReply':
       return text
         ? `I'll save this draft for ${to}: ${text}. Save it?`
         : `I'll save a draft reply for ${to}. Save it?`;
-    case "createTask": {
-      const title = argString(args, "title");
+    case 'createTask': {
+      const title = argString(args, 'title');
       return title ? `I'll add a task: ${title}. Add it?` : "I'll add a task. Add it?";
     }
-    case "markTaskDone":
+    case 'markTaskDone':
       return "I'll mark that task as done. Go ahead?";
-    case "deleteTask":
+    case 'deleteTask':
       return "I'll delete that task. Go ahead?";
-    case "rejectDraft":
+    case 'rejectDraft':
       return "I'll reject that draft and clear its needs-reply flag. Go ahead?";
-    case "dismissReminder":
+    case 'dismissReminder':
       return "I'll dismiss that reminder for good. Go ahead?";
-    case "acceptMeeting":
+    case 'acceptMeeting':
       return "I'll accept that meeting. Go ahead?";
-    case "declineMeeting":
+    case 'declineMeeting':
       return "I'll decline that meeting. Go ahead?";
-    case "markNeedsReply":
+    case 'markNeedsReply':
       return args.value === true
         ? "I'll flag that message as needing a reply. Go ahead?"
         : "I'll clear the needs-reply flag on that message. Go ahead?";
-    case "markActionPlanItemDone":
-      return `I'll mark action plan item ${args.order ?? ""} as done. Go ahead?`.replace(
+    case 'markActionPlanItemDone':
+      return `I'll mark action plan item ${args.order ?? ''} as done. Go ahead?`.replace(
         /\s+/g,
-        " ",
+        ' ',
       );
-    case "sendDraft":
+    case 'sendDraft':
       return text
         ? `I'll send the draft to ${to}: ${text}. Send it?`
         : `I'll send the queued draft to ${to}. Send it?`;
-    case "createReminder": {
-      const reminder = argString(args, "text");
+    case 'createReminder': {
+      const reminder = argString(args, 'text');
       return reminder
         ? `I'll remind you: ${reminder}. Set it?`
         : "I'll set that reminder. Go ahead?";
     }
-    case "rememberThis": {
-      const content = argString(args, "content");
+    case 'rememberThis': {
+      const content = argString(args, 'content');
       const about =
-        args.scope === "contact" && argString(args, "contactName")
-          ? ` about ${argString(args, "contactName")}`
-          : "";
+        args.scope === 'contact' && argString(args, 'contactName')
+          ? ` about ${argString(args, 'contactName')}`
+          : '';
       return content
         ? `I'll remember this${about}: ${content}. Save it?`
         : `I'll remember that${about}. Save it?`;
     }
-    case "forgetMemory": {
-      const content = argString(args, "content");
+    case 'forgetMemory': {
+      const content = argString(args, 'content');
       return content
         ? `I'll forget this for good: ${content}. Delete it?`
         : "I'll delete that memory for good. Go ahead?";
     }
-    case "saveKnowledge": {
-      const title = argString(args, "title");
+    case 'saveKnowledge': {
+      const title = argString(args, 'title');
       return title
         ? `I'll save this as ${title}. Save it?`
         : "I'll save that to your knowledge base. Go ahead?";
     }
-    case "updateChatSettings":
+    case 'updateChatSettings':
       return `I'll update how I handle ${to}. Go ahead?`;
-    case "createContactGoal": {
-      const title = argString(args, "title");
+    case 'createContactGoal': {
+      const title = argString(args, 'title');
       const warning =
-        args.mode === "auto"
+        args.mode === 'auto'
           ? " I'll send those messages myself, without asking each time."
-          : " Each message will come to you for approval first.";
+          : ' Each message will come to you for approval first.';
       return title
         ? `I'll set up an ongoing goal for ${to}: ${title}.${warning} Set it up?`
         : `I'll set up an ongoing goal for ${to}.${warning} Set it up?`;
     }
     default:
-      return "I need your go-ahead for that. Should I?";
+      return 'I need your go-ahead for that. Should I?';
   }
 }
 
 const APPROVE_WORDS = [
-  "yes",
-  "yeah",
-  "yep",
-  "yup",
-  "sure",
-  "ok",
-  "okay",
-  "confirm",
-  "confirmed",
-  "approve",
-  "approved",
-  "send",
-  "send it",
-  "go ahead",
-  "do it",
-  "please do",
-  "correct",
-  "perfect",
-  "sounds good",
-  "looks good",
-  "that works",
+  'yes',
+  'yeah',
+  'yep',
+  'yup',
+  'sure',
+  'ok',
+  'okay',
+  'confirm',
+  'confirmed',
+  'approve',
+  'approved',
+  'send',
+  'send it',
+  'go ahead',
+  'do it',
+  'please do',
+  'correct',
+  'perfect',
+  'sounds good',
+  'looks good',
+  'that works',
 ];
 
 const REJECT_WORDS = [
-  "no",
-  "nope",
-  "nah",
-  "cancel",
-  "reject",
-  "deny",
-  "discard",
-  "delete",
+  'no',
+  'nope',
+  'nah',
+  'cancel',
+  'reject',
+  'deny',
+  'discard',
+  'delete',
   "don't",
-  "do not",
-  "dont",
-  "never mind",
-  "nevermind",
-  "forget it",
-  "not yet",
-  "hold on",
-  "wait",
+  'do not',
+  'dont',
+  'never mind',
+  'nevermind',
+  'forget it',
+  'not yet',
+  'hold on',
+  'wait',
 ];
 
 const STOP_WORDS = [
-  "stop",
-  "stop talking",
-  "be quiet",
-  "shut up",
-  "quiet",
-  "enough",
-  "nevermind stop",
+  'stop',
+  'stop talking',
+  'be quiet',
+  'shut up',
+  'quiet',
+  'enough',
+  'nevermind stop',
 ];
 
 const phraseMatcherCache = new Map<string, RegExp>();
@@ -267,8 +262,8 @@ const phraseMatcherCache = new Map<string, RegExp>();
 function phraseMatcher(phrase: string): RegExp {
   const cached = phraseMatcherCache.get(phrase);
   if (cached) return cached;
-  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const matcher = new RegExp(`\\b${escaped.replace(/\s+/g, "\\s+")}\\b`, "i");
+  const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const matcher = new RegExp(`\\b${escaped.replace(/\s+/g, '\\s+')}\\b`, 'i');
   phraseMatcherCache.set(phrase, matcher);
   return matcher;
 }
@@ -286,27 +281,30 @@ function hasAny(text: string, phrases: readonly string[]): boolean {
  * send it" is a reject rather than an approve on the trailing "send it".
  */
 export function matchVoiceIntent(utterance: string): VoiceIntent {
-  const text = utterance.trim().toLowerCase().replace(/[.,!?]+$/g, "");
-  if (text.length === 0) return "none";
-  if (hasAny(text, STOP_WORDS)) return "stop";
-  if (hasAny(text, REJECT_WORDS)) return "reject";
-  if (hasAny(text, APPROVE_WORDS)) return "approve";
-  return "none";
+  const text = utterance
+    .trim()
+    .toLowerCase()
+    .replace(/[.,!?]+$/g, '');
+  if (text.length === 0) return 'none';
+  if (hasAny(text, STOP_WORDS)) return 'stop';
+  if (hasAny(text, REJECT_WORDS)) return 'reject';
+  if (hasAny(text, APPROVE_WORDS)) return 'approve';
+  return 'none';
 }
 
 function normalizeForCompare(s: string): string {
   return s
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
 const ORDINALS = [
-  ["first", "one", "1"],
-  ["second", "two", "2"],
-  ["third", "three", "3"],
-  ["fourth", "four", "4"],
+  ['first', 'one', '1'],
+  ['second', 'two', '2'],
+  ['third', 'three', '3'],
+  ['fourth', 'four', '4'],
 ];
 
 /**
@@ -335,14 +333,14 @@ export function matchOption(utterance: string, labels: string[]): number | null 
 
   // Fall back to distinctive word overlap. Requires a clear winner so
   // "send it to them" doesn't arbitrarily pick between two similar labels.
-  const saidWords = new Set(said.split(" ").filter((w) => w.length > 2));
+  const saidWords = new Set(said.split(' ').filter((w) => w.length > 2));
   if (saidWords.size === 0) return null;
 
   let bestIndex = -1;
   let bestScore = 0;
   let tied = false;
   normalized.forEach((label, i) => {
-    const labelWords = label.split(" ").filter((w) => w.length > 2);
+    const labelWords = label.split(' ').filter((w) => w.length > 2);
     if (labelWords.length === 0) return;
     const overlap = labelWords.filter((w) => saidWords.has(w)).length;
     const score = overlap / labelWords.length;

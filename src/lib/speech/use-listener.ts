@@ -1,14 +1,7 @@
 import { useAction } from 'convex/react';
-import {
-  RecordingPresets,
-  requestRecordingPermissionsAsync,
-  useAudioRecorder,
-} from 'expo-audio';
+import { RecordingPresets, requestRecordingPermissionsAsync, useAudioRecorder } from 'expo-audio';
 import { File } from 'expo-file-system';
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-} from 'expo-speech-recognition';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
@@ -96,8 +89,7 @@ export function useListener({ onFinal, locale = 'en-US' }: ListenerCallbacks): L
   // Android 12 and below cannot hold the mic open; we restart it on `end`
   // instead, which leaves a short audible gap between utterances.
   const supportsContinuous =
-    onDeviceAvailable &&
-    (Platform.OS !== 'android' || (Platform.Version as number) >= 33);
+    onDeviceAvailable && (Platform.OS !== 'android' || (Platform.Version as number) >= 33);
 
   const wantContinuousRef = useRef(false);
   const localeRef = useRef(locale);

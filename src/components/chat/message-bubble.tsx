@@ -97,7 +97,8 @@ export function MessageBubble(props: MessageBubbleProps) {
             borderRightColor: '#F59E0B',
           },
           pressed && { opacity: 0.85 },
-        ]}>
+        ]}
+      >
         {props.showParticipant && props.participantPushName ? (
           <Text style={[styles.participant, { color: theme.aiAccent }]} numberOfLines={1}>
             {props.participantPushName}
@@ -126,7 +127,8 @@ export function MessageBubble(props: MessageBubbleProps) {
             style={[
               styles.imageTypeBadge,
               { backgroundColor: IMAGE_TYPE_BADGE[props.imageType].bg },
-            ]}>
+            ]}
+          >
             <Text style={[styles.imageTypeText, { color: IMAGE_TYPE_BADGE[props.imageType].fg }]}>
               {IMAGE_TYPE_BADGE[props.imageType].label}
             </Text>
@@ -138,7 +140,8 @@ export function MessageBubble(props: MessageBubbleProps) {
             style={[
               styles.text,
               { color: isOutgoing ? theme.bubbleSentText : theme.bubbleReceivedText },
-            ]}>
+            ]}
+          >
             {props.text}
           </Text>
         ) : null}
@@ -147,11 +150,10 @@ export function MessageBubble(props: MessageBubbleProps) {
             style={[
               styles.timestamp,
               {
-                color: isOutgoing
-                  ? 'rgba(255,255,255,0.75)'
-                  : theme.textSecondary,
+                color: isOutgoing ? 'rgba(255,255,255,0.75)' : theme.textSecondary,
               },
-            ]}>
+            ]}
+          >
             {formatMessageTime(props.timestamp)}
           </Text>
           {isOutgoing ? <MessageStatusTicks status={props.deliveryStatus} /> : null}

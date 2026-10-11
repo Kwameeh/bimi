@@ -26,7 +26,8 @@ export function ScrollToBottomPill({ visible, newMessageCount, onPress }: Props)
           shadowColor: theme.text,
         },
         pressed && { opacity: 0.85 },
-      ]}>
+      ]}
+    >
       <AppIcon name="arrowDown" tintColor={theme.primaryText} size={14} />
       <Text style={[styles.label, { color: theme.primaryText }]}>
         {count ? `${count} new` : 'Latest'}

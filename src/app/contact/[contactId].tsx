@@ -119,7 +119,8 @@ export default function ContactDetailsScreen() {
               styles.section,
               { backgroundColor: theme.backgroundElement },
               pressed && { opacity: 0.85 },
-            ]}>
+            ]}
+          >
             <ThemedText type="smallBold">Search in chat</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
               Find messages exchanged with this contact.
@@ -161,7 +162,8 @@ export default function ContactDetailsScreen() {
                     onPress={handleRefresh}
                     disabled={refreshing}
                     hitSlop={8}
-                    style={({ pressed }) => [pressed && { opacity: 0.65 }]}>
+                    style={({ pressed }) => [pressed && { opacity: 0.65 }]}
+                  >
                     {refreshing ? (
                       <ActivityIndicator color={theme.primary} />
                     ) : (
@@ -219,10 +221,10 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-const PRIORITY_OPTIONS: Array<{
+const PRIORITY_OPTIONS: {
   value: 'urgent' | 'high' | 'normal' | 'low';
   label: string;
-}> = [
+}[] = [
   { value: 'urgent', label: 'Urgent' },
   { value: 'high', label: 'High' },
   { value: 'normal', label: 'Normal' },
@@ -263,7 +265,7 @@ type Relationship =
   | 'low_priority'
   | 'unknown';
 
-const RELATIONSHIP_OPTIONS: Array<{ value: Relationship; label: string }> = [
+const RELATIONSHIP_OPTIONS: { value: Relationship; label: string }[] = [
   { value: 'vip', label: 'VIP' },
   { value: 'client', label: 'Client' },
   { value: 'family', label: 'Family' },
@@ -363,12 +365,11 @@ function ChatSettingsSection({ contactId }: { contactId: Id<'contacts'> }) {
                   backgroundColor: theme.backgroundSelected,
                 },
                 savingIncomingMode && { opacity: 0.6 },
-              ]}>
+              ]}
+            >
               <View style={{ flex: 1 }}>
                 <Text style={{ color: theme.text, fontWeight: '600' }}>{opt.label}</Text>
-                <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
-                  {opt.description}
-                </Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{opt.description}</Text>
               </View>
               <View
                 style={[
@@ -406,13 +407,15 @@ function ChatSettingsSection({ contactId }: { contactId: Id<'contacts'> }) {
                     backgroundColor: theme.primary,
                     borderColor: theme.primary,
                   },
-                ]}>
+                ]}
+              >
                 <Text
                   style={{
                     color: active ? theme.primaryText : theme.text,
                     fontWeight: '600',
                     fontSize: 12,
-                  }}>
+                  }}
+                >
                   {opt.label}
                 </Text>
               </Pressable>
@@ -434,7 +437,8 @@ function ChatSettingsSection({ contactId }: { contactId: Id<'contacts'> }) {
                 weekday: settings.checkInWeekday,
               })
             }
-            style={[settingsStyles.stepBtn, { borderColor: theme.border }]}>
+            style={[settingsStyles.stepBtn, { borderColor: theme.border }]}
+          >
             <Text style={{ color: theme.text, fontWeight: '700' }}>−</Text>
           </Pressable>
           <Text style={[settingsStyles.cadenceValue, { color: theme.text }]}>
@@ -448,7 +452,8 @@ function ChatSettingsSection({ contactId }: { contactId: Id<'contacts'> }) {
                 weekday: settings.checkInWeekday,
               })
             }
-            style={[settingsStyles.stepBtn, { borderColor: theme.border }]}>
+            style={[settingsStyles.stepBtn, { borderColor: theme.border }]}
+          >
             <Text style={{ color: theme.text, fontWeight: '700' }}>+</Text>
           </Pressable>
           <Text style={[settingsStyles.cadenceHint, { color: theme.textSecondary }]}>
@@ -475,13 +480,15 @@ function ChatSettingsSection({ contactId }: { contactId: Id<'contacts'> }) {
                     backgroundColor: theme.primary,
                     borderColor: theme.primary,
                   },
-                ]}>
+                ]}
+              >
                 <Text
                   style={{
                     color: active ? theme.primaryText : theme.text,
                     fontWeight: '600',
                     fontSize: 12,
-                  }}>
+                  }}
+                >
                   {opt.label}
                 </Text>
               </Pressable>
@@ -537,7 +544,8 @@ function ChatSettingsSection({ contactId }: { contactId: Id<'contacts'> }) {
                   borderColor: theme.primary,
                   backgroundColor: theme.backgroundSelected,
                 },
-              ]}>
+              ]}
+            >
               <View style={{ flex: 1 }}>
                 <Text style={{ color: theme.text, fontWeight: '600' }}>{opt.label}</Text>
                 <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{opt.description}</Text>
@@ -666,7 +674,8 @@ function ContactMemorySection({
         </View>
         <Pressable
           onPress={() => setAdding(true)}
-          style={[memoryStyles.addBtn, { backgroundColor: theme.primary }]}>
+          style={[memoryStyles.addBtn, { backgroundColor: theme.primary }]}
+        >
           <Text style={{ color: theme.primaryText, fontWeight: '700' }}>+ Add</Text>
         </Pressable>
       </View>
@@ -675,7 +684,8 @@ function ContactMemorySection({
         style={[
           memoryStyles.profileBox,
           { borderColor: theme.border, backgroundColor: theme.background },
-        ]}>
+        ]}
+      >
         <View style={memoryStyles.profileHeader}>
           <ThemedText type="smallBold">Profile</ThemedText>
           <Pressable
@@ -691,7 +701,8 @@ function ContactMemorySection({
               }
             }}
             disabled={refreshingProfile}
-            hitSlop={8}>
+            hitSlop={8}
+          >
             {refreshingProfile ? (
               <ActivityIndicator size="small" color={theme.primary} />
             ) : (
@@ -700,7 +711,8 @@ function ContactMemorySection({
                   color: theme.primary,
                   fontWeight: '700',
                   fontSize: 12,
-                }}>
+                }}
+              >
                 Refresh
               </Text>
             )}
@@ -734,7 +746,8 @@ function ContactMemorySection({
         <ThemedText
           type="small"
           themeColor="textSecondary"
-          style={{ marginTop: 12, fontStyle: 'italic' }}>
+          style={{ marginTop: 12, fontStyle: 'italic' }}
+        >
           Nothing saved yet. Tap + Add to write your first fact, or Bimi will pick things up as you
           chat.
         </ThemedText>
@@ -765,7 +778,8 @@ function ContactMemorySection({
                   backgroundColor: theme.background,
                 },
                 pressed && { opacity: 0.7 },
-              ]}>
+              ]}
+            >
               <View style={memoryStyles.rowTop}>
                 <View
                   style={[
@@ -773,7 +787,8 @@ function ContactMemorySection({
                     {
                       backgroundColor: MEMORY_TYPE_COLOR[m.type] ?? theme.textSecondary,
                     },
-                  ]}>
+                  ]}
+                >
                   <Text style={memoryStyles.typePillText}>{m.type}</Text>
                 </View>
                 {m.pinned ? <Text style={{ fontSize: 12 }}>📌</Text> : null}
@@ -788,12 +803,14 @@ function ContactMemorySection({
         </View>
       )}
 
-      <AddContactMemoryModal
-        visible={adding}
-        contactId={contactId}
-        contactName={contactName}
-        onClose={() => setAdding(false)}
-      />
+      {adding ? (
+        <AddContactMemoryModal
+          visible={adding}
+          contactId={contactId}
+          contactName={contactName}
+          onClose={() => setAdding(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -861,7 +878,8 @@ function ContactReplyStyleSection({ contactId }: { contactId: Id<'contacts'> }) 
             accessibilityLabel="Reset learned reply style"
             onPress={resetProfile}
             disabled={busy}
-            hitSlop={8}>
+            hitSlop={8}
+          >
             {busy ? (
               <ActivityIndicator size="small" color={theme.primary} />
             ) : (
@@ -885,14 +903,14 @@ const GOAL_MAX_TURNS = 8;
 const RELATIONSHIP_STALL_CAP = 2;
 const RELATIONSHIP_MAX_TURNS = 4;
 
-const GOAL_KIND_OPTIONS: Array<{ value: GoalKind; label: string }> = [
+const GOAL_KIND_OPTIONS: { value: GoalKind; label: string }[] = [
   { value: 'check_in', label: 'Check in' },
   { value: 'meeting', label: 'Meeting' },
   { value: 'relationship', label: 'Relationship' },
   { value: 'custom', label: 'Custom' },
 ];
 
-const GOAL_RECURRENCE_OPTIONS: Array<{ value: GoalRecurrence; label: string }> = [
+const GOAL_RECURRENCE_OPTIONS: { value: GoalRecurrence; label: string }[] = [
   { value: 'until_done', label: 'Until done' },
   { value: 'daily', label: 'Daily' },
   { value: 'weekly', label: 'Weekly' },
@@ -900,11 +918,11 @@ const GOAL_RECURRENCE_OPTIONS: Array<{ value: GoalRecurrence; label: string }> =
   { value: 'once', label: 'Once' },
 ];
 
-const GOAL_MODE_OPTIONS: Array<{
+const GOAL_MODE_OPTIONS: {
   value: GoalMode;
   label: string;
   hint: string;
-}> = [
+}[] = [
   {
     value: 'draft',
     label: 'Draft it',
@@ -951,10 +969,8 @@ function goalMetaLine(goal: {
   }
   const parts = [kind, 'until done'];
   // How much of the goal's lifetime message budget has been used.
-  const maxTurns =
-    goal.kind === 'relationship' ? RELATIONSHIP_MAX_TURNS : GOAL_MAX_TURNS;
-  const stallCap =
-    goal.kind === 'relationship' ? RELATIONSHIP_STALL_CAP : STALL_CAP;
+  const maxTurns = goal.kind === 'relationship' ? RELATIONSHIP_MAX_TURNS : GOAL_MAX_TURNS;
+  const stallCap = goal.kind === 'relationship' ? RELATIONSHIP_STALL_CAP : STALL_CAP;
   parts.push(`${goal.turnsUsed ?? 0}/${maxTurns} messages`);
   const tries = goal.unansweredCount ?? 0;
   if (tries > 0) parts.push(`${tries}/${stallCap} unanswered`);
@@ -1042,7 +1058,8 @@ function GoalRow({
             borderColor: theme.primary,
             backgroundColor: theme.backgroundSelected,
           },
-      ]}>
+      ]}
+    >
       {selectMode ? <SelectionCheck checked={selected === true} /> : null}
       <View style={{ flex: 1, gap: 4 }}>
         <View style={memoryStyles.goalTitleRow}>
@@ -1052,7 +1069,8 @@ function GoalRow({
               fontWeight: '700',
               fontSize: 14,
               flexShrink: 1,
-            }}>
+            }}
+          >
             {goal.title}
           </Text>
           <Pressable
@@ -1064,13 +1082,15 @@ function GoalRow({
               isAuto
                 ? { backgroundColor: theme.primary, borderColor: theme.primary }
                 : { borderColor: theme.border },
-            ]}>
+            ]}
+          >
             <Text
               style={{
                 color: isAuto ? theme.primaryText : theme.textSecondary,
                 fontSize: 10,
                 fontWeight: '700',
-              }}>
+              }}
+            >
               {isAuto ? 'AUTO' : 'DRAFT'}
             </Text>
           </Pressable>
@@ -1089,13 +1109,15 @@ function GoalRow({
           {isPaused ? (
             <Pressable
               onPress={() => void updateStatus({ goalId: goal._id, status: 'active' })}
-              hitSlop={8}>
+              hitSlop={8}
+            >
               <Text
                 style={{
                   color: theme.primary,
                   fontWeight: '700',
                   fontSize: 12,
-                }}>
+                }}
+              >
                 Resume
               </Text>
             </Pressable>
@@ -1103,25 +1125,29 @@ function GoalRow({
             <>
               <Pressable
                 onPress={() => void updateStatus({ goalId: goal._id, status: 'paused' })}
-                hitSlop={8}>
+                hitSlop={8}
+              >
                 <Text
                   style={{
                     color: theme.primary,
                     fontWeight: '700',
                     fontSize: 12,
-                  }}>
+                  }}
+                >
                   Pause
                 </Text>
               </Pressable>
               <Pressable
                 onPress={() => void updateStatus({ goalId: goal._id, status: 'done' })}
-                hitSlop={8}>
+                hitSlop={8}
+              >
                 <Text
                   style={{
                     color: theme.primary,
                     fontWeight: '700',
                     fontSize: 12,
-                  }}>
+                  }}
+                >
                   Done
                 </Text>
               </Pressable>
@@ -1136,7 +1162,8 @@ function GoalRow({
                 onConfirm: () => void removeGoal({ goalId: goal._id }),
               })
             }
-            hitSlop={8}>
+            hitSlop={8}
+          >
             <Text style={{ color: '#DC2626', fontWeight: '700', fontSize: 12 }}>Delete</Text>
           </Pressable>
         </View>
@@ -1201,7 +1228,8 @@ function ContactGoalsSection({
         {allIds.length > 1 && !selection.active ? <SelectButton onPress={selection.enter} /> : null}
         <Pressable
           onPress={() => setAdding(true)}
-          style={[memoryStyles.addBtn, { backgroundColor: theme.primary }]}>
+          style={[memoryStyles.addBtn, { backgroundColor: theme.primary }]}
+        >
           <Text style={{ color: theme.primaryText, fontWeight: '700' }}>+ Goal</Text>
         </Pressable>
       </View>
@@ -1380,149 +1408,69 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingContainer style={{ flex: 1 }}>
         <Pressable style={memoryStyles.backdrop} onPress={onClose}>
-        <Pressable
-          style={[
-            memoryStyles.sheet,
-            { backgroundColor: theme.background, borderColor: theme.border },
-          ]}
-          onPress={(e) => e.stopPropagation()}>
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={memoryStyles.grabber} />
-          <ThemedText type="smallBold">Add contact goal</ThemedText>
+          <Pressable
+            style={[
+              memoryStyles.sheet,
+              { backgroundColor: theme.background, borderColor: theme.border },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <View style={memoryStyles.grabber} />
+              <ThemedText type="smallBold">Add contact goal</ThemedText>
 
-          <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Type</Text>
-          <View style={memoryStyles.typeGrid}>
-            {GOAL_KIND_OPTIONS.map((opt) => (
-              <Pressable
-                key={opt.value}
-                onPress={() => pickKind(opt.value)}
+              <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Type</Text>
+              <View style={memoryStyles.typeGrid}>
+                {GOAL_KIND_OPTIONS.map((opt) => (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() => pickKind(opt.value)}
+                    style={[
+                      memoryStyles.typeChip,
+                      {
+                        borderColor: theme.border,
+                        backgroundColor: theme.backgroundElement,
+                      },
+                      kind === opt.value && {
+                        backgroundColor: theme.primary,
+                        borderColor: theme.primary,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: kind === opt.value ? theme.primaryText : theme.text,
+                        fontSize: 13,
+                        fontWeight: '600',
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+
+              <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Title</Text>
+              <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Find a time to meet"
+                placeholderTextColor={theme.textSecondary}
                 style={[
-                  memoryStyles.typeChip,
+                  memoryStyles.input,
                   {
+                    minHeight: 46,
+                    color: theme.text,
                     borderColor: theme.border,
                     backgroundColor: theme.backgroundElement,
                   },
-                  kind === opt.value && {
-                    backgroundColor: theme.primary,
-                    borderColor: theme.primary,
-                  },
-                ]}>
-                <Text
-                  style={{
-                    color: kind === opt.value ? theme.primaryText : theme.text,
-                    fontSize: 13,
-                    fontWeight: '600',
-                  }}>
-                  {opt.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+                ]}
+              />
 
-          <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Title</Text>
-          <TextInput
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Find a time to meet"
-            placeholderTextColor={theme.textSecondary}
-            style={[
-              memoryStyles.input,
-              {
-                minHeight: 46,
-                color: theme.text,
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundElement,
-              },
-            ]}
-          />
-
-          <View style={memoryStyles.labelRow}>
-            <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Instruction</Text>
-            <Pressable
-              onPress={() => void onEnhance()}
-              disabled={enhancing || busy || instructions.trim().length === 0}
-              hitSlop={8}
-              style={[
-                memoryStyles.enhanceBtn,
-                { borderColor: theme.aiAccent },
-                (enhancing || instructions.trim().length === 0) && {
-                  opacity: 0.5,
-                },
-              ]}>
-              {enhancing ? (
-                <ActivityIndicator size="small" color={theme.aiAccent} />
-              ) : (
-                <Text
-                  style={{
-                    color: theme.aiAccent,
-                    fontSize: 12,
-                    fontWeight: '700',
-                  }}>
-                  ✦ Enhance
-                </Text>
-              )}
-            </Pressable>
-          </View>
-          <TextInput
-            value={instructions}
-            onChangeText={(text) => {
-              setInstructions(text);
-              if (enhanced) setEnhanced(false);
-            }}
-            placeholder="Say it however you like — e.g. get him to send the invoice"
-            placeholderTextColor={theme.textSecondary}
-            multiline
-            style={[
-              memoryStyles.input,
-              {
-                color: theme.text,
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundElement,
-              },
-            ]}
-          />
-          <ThemedText type="small" themeColor="textSecondary">
-            {enhanced
-              ? '✦ Rewritten for Bimi, along with the title and finish line. Edit anything that reads wrong.'
-              : 'Write it in your own words. Enhance rewrites it for Bimi and fills in the title and finish line.'}
-          </ThemedText>
-
-          <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Repeats</Text>
-          <View style={memoryStyles.typeGrid}>
-            {GOAL_RECURRENCE_OPTIONS.map((opt) => (
-              <Pressable
-                key={opt.value}
-                onPress={() => setRecurrence(opt.value)}
-                style={[
-                  memoryStyles.typeChip,
-                  {
-                    borderColor: theme.border,
-                    backgroundColor: theme.backgroundElement,
-                  },
-                  recurrence === opt.value && {
-                    backgroundColor: theme.primary,
-                    borderColor: theme.primary,
-                  },
-                ]}>
-                <Text
-                  style={{
-                    color: recurrence === opt.value ? theme.primaryText : theme.text,
-                    fontSize: 13,
-                    fontWeight: '600',
-                  }}>
-                  {opt.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          {openEnded ? (
-            <>
               <View style={memoryStyles.labelRow}>
-                <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Done when</Text>
-                {/* Same call as the instruction's button: the finish line is
-                    judged against the instruction, so rewriting one without the
-                    other is how they drift apart. */}
+                <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
+                  Instruction
+                </Text>
                 <Pressable
                   onPress={() => void onEnhance()}
                   disabled={enhancing || busy || instructions.trim().length === 0}
@@ -1533,7 +1481,8 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
                     (enhancing || instructions.trim().length === 0) && {
                       opacity: 0.5,
                     },
-                  ]}>
+                  ]}
+                >
                   {enhancing ? (
                     <ActivityIndicator size="small" color={theme.aiAccent} />
                   ) : (
@@ -1542,18 +1491,22 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
                         color: theme.aiAccent,
                         fontSize: 12,
                         fontWeight: '700',
-                      }}>
+                      }}
+                    >
                       ✦ Enhance
                     </Text>
                   )}
                 </Pressable>
               </View>
               <TextInput
-                value={successCriteria}
-                onChangeText={setSuccessCriteria}
+                value={instructions}
+                onChangeText={(text) => {
+                  setInstructions(text);
+                  if (enhanced) setEnhanced(false);
+                }}
+                placeholder="Say it however you like — e.g. get him to send the invoice"
+                placeholderTextColor={theme.textSecondary}
                 multiline
-                placeholder="Leave blank and Enhance will suggest one"
-                placeholderTextColor={theme.textSecondary}
                 style={[
                   memoryStyles.input,
                   {
@@ -1564,133 +1517,226 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
                 ]}
               />
               <ThemedText type="small" themeColor="textSecondary">
-                Bimi keeps working the chat until this is true, then stops on its own.
+                {enhanced
+                  ? '✦ Rewritten for Bimi, along with the title and finish line. Edit anything that reads wrong.'
+                  : 'Write it in your own words. Enhance rewrites it for Bimi and fills in the title and finish line.'}
               </ThemedText>
 
-              <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
-                If they go quiet, nudge every (hours)
-              </Text>
-              <TextInput
-                value={nudgeHours}
-                onChangeText={setNudgeHours}
-                keyboardType="number-pad"
-                placeholder="24"
-                placeholderTextColor={theme.textSecondary}
-                style={[
-                  memoryStyles.input,
-                  {
-                    minHeight: 46,
-                    color: theme.text,
-                    borderColor: theme.border,
-                    backgroundColor: theme.backgroundElement,
-                  },
-                ]}
-              />
-              <ThemedText type="small" themeColor="textSecondary">
-                Waits longer after each unanswered nudge. Stops after {STALL_CAP} ignored nudges,{' '}
-                {GOAL_MAX_TURNS} messages in total, or two weeks — whichever comes first.
-              </ThemedText>
-            </>
-          ) : recurrence === 'interval' ? (
-            <>
-              <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
-                Interval hours
-              </Text>
-              <TextInput
-                value={intervalHours}
-                onChangeText={setIntervalHours}
-                keyboardType="number-pad"
-                placeholder="5"
-                placeholderTextColor={theme.textSecondary}
-                style={[
-                  memoryStyles.input,
-                  {
-                    minHeight: 46,
-                    color: theme.text,
-                    borderColor: theme.border,
-                    backgroundColor: theme.backgroundElement,
-                  },
-                ]}
-              />
-            </>
-          ) : (
-            <>
-              <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Time</Text>
-              <TextInput
-                value={preferredTime}
-                onChangeText={setPreferredTime}
-                placeholder="09:00"
-                placeholderTextColor={theme.textSecondary}
-                style={[
-                  memoryStyles.input,
-                  {
-                    minHeight: 46,
-                    color: theme.text,
-                    borderColor: theme.border,
-                    backgroundColor: theme.backgroundElement,
-                  },
-                ]}
-              />
-            </>
-          )}
+              <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Repeats</Text>
+              <View style={memoryStyles.typeGrid}>
+                {GOAL_RECURRENCE_OPTIONS.map((opt) => (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() => setRecurrence(opt.value)}
+                    style={[
+                      memoryStyles.typeChip,
+                      {
+                        borderColor: theme.border,
+                        backgroundColor: theme.backgroundElement,
+                      },
+                      recurrence === opt.value && {
+                        backgroundColor: theme.primary,
+                        borderColor: theme.primary,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: recurrence === opt.value ? theme.primaryText : theme.text,
+                        fontSize: 13,
+                        fontWeight: '600',
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
 
-          <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
-            When it has something to say
-          </Text>
-          <View style={memoryStyles.typeGrid}>
-            {GOAL_MODE_OPTIONS.map((opt) => (
-              <Pressable
-                key={opt.value}
-                onPress={() => setMode(opt.value)}
-                style={[
-                  memoryStyles.typeChip,
-                  {
-                    borderColor: theme.border,
-                    backgroundColor: theme.backgroundElement,
-                  },
-                  mode === opt.value && {
-                    backgroundColor: theme.primary,
-                    borderColor: theme.primary,
-                  },
-                ]}>
-                <Text
-                  style={{
-                    color: mode === opt.value ? theme.primaryText : theme.text,
-                    fontSize: 13,
-                    fontWeight: '600',
-                  }}>
-                  {opt.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <ThemedText type="small" themeColor="textSecondary">
-            {GOAL_MODE_OPTIONS.find((o) => o.value === mode)?.hint}
-          </ThemedText>
+              {openEnded ? (
+                <>
+                  <View style={memoryStyles.labelRow}>
+                    <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
+                      Done when
+                    </Text>
+                    {/* Same call as the instruction's button: the finish line is
+                    judged against the instruction, so rewriting one without the
+                    other is how they drift apart. */}
+                    <Pressable
+                      onPress={() => void onEnhance()}
+                      disabled={enhancing || busy || instructions.trim().length === 0}
+                      hitSlop={8}
+                      style={[
+                        memoryStyles.enhanceBtn,
+                        { borderColor: theme.aiAccent },
+                        (enhancing || instructions.trim().length === 0) && {
+                          opacity: 0.5,
+                        },
+                      ]}
+                    >
+                      {enhancing ? (
+                        <ActivityIndicator size="small" color={theme.aiAccent} />
+                      ) : (
+                        <Text
+                          style={{
+                            color: theme.aiAccent,
+                            fontSize: 12,
+                            fontWeight: '700',
+                          }}
+                        >
+                          ✦ Enhance
+                        </Text>
+                      )}
+                    </Pressable>
+                  </View>
+                  <TextInput
+                    value={successCriteria}
+                    onChangeText={setSuccessCriteria}
+                    multiline
+                    placeholder="Leave blank and Enhance will suggest one"
+                    placeholderTextColor={theme.textSecondary}
+                    style={[
+                      memoryStyles.input,
+                      {
+                        color: theme.text,
+                        borderColor: theme.border,
+                        backgroundColor: theme.backgroundElement,
+                      },
+                    ]}
+                  />
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Bimi keeps working the chat until this is true, then stops on its own.
+                  </ThemedText>
 
-          <View style={memoryStyles.actions}>
-            <Pressable
-              onPress={onClose}
-              style={[memoryStyles.bigBtn, { borderColor: theme.border }]}>
-              <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              onPress={onSave}
-              disabled={busy}
-              style={[
-                memoryStyles.bigBtn,
-                { backgroundColor: theme.primary, borderWidth: 0 },
-                busy && { opacity: 0.5 },
-              ]}>
-              {busy ? (
-                <ActivityIndicator color={theme.primaryText} size="small" />
+                  <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
+                    If they go quiet, nudge every (hours)
+                  </Text>
+                  <TextInput
+                    value={nudgeHours}
+                    onChangeText={setNudgeHours}
+                    keyboardType="number-pad"
+                    placeholder="24"
+                    placeholderTextColor={theme.textSecondary}
+                    style={[
+                      memoryStyles.input,
+                      {
+                        minHeight: 46,
+                        color: theme.text,
+                        borderColor: theme.border,
+                        backgroundColor: theme.backgroundElement,
+                      },
+                    ]}
+                  />
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Waits longer after each unanswered nudge. Stops after {STALL_CAP} ignored
+                    nudges, {GOAL_MAX_TURNS} messages in total, or two weeks — whichever comes
+                    first.
+                  </ThemedText>
+                </>
+              ) : recurrence === 'interval' ? (
+                <>
+                  <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
+                    Interval hours
+                  </Text>
+                  <TextInput
+                    value={intervalHours}
+                    onChangeText={setIntervalHours}
+                    keyboardType="number-pad"
+                    placeholder="5"
+                    placeholderTextColor={theme.textSecondary}
+                    style={[
+                      memoryStyles.input,
+                      {
+                        minHeight: 46,
+                        color: theme.text,
+                        borderColor: theme.border,
+                        backgroundColor: theme.backgroundElement,
+                      },
+                    ]}
+                  />
+                </>
               ) : (
-                <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Save goal</Text>
+                <>
+                  <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Time</Text>
+                  <TextInput
+                    value={preferredTime}
+                    onChangeText={setPreferredTime}
+                    placeholder="09:00"
+                    placeholderTextColor={theme.textSecondary}
+                    style={[
+                      memoryStyles.input,
+                      {
+                        minHeight: 46,
+                        color: theme.text,
+                        borderColor: theme.border,
+                        backgroundColor: theme.backgroundElement,
+                      },
+                    ]}
+                  />
+                </>
               )}
-            </Pressable>
-          </View>
-          </ScrollView>
-        </Pressable>
+
+              <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
+                When it has something to say
+              </Text>
+              <View style={memoryStyles.typeGrid}>
+                {GOAL_MODE_OPTIONS.map((opt) => (
+                  <Pressable
+                    key={opt.value}
+                    onPress={() => setMode(opt.value)}
+                    style={[
+                      memoryStyles.typeChip,
+                      {
+                        borderColor: theme.border,
+                        backgroundColor: theme.backgroundElement,
+                      },
+                      mode === opt.value && {
+                        backgroundColor: theme.primary,
+                        borderColor: theme.primary,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={{
+                        color: mode === opt.value ? theme.primaryText : theme.text,
+                        fontSize: 13,
+                        fontWeight: '600',
+                      }}
+                    >
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <ThemedText type="small" themeColor="textSecondary">
+                {GOAL_MODE_OPTIONS.find((o) => o.value === mode)?.hint}
+              </ThemedText>
+
+              <View style={memoryStyles.actions}>
+                <Pressable
+                  onPress={onClose}
+                  style={[memoryStyles.bigBtn, { borderColor: theme.border }]}
+                >
+                  <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={onSave}
+                  disabled={busy}
+                  style={[
+                    memoryStyles.bigBtn,
+                    { backgroundColor: theme.primary, borderWidth: 0 },
+                    busy && { opacity: 0.5 },
+                  ]}
+                >
+                  {busy ? (
+                    <ActivityIndicator color={theme.primaryText} size="small" />
+                  ) : (
+                    <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Save goal</Text>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
+          </Pressable>
         </Pressable>
       </KeyboardAvoidingContainer>
     </Modal>
@@ -1717,14 +1763,6 @@ function AddContactMemoryModal({
   const [content, setContent] = useState('');
   const [pinned, setPinned] = useState(false);
   const [busy, setBusy] = useState(false);
-
-  React.useEffect(() => {
-    if (visible) {
-      setType('fact');
-      setContent('');
-      setPinned(false);
-    }
-  }, [visible]);
 
   const onSave = async () => {
     if (busy) return;
@@ -1761,109 +1799,115 @@ function AddContactMemoryModal({
     <Modal transparent visible animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingContainer style={{ flex: 1 }}>
         <Pressable style={memoryStyles.backdrop} onPress={onClose}>
-        <Pressable
-          style={[
-            memoryStyles.sheet,
-            { backgroundColor: theme.background, borderColor: theme.border },
-          ]}
-          onPress={(e) => e.stopPropagation()}>
-          <View style={memoryStyles.grabber} />
-          <ThemedText type="smallBold">Add fact about {contactName ?? 'contact'}</ThemedText>
+          <Pressable
+            style={[
+              memoryStyles.sheet,
+              { backgroundColor: theme.background, borderColor: theme.border },
+            ]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={memoryStyles.grabber} />
+            <ThemedText type="smallBold">Add fact about {contactName ?? 'contact'}</ThemedText>
 
-          <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Type</Text>
-          <View style={memoryStyles.typeGrid}>
-            {MEMORY_TYPES.map((t) => (
-              <Pressable
-                key={t}
-                onPress={() => setType(t)}
-                style={[
-                  memoryStyles.typeChip,
-                  {
-                    borderColor: theme.border,
-                    backgroundColor: theme.backgroundElement,
-                  },
-                  type === t && {
-                    backgroundColor: theme.primary,
-                    borderColor: theme.primary,
-                  },
-                ]}>
-                <View
+            <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Type</Text>
+            <View style={memoryStyles.typeGrid}>
+              {MEMORY_TYPES.map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => setType(t)}
                   style={[
-                    memoryStyles.typeDot,
+                    memoryStyles.typeChip,
                     {
-                      backgroundColor: type === t ? theme.primaryText : MEMORY_TYPE_COLOR[t],
+                      borderColor: theme.border,
+                      backgroundColor: theme.backgroundElement,
+                    },
+                    type === t && {
+                      backgroundColor: theme.primary,
+                      borderColor: theme.primary,
                     },
                   ]}
-                />
-                <Text
-                  style={{
-                    color: type === t ? theme.primaryText : theme.text,
-                    fontSize: 13,
-                    fontWeight: '600',
-                  }}>
-                  {t}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+                >
+                  <View
+                    style={[
+                      memoryStyles.typeDot,
+                      {
+                        backgroundColor: type === t ? theme.primaryText : MEMORY_TYPE_COLOR[t],
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={{
+                      color: type === t ? theme.primaryText : theme.text,
+                      fontSize: 13,
+                      fontWeight: '600',
+                    }}
+                  >
+                    {t}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
 
-          <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Fact</Text>
-          <TextInput
-            value={content}
-            onChangeText={setContent}
-            placeholder={`e.g. "${
-              contactName ?? 'They'
-            } prefers concise messages, works at Wartech on the backend."`}
-            placeholderTextColor={theme.textSecondary}
-            multiline
-            autoFocus
-            style={[
-              memoryStyles.input,
-              {
-                color: theme.text,
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundElement,
-              },
-            ]}
-          />
-
-          <Pressable
-            onPress={() => setPinned((p) => !p)}
-            style={[
-              memoryStyles.pinToggle,
-              { borderColor: theme.border },
-              pinned && {
-                backgroundColor: theme.backgroundSelected,
-                borderColor: theme.primary,
-              },
-            ]}>
-            <Text style={{ color: theme.text, fontSize: 14, fontWeight: '600' }}>
-              {pinned ? '📌 Pinned — loaded every turn' : '📍 Pin to load every turn'}
-            </Text>
-          </Pressable>
-
-          <View style={memoryStyles.actions}>
-            <Pressable
-              onPress={onClose}
-              style={[memoryStyles.bigBtn, { borderColor: theme.border }]}>
-              <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              onPress={onSave}
-              disabled={busy}
+            <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Fact</Text>
+            <TextInput
+              value={content}
+              onChangeText={setContent}
+              placeholder={`e.g. "${
+                contactName ?? 'They'
+              } prefers concise messages, works at Wartech on the backend."`}
+              placeholderTextColor={theme.textSecondary}
+              multiline
+              autoFocus
               style={[
-                memoryStyles.bigBtn,
-                { backgroundColor: theme.primary, borderWidth: 0 },
-                busy && { opacity: 0.5 },
-              ]}>
-              {busy ? (
-                <ActivityIndicator color={theme.primaryText} size="small" />
-              ) : (
-                <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Save</Text>
-              )}
+                memoryStyles.input,
+                {
+                  color: theme.text,
+                  borderColor: theme.border,
+                  backgroundColor: theme.backgroundElement,
+                },
+              ]}
+            />
+
+            <Pressable
+              onPress={() => setPinned((p) => !p)}
+              style={[
+                memoryStyles.pinToggle,
+                { borderColor: theme.border },
+                pinned && {
+                  backgroundColor: theme.backgroundSelected,
+                  borderColor: theme.primary,
+                },
+              ]}
+            >
+              <Text style={{ color: theme.text, fontSize: 14, fontWeight: '600' }}>
+                {pinned ? '📌 Pinned — loaded every turn' : '📍 Pin to load every turn'}
+              </Text>
             </Pressable>
-          </View>
-        </Pressable>
+
+            <View style={memoryStyles.actions}>
+              <Pressable
+                onPress={onClose}
+                style={[memoryStyles.bigBtn, { borderColor: theme.border }]}
+              >
+                <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={onSave}
+                disabled={busy}
+                style={[
+                  memoryStyles.bigBtn,
+                  { backgroundColor: theme.primary, borderWidth: 0 },
+                  busy && { opacity: 0.5 },
+                ]}
+              >
+                {busy ? (
+                  <ActivityIndicator color={theme.primaryText} size="small" />
+                ) : (
+                  <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Save</Text>
+                )}
+              </Pressable>
+            </View>
+          </Pressable>
         </Pressable>
       </KeyboardAvoidingContainer>
     </Modal>

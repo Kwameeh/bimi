@@ -78,11 +78,15 @@ export default function AssistantScreen() {
   const regenerateLastTurn = useAction(api.assistant.regenerateLastTurn);
   const editUserMessageAndRetry = useAction(api.assistant.editUserMessageAndRetry);
 
-  const messages = useQuery(api.assistant.listMessages, threadId ? { threadId } : 'skip');
   const threads = useQuery(api.assistant.listThreads, { instance, limit: 5 });
+  const activeThreadId = threadId ?? threads?.[0]?._id ?? null;
+  const messages = useQuery(
+    api.assistant.listMessages,
+    activeThreadId ? { threadId: activeThreadId } : 'skip',
+  );
   const currentThread = useMemo(
-    () => threads?.find((t) => t._id === threadId) ?? null,
-    [threads, threadId],
+    () => threads?.find((t) => t._id === activeThreadId) ?? null,
+    [threads, activeThreadId],
   );
   const currentModelId = currentThread?.modelId ?? null;
 
@@ -105,13 +109,6 @@ export default function AssistantScreen() {
     }
     return null;
   }, [messages]);
-
-  // Auto-select most recent thread on first load
-  useEffect(() => {
-    if (!threadId && threads && threads.length > 0) {
-      setThreadId(threads[0]._id);
-    }
-  }, [threadId, threads]);
 
   // Scroll state
   const listRef = useRef<FlashListRef<RowDoc>>(null);
@@ -189,11 +186,11 @@ export default function AssistantScreen() {
   const onSubmitComposer = async () => {
     const text = composer.trim();
     if (text.length === 0 || busy) return;
-    if (!threadId) {
+    if (!activeThreadId) {
       void startNewThread(text);
       return;
     }
-    void send(threadId, text);
+    void send(activeThreadId, text);
   };
 
   const onPressStop = async () => {
@@ -235,15 +232,15 @@ export default function AssistantScreen() {
       }
       return;
     }
-    if (action.kind === 'regenerate' && threadId) {
+    if (action.kind === 'regenerate' && activeThreadId) {
       try {
-        await regenerateLastTurn({ threadId });
+        await regenerateLastTurn({ threadId: activeThreadId });
       } catch (err) {
         Alert.alert('Failed', err instanceof Error ? err.message : String(err));
       }
       return;
     }
-    if (action.kind === 'retry' && threadId) {
+    if (action.kind === 'retry' && activeThreadId) {
       // 'retry from here' on an assistant bubble → walk back to the user
       // message that preceded it, then editUserMessageAndRetry with the same
       // text (acts as: drop everything after, re-stream from there).
@@ -304,7 +301,8 @@ export default function AssistantScreen() {
                   style={({ pressed }) => [
                     styles.iconBtn,
                     { borderColor: theme.border, opacity: pressed ? 0.65 : 1 },
-                  ]}>
+                  ]}
+                >
                   <AppIcon name="menu" tintColor={theme.text} size={20} />
                 </Pressable>
                 <Pressable
@@ -319,7 +317,8 @@ export default function AssistantScreen() {
                       borderColor: theme.primary,
                       opacity: pressed ? 0.78 : 1,
                     },
-                  ]}>
+                  ]}
+                >
                   <AppIcon name="add" tintColor={theme.primaryText} size={22} />
                 </Pressable>
               </View>
@@ -327,12 +326,13 @@ export default function AssistantScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.headerTools}>
+              contentContainerStyle={styles.headerTools}
+            >
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Choose assistant model"
-                onPress={() => threadId && setShowModelPicker(true)}
-                disabled={!threadId}
+                onPress={() => activeThreadId && setShowModelPicker(true)}
+                disabled={!activeThreadId}
                 hitSlop={6}
                 style={[
                   styles.modelChip,
@@ -340,15 +340,17 @@ export default function AssistantScreen() {
                     borderColor: theme.border,
                     backgroundColor: theme.backgroundElement,
                   },
-                  !threadId && { opacity: 0.5 },
-                ]}>
+                  !activeThreadId && { opacity: 0.5 },
+                ]}
+              >
                 <Text
                   style={{
                     color: theme.textSecondary,
                     fontWeight: '600',
                     fontSize: 10,
                   }}
-                  numberOfLines={1}>
+                  numberOfLines={1}
+                >
                   {modelLabelFor(currentModelId)}
                 </Text>
               </Pressable>
@@ -357,7 +359,8 @@ export default function AssistantScreen() {
                 accessibilityLabel="Open knowledge"
                 onPress={() => setShowKnowledge(true)}
                 hitSlop={6}
-                style={[styles.toolChip, { borderColor: theme.border }]}>
+                style={[styles.toolChip, { borderColor: theme.border }]}
+              >
                 <AppIcon name="knowledge" tintColor={theme.textSecondary} size={16} />
                 <Text style={[styles.toolChipText, { color: theme.text }]}>Knowledge</Text>
               </Pressable>
@@ -366,7 +369,8 @@ export default function AssistantScreen() {
                 accessibilityLabel="Open assistant preferences"
                 onPress={() => setShowPreferences(true)}
                 hitSlop={6}
-                style={[styles.toolChip, { borderColor: theme.border }]}>
+                style={[styles.toolChip, { borderColor: theme.border }]}
+              >
                 <AppIcon name="settings" tintColor={theme.textSecondary} size={16} />
                 <Text style={[styles.toolChipText, { color: theme.text }]}>Preferences</Text>
               </Pressable>
@@ -374,7 +378,7 @@ export default function AssistantScreen() {
           </View>
 
           <View style={styles.listArea}>
-            {threadId === null ? (
+            {activeThreadId === null ? (
               <EmptyIntro
                 title="Ask Bimi anything"
                 subtitle="Urgency, replies, tasks, meetings, trends — across all your chats."
@@ -403,7 +407,7 @@ export default function AssistantScreen() {
                           : []
                       }
                       onPickFollowUp={(s) => {
-                        if (threadId && !busy) void send(threadId, s);
+                        if (activeThreadId && !busy) void send(activeThreadId, s);
                       }}
                       busy={busy}
                     />
@@ -413,7 +417,7 @@ export default function AssistantScreen() {
                       title="Start this conversation"
                       subtitle="Tap a prompt or type your own below."
                       presets={PRESETS}
-                      onPick={(p) => send(threadId, p)}
+                      onPick={(p) => send(activeThreadId, p)}
                     />
                   }
                 />
@@ -434,7 +438,8 @@ export default function AssistantScreen() {
                   borderTopColor: theme.border,
                   backgroundColor: theme.backgroundElement,
                 },
-              ]}>
+              ]}
+            >
               <Text style={[styles.editLabel, { color: theme.textSecondary }]}>
                 Editing your message — sending replaces the AI&apos;s answer.
               </Text>
@@ -458,7 +463,8 @@ export default function AssistantScreen() {
                     setEditingMessage(null);
                     setEditingDraft('');
                   }}
-                  style={[styles.editBtn, { borderColor: theme.border }]}>
+                  style={[styles.editBtn, { borderColor: theme.border }]}
+                >
                   <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
                 </Pressable>
                 <Pressable
@@ -470,7 +476,8 @@ export default function AssistantScreen() {
                     (editingDraft.trim().length === 0 || busy) && {
                       opacity: 0.5,
                     },
-                  ]}>
+                  ]}
+                >
                   <Text style={{ color: theme.primaryText, fontWeight: '700' }}>Resend</Text>
                 </Pressable>
               </View>
@@ -484,16 +491,20 @@ export default function AssistantScreen() {
                 borderTopColor: theme.border,
                 backgroundColor: theme.background,
               },
-            ]}>
+            ]}
+          >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Talk to Bimi"
               onPress={() =>
                 router.push(
-                  threadId ? { pathname: '/voice', params: { threadId } } : '/voice',
+                  activeThreadId
+                    ? { pathname: '/voice', params: { threadId: activeThreadId } }
+                    : '/voice',
                 )
               }
-              style={[styles.micBtn, { borderColor: theme.border }]}>
+              style={[styles.micBtn, { borderColor: theme.border }]}
+            >
               <AppIcon name="mic" tintColor={theme.textSecondary} size={20} />
             </Pressable>
             <TextInput
@@ -517,7 +528,8 @@ export default function AssistantScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Stop generating"
                 onPress={onPressStop}
-                style={[styles.sendBtn, { backgroundColor: theme.text }]}>
+                style={[styles.sendBtn, { backgroundColor: theme.text }]}
+              >
                 <AppIcon name="stop" tintColor={theme.background} size={18} />
               </Pressable>
             ) : (
@@ -530,7 +542,8 @@ export default function AssistantScreen() {
                   styles.sendBtn,
                   { backgroundColor: theme.primary },
                   (busy || composer.trim().length === 0) && { opacity: 0.5 },
-                ]}>
+                ]}
+              >
                 {busy ? (
                   <ActivityIndicator color={theme.primaryText} size="small" />
                 ) : (
@@ -543,7 +556,7 @@ export default function AssistantScreen() {
           <ThreadList
             instance={instance}
             visible={showThreadList}
-            activeThreadId={threadId}
+            activeThreadId={activeThreadId}
             onSelect={(id) => setThreadId(id)}
             onCreate={() => {
               void startNewThread();
@@ -556,11 +569,14 @@ export default function AssistantScreen() {
             currentModelId={currentModelId}
             onSelect={async (id: string) => {
               try {
-                const selectedThreadId = threadId ?? await createThread({ instance });
+                const selectedThreadId = activeThreadId ?? (await createThread({ instance }));
                 await setThreadModel({ threadId: selectedThreadId, modelId: id });
                 setThreadId(selectedThreadId);
               } catch (err) {
-                Alert.alert('Could not change model', err instanceof Error ? err.message : String(err));
+                Alert.alert(
+                  'Could not change model',
+                  err instanceof Error ? err.message : String(err),
+                );
               }
             }}
             onClose={() => setShowModelPicker(false)}
@@ -611,7 +627,8 @@ function EmptyIntro({
             backgroundColor: theme.backgroundElement,
             borderColor: theme.border,
           },
-        ]}>
+        ]}
+      >
         <AppIcon name="sparkles" tintColor={theme.primary} size={22} />
       </View>
       <Text style={[styles.introTitle, { color: theme.text }]}>{title}</Text>
@@ -628,7 +645,8 @@ function EmptyIntro({
                 backgroundColor: theme.backgroundElement,
               },
               pressed && { opacity: 0.6 },
-            ]}>
+            ]}
+          >
             <Text style={[styles.suggestionText, { color: theme.text }]} numberOfLines={1}>
               {p}
             </Text>
@@ -698,12 +716,14 @@ function MessageRow({
             : {
                 backgroundColor: 'transparent',
               },
-        ]}>
+        ]}
+      >
         {!isUser && isRunning && isEmpty ? (
           <View style={styles.thinkingRow}>
             <ActivityIndicator size="small" color={theme.textSecondary} />
             <Text
-              style={[styles.bubbleText, { color: theme.bubbleReceivedText, fontStyle: 'italic' }]}>
+              style={[styles.bubbleText, { color: theme.bubbleReceivedText, fontStyle: 'italic' }]}
+            >
               Thinking…
             </Text>
           </View>

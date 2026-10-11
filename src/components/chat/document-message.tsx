@@ -36,14 +36,16 @@ export function DocumentMessage({ messageId, fileName, pageCount, text, isOutgoi
   return (
     <Pressable
       onPress={() => router.push({ pathname: '/media/[messageId]', params: { messageId } })}
-      style={({ pressed }) => [styles.wrap, pressed && { opacity: 0.85 }]}>
+      style={({ pressed }) => [styles.wrap, pressed && { opacity: 0.85 }]}
+    >
       <View
         style={[
           styles.headerRow,
           {
             backgroundColor: isOutgoing ? 'rgba(255,255,255,0.18)' : theme.backgroundSelected,
           },
-        ]}>
+        ]}
+      >
         <AppIcon name="document" tintColor={titleColor} size={20} />
         <View style={{ flex: 1 }}>
           <ThemedText type="smallBold" style={{ color: titleColor }} numberOfLines={1}>

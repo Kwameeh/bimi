@@ -1,20 +1,13 @@
 import { useMutation } from 'convex/react';
 import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { confirmDestructive } from '@/components/ui/selection-bar';
 import { useTheme } from '@/hooks/use-theme';
 import { addMeetingToCalendar } from '@/lib/calendar';
 
 import { api } from '../../../convex/_generated/api';
-import type { Doc, Id } from '../../../convex/_generated/dataModel';
+import type { Doc } from '../../../convex/_generated/dataModel';
 
 import { MeetingCounterSheet } from './meeting-counter-sheet';
 
@@ -41,8 +34,7 @@ export function MeetingCard({ meeting }: { meeting: Doc<'meetings'> }) {
 
   const proposedTimes = meeting.proposedTimes ?? [];
   const status = meeting.status;
-  const selectedStartAt =
-    meeting.selectedStartAt ?? proposedTimes[selectedIdx]?.startAt ?? null;
+  const selectedStartAt = meeting.selectedStartAt ?? proposedTimes[selectedIdx]?.startAt ?? null;
 
   const onAccept = async () => {
     if (busy) return;
@@ -95,8 +87,7 @@ export function MeetingCard({ meeting }: { meeting: Doc<'meetings'> }) {
       const result = await addMeetingToCalendar({
         title: meeting.title ?? 'Meeting',
         startAt: selectedStartAt,
-        durationMinutes:
-          proposedTimes[selectedIdx]?.durationMinutes ?? 30,
+        durationMinutes: proposedTimes[selectedIdx]?.durationMinutes ?? 30,
       });
       if ('error' in result) {
         Alert.alert('Calendar', result.error);
@@ -119,14 +110,10 @@ export function MeetingCard({ meeting }: { meeting: Doc<'meetings'> }) {
 
   return (
     <View
-      style={[
-        styles.card,
-        { backgroundColor: theme.backgroundElement, borderColor: theme.border },
-      ]}>
+      style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
+    >
       <View style={styles.headerRow}>
-        <Text style={[styles.headerText, { color: theme.text }]}>
-          {meeting.title ?? 'Meeting'}
-        </Text>
+        <Text style={[styles.headerText, { color: theme.text }]}>{meeting.title ?? 'Meeting'}</Text>
         <Pressable onPress={onDelete} hitSlop={8} disabled={busy !== null}>
           <Text style={{ color: theme.textSecondary, fontSize: 18 }}>×</Text>
         </Pressable>
@@ -134,29 +121,19 @@ export function MeetingCard({ meeting }: { meeting: Doc<'meetings'> }) {
           style={[
             styles.statusBadge,
             {
-              backgroundColor: isAccepted
-                ? '#DCFCE7'
-                : isRescheduled
-                  ? '#FEF3C7'
-                  : '#E0E7FF',
+              backgroundColor: isAccepted ? '#DCFCE7' : isRescheduled ? '#FEF3C7' : '#E0E7FF',
             },
-          ]}>
+          ]}
+        >
           <Text
             style={[
               styles.statusText,
               {
-                color: isAccepted
-                  ? '#166534'
-                  : isRescheduled
-                    ? '#92400E'
-                    : '#3730A3',
+                color: isAccepted ? '#166534' : isRescheduled ? '#92400E' : '#3730A3',
               },
-            ]}>
-            {isAccepted
-              ? 'Accepted'
-              : isRescheduled
-                ? 'Counter-proposed'
-                : 'Pending'}
+            ]}
+          >
+            {isAccepted ? 'Accepted' : isRescheduled ? 'Counter-proposed' : 'Pending'}
           </Text>
         </View>
       </View>
@@ -164,9 +141,7 @@ export function MeetingCard({ meeting }: { meeting: Doc<'meetings'> }) {
       {proposedTimes.length > 0 ? (
         <View style={{ gap: 6 }}>
           {proposedTimes.map((t, idx) => {
-            const active = isAccepted
-              ? meeting.selectedStartAt === t.startAt
-              : selectedIdx === idx;
+            const active = isAccepted ? meeting.selectedStartAt === t.startAt : selectedIdx === idx;
             return (
               <Pressable
                 key={`${t.startAt}-${idx}`}
@@ -174,10 +149,8 @@ export function MeetingCard({ meeting }: { meeting: Doc<'meetings'> }) {
                   if (!isAccepted) setSelectedIdx(idx);
                 }}
                 disabled={isAccepted || isRescheduled}
-                style={[
-                  styles.timeRow,
-                  { borderColor: active ? theme.primary : theme.border },
-                ]}>
+                style={[styles.timeRow, { borderColor: active ? theme.primary : theme.border }]}
+              >
                 <View
                   style={[
                     styles.radio,
@@ -189,9 +162,7 @@ export function MeetingCard({ meeting }: { meeting: Doc<'meetings'> }) {
                   {formatTime(t.startAt)}
                 </Text>
                 {t.label ? (
-                  <Text style={[styles.timeLabel, { color: theme.textSecondary }]}>
-                    {t.label}
-                  </Text>
+                  <Text style={[styles.timeLabel, { color: theme.textSecondary }]}>{t.label}</Text>
                 ) : null}
               </Pressable>
             );
@@ -213,7 +184,8 @@ export function MeetingCard({ meeting }: { meeting: Doc<'meetings'> }) {
               styles.btnPrimary,
               { backgroundColor: theme.primary },
               (busy !== null || alreadyOnCalendar) && { opacity: 0.5 },
-            ]}>
+            ]}
+          >
             {busy === 'cal' ? (
               <ActivityIndicator size="small" color={theme.primaryText} />
             ) : (
@@ -227,13 +199,15 @@ export function MeetingCard({ meeting }: { meeting: Doc<'meetings'> }) {
             <Pressable
               onPress={onDecline}
               disabled={busy !== null}
-              style={[styles.btn, { borderColor: theme.border }]}>
+              style={[styles.btn, { borderColor: theme.border }]}
+            >
               <Text style={{ color: theme.danger ?? '#EF4444' }}>Decline</Text>
             </Pressable>
             <Pressable
               onPress={() => setCounterOpen(true)}
               disabled={busy !== null}
-              style={[styles.btn, { borderColor: theme.border }]}>
+              style={[styles.btn, { borderColor: theme.border }]}
+            >
               <Text style={{ color: theme.text }}>Suggest other</Text>
             </Pressable>
             <Pressable
@@ -244,7 +218,8 @@ export function MeetingCard({ meeting }: { meeting: Doc<'meetings'> }) {
                 styles.btnPrimary,
                 { backgroundColor: theme.primary },
                 (busy !== null || proposedTimes.length === 0) && { opacity: 0.5 },
-              ]}>
+              ]}
+            >
               {busy === 'accept' ? (
                 <ActivityIndicator size="small" color={theme.primaryText} />
               ) : (

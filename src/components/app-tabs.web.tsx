@@ -78,7 +78,8 @@ function TabButton({
         wide ? styles.tabButtonWide : styles.tabButtonCompact,
         isFocused && { backgroundColor: theme.backgroundSelected },
         pressed && styles.pressed,
-      ]}>
+      ]}
+    >
       <AppIcon
         name={icon}
         tintColor={isFocused ? theme.primary : theme.textSecondary}
@@ -90,7 +91,8 @@ function TabButton({
           styles.tabLabel,
           !wide && styles.tabLabelCompact,
           { color: isFocused ? theme.primary : theme.textSecondary },
-        ]}>
+        ]}
+      >
         {label}
       </ThemedText>
     </Pressable>
