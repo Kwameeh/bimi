@@ -1,0 +1,66 @@
+@import 'tailwindcss';
+@import 'uniwind';
+@import 'heroui-native/styles';
+
+@source '../node_modules/heroui-native/lib';
+
+:root {
+  --font-display:
+    Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
+    Segoe UI Symbol, Noto Color Emoji;
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+  --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
+
+  --bimi-text: #0f172a;
+  --bimi-background: #ffffff;
+  --bimi-surface: #f8fafc;
+  --bimi-border: #e2e8f0;
+  --bimi-text-secondary: #64748b;
+  --bimi-primary: #208aef;
+  --bimi-primary-text: #ffffff;
+  --bimi-ai-accent: #6f5bff;
+  --bimi-bubble-received: #f1f5f9;
+  --bimi-bubble-received-text: #0f172a;
+  --bimi-tick-idle: #94a3b8;
+  --bimi-tick-read: #208aef;
+  --bimi-unread-badge: #208aef;
+  --bimi-danger: #ef4444;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bimi-text: #f1f5f9;
+    --bimi-background: #0b1220;
+    --bimi-surface: #111827;
+    --bimi-border: #1f2937;
+    --bimi-text-secondary: #94a3b8;
+    --bimi-primary: #3b9df8;
+    --bimi-primary-text: #ffffff;
+    --bimi-ai-accent: #8b7fff;
+    --bimi-bubble-received: #1f2937;
+    --bimi-bubble-received-text: #f1f5f9;
+    --bimi-tick-idle: #64748b;
+    --bimi-tick-read: #3b9df8;
+    --bimi-unread-badge: #3b9df8;
+    --bimi-danger: #f87171;
+  }
+}
+
+@theme {
+  --color-bimi-text: var(--bimi-text);
+  --color-bimi-background: var(--bimi-background);
+  --color-bimi-surface: var(--bimi-surface);
+  --color-bimi-border: var(--bimi-border);
+  --color-bimi-text-secondary: var(--bimi-text-secondary);
+  --color-bimi-primary: var(--bimi-primary);
+  --color-bimi-primary-text: var(--bimi-primary-text);
+  --color-bimi-ai-accent: var(--bimi-ai-accent);
+  --color-bimi-bubble-received: var(--bimi-bubble-received);
+  --color-bimi-bubble-received-text: var(--bimi-bubble-received-text);
+  --color-bimi-tick-idle: var(--bimi-tick-idle);
+  --color-bimi-tick-read: var(--bimi-tick-read);
+  --color-bimi-unread-badge: var(--bimi-unread-badge);
+  --color-bimi-danger: var(--bimi-danger);
+}
