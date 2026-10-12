@@ -141,18 +141,43 @@ Set the backend configuration variables output by Convex in your `.env.local`:
 
 ### 4. Configure Backend Provider Secrets
 
-Configure your AI provider keys in the Convex dashboard or via CLI:
+Configure your messaging gateway and AI provider secrets in the Convex dashboard or via CLI:
 
 ```sh
 bunx convex env set EVOLUTION_API_BASE_URL "https://your-evolution-api.com"
 bunx convex env set EVOLUTION_API_KEY "your-evolution-key"
 bunx convex env set EVOLUTION_WEBHOOK_SECRET "your-secure-webhook-secret"
-
-# Configure at least one AI provider (see docs/ai-providers.md):
-bunx convex env set ANTHROPIC_API_KEY "your-anthropic-key"
-bunx convex env set OPENAI_API_KEY "your-openai-key"
-bunx convex env set BIMI_AI_PROVIDER "anthropic"
 ```
+
+#### Choose Your Text AI Provider (`BIMI_AI_PROVIDER`)
+
+Bimi supports **DeepSeek, Anthropic, OpenAI, Groq, Google Gemini, Cloudflare, and OpenAI-compatible** backends:
+
+```sh
+# Example A: DeepSeek (All-in-one setup)
+bunx convex env set BIMI_AI_PROVIDER "deepseek"
+bunx convex env set DEEPSEEK_API_KEY "your-deepseek-api-key"
+bunx convex env set DEEPSEEK_MODEL "deepseek-chat"
+
+# Example B: Anthropic Claude
+bunx convex env set BIMI_AI_PROVIDER "anthropic"
+bunx convex env set ANTHROPIC_API_KEY "your-anthropic-key"
+bunx convex env set ANTHROPIC_MODEL "claude-3-5-sonnet-latest"
+
+# Example C: Groq (Ultra-fast inference)
+bunx convex env set BIMI_AI_PROVIDER "groq"
+bunx convex env set GROQ_API_KEY "your-groq-key"
+bunx convex env set GROQ_MODEL "llama-3.3-70b-versatile"
+```
+
+> [!TIP]
+> **Task-Specific Models**: By default, your primary model (`DEEPSEEK_MODEL`, `ANTHROPIC_MODEL`, etc.) powers all operations. You can optionally route individual tasks to faster or cheaper models:
+>
+> - `BIMI_AI_REPLY_MODEL`: Model for WhatsApp reply drafts
+> - `BIMI_AI_SUMMARY_MODEL`: Model for daily briefings and conversation digests
+> - `BIMI_AI_JSON_MODEL`: Model for memory extraction and autonomous contact goal decisions
+>
+> Read [docs/ai-providers.md](docs/ai-providers.md) for multi-provider and multimodal setups.
 
 Configure your Evolution API webhook URL to point to:
 `https://<YOUR_CONVEX_SITE_URL>/webhooks/evolution`
