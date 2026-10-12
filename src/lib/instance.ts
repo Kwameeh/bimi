@@ -10,7 +10,7 @@
  * contacts for": that picked the alphabetically-first instance and silently
  * showed messages from a stale one.
  */
-const DEFAULT_INSTANCE = 'main';
+const DEFAULT_INSTANCE = 'kwameeh';
 
 export const INSTANCE = process.env.EXPO_PUBLIC_BIMI_INSTANCE || DEFAULT_INSTANCE;
 
