@@ -10,21 +10,38 @@
       "android": {
         "buildType": "apk"
       },
-      "environment": "development"
+      "environment": "development",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://api.convex.twumdufe.com",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://site.convex.twumdufe.com",
+        "EXPO_PUBLIC_BIMI_INSTANCE": "kwameeh"
+      }
     },
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "credentialsSource": "local"
       },
-      "environment": "preview"
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://api.convex.twumdufe.com",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://site.convex.twumdufe.com",
+        "EXPO_PUBLIC_BIMI_INSTANCE": "kwameeh"
+      }
     },
     "production": {
       "autoIncrement": true,
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "credentialsSource": "local"
       },
-      "environment": "production"
+      "environment": "production",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://api.convex.twumdufe.com",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://site.convex.twumdufe.com",
+        "EXPO_PUBLIC_BIMI_INSTANCE": "kwameeh"
+      }
     }
   },
   "submit": {

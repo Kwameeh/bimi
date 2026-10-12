@@ -14,10 +14,10 @@ export function MessageStatusTicks({ status, size = 14 }: Props) {
   if (!status) return null;
 
   if (status === 'error') {
-    return <Text style={{ color: theme.danger, fontSize: size, fontWeight: '700' }}>!</Text>;
+    return <AppIcon name="error" tintColor={theme.danger} size={size} />;
   }
   if (status === 'pending') {
-    return <Text style={{ color: theme.tickIdle, fontSize: size }}>○</Text>;
+    return <AppIcon name="dot" tintColor={theme.tickIdle} size={size} />;
   }
 
   const color = status === 'read' || status === 'played' ? theme.tickRead : theme.tickIdle;

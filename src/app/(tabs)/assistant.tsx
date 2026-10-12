@@ -5,7 +5,6 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   Platform,
@@ -32,23 +31,47 @@ import { ScrollToBottomPill } from '@/components/assistant/scroll-to-bottom-pill
 import { ThreadList } from '@/components/assistant/thread-list';
 import { ToolResultCard } from '@/components/assistant/tool-result-card';
 import { ToolStepRow } from '@/components/assistant/tool-step-row';
+import { AppIcon, type AppIconName } from '@/components/ui/app-icon';
+import { useAlert } from '@/components/ui/custom-alert-dialog';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
 import { ThemedView } from '@/components/themed-view';
-import { AppIcon } from '@/components/ui/app-icon';
-import { Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useInstance } from '@/lib/instance';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc, Id } from '../../../convex/_generated/dataModel';
 
-const PRESETS = [
-  "What's my plan for today?",
-  'Who needs my reply today?',
-  "What's happening in my top chats?",
-  'Summarize my WhatsApp today.',
-  'What is urgent right now?',
-  'Any meetings to handle?',
+const PRESET_CARDS: {
+  title: string;
+  prompt: string;
+  icon: AppIconName;
+  desc: string;
+}[] = [
+  {
+    title: "Today's Plan",
+    prompt: "What's my plan for today?",
+    icon: 'checklist',
+    desc: 'Action items, meetings & reminders',
+  },
+  {
+    title: 'Replies Needed',
+    prompt: 'Who needs my reply today?',
+    icon: 'chat',
+    desc: 'Unread and urgent conversations',
+  },
+  {
+    title: 'Top Chats Update',
+    prompt: "What's happening in my top chats?",
+    icon: 'sparkles',
+    desc: 'Key highlights across active chats',
+  },
+  {
+    title: 'WhatsApp Briefing',
+    prompt: 'Summarize my WhatsApp today.',
+    icon: 'newspaper',
+    desc: 'Complete overview of your day',
+  },
 ];
 
 const NEAR_BOTTOM_PX = 80;
@@ -59,6 +82,7 @@ export default function AssistantScreen() {
   const theme = useTheme();
   const router = useRouter();
   const instance = useInstance();
+  const { showAlert } = useAlert();
 
   const [threadId, setThreadId] = useState<Id<'assistantThreads'> | null>(null);
   const [showThreadList, setShowThreadList] = useState(false);
@@ -78,7 +102,7 @@ export default function AssistantScreen() {
   const regenerateLastTurn = useAction(api.assistant.regenerateLastTurn);
   const editUserMessageAndRetry = useAction(api.assistant.editUserMessageAndRetry);
 
-  const threads = useQuery(api.assistant.listThreads, { instance, limit: 5 });
+  const threads = useQuery(api.assistant.listThreads, { instance, limit: 30 });
   const activeThreadId = threadId ?? threads?.[0]?._id ?? null;
   const messages = useQuery(
     api.assistant.listMessages,
@@ -134,12 +158,10 @@ export default function AssistantScreen() {
     const arr = messages ?? [];
     if (atBottom) {
       if (arr.length > 0) {
-        // queueMicrotask so the list lays out the new row first
         const t = setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 30);
         return () => clearTimeout(t);
       }
     } else {
-      // not at bottom — track new messages since the last seen
       if (arr.length > lastMessageCountRef.current) {
         setUnseenCount((n) => n + (arr.length - lastMessageCountRef.current));
       }
@@ -177,7 +199,11 @@ export default function AssistantScreen() {
     try {
       await sendMessage({ threadId: tId, content });
     } catch (err) {
-      Alert.alert('Failed', err instanceof Error ? err.message : String(err));
+      showAlert({
+        title: 'Error',
+        message: err instanceof Error ? err.message : String(err),
+        icon: 'error',
+      });
     } finally {
       setSending(false);
     }
@@ -198,7 +224,11 @@ export default function AssistantScreen() {
     try {
       await requestCancelTurn({ messageId: runningAssistantMessage._id });
     } catch (err) {
-      Alert.alert('Failed', err instanceof Error ? err.message : String(err));
+      showAlert({
+        title: 'Error',
+        message: err instanceof Error ? err.message : String(err),
+        icon: 'error',
+      });
     }
   };
 
@@ -215,7 +245,32 @@ export default function AssistantScreen() {
         content: trimmed,
       });
     } catch (err) {
-      Alert.alert('Failed', err instanceof Error ? err.message : String(err));
+      showAlert({
+        title: 'Failed to update',
+        message: err instanceof Error ? err.message : String(err),
+        icon: 'error',
+      });
+    }
+  };
+
+  const handleCopy = async (text: string) => {
+    try {
+      await Clipboard.setStringAsync(text);
+    } catch {
+      showAlert({ title: 'Copy failed', icon: 'error' });
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!activeThreadId || busy) return;
+    try {
+      await regenerateLastTurn({ threadId: activeThreadId });
+    } catch (err) {
+      showAlert({
+        title: 'Failed to regenerate',
+        message: err instanceof Error ? err.message : String(err),
+        icon: 'error',
+      });
     }
   };
 
@@ -225,32 +280,25 @@ export default function AssistantScreen() {
     setActionTarget(null);
 
     if (action.kind === 'copy') {
-      try {
-        await Clipboard.setStringAsync(target.content ?? '');
-      } catch {
-        Alert.alert('Copy failed');
-      }
+      await handleCopy(target.content ?? '');
       return;
     }
     if (action.kind === 'regenerate' && activeThreadId) {
-      try {
-        await regenerateLastTurn({ threadId: activeThreadId });
-      } catch (err) {
-        Alert.alert('Failed', err instanceof Error ? err.message : String(err));
-      }
+      await handleRegenerate();
       return;
     }
     if (action.kind === 'retry' && activeThreadId) {
-      // 'retry from here' on an assistant bubble → walk back to the user
-      // message that preceded it, then editUserMessageAndRetry with the same
-      // text (acts as: drop everything after, re-stream from there).
       const arr = messages ?? [];
       const idx = arr.findIndex((m) => m._id === target._id);
       if (idx < 0) return;
       let userIdx = idx - 1;
       while (userIdx >= 0 && arr[userIdx].role !== 'user') userIdx--;
       if (userIdx < 0) {
-        Alert.alert('No user message above this to retry from.');
+        showAlert({
+          title: 'Cannot Retry',
+          message: 'No user message above this to retry from.',
+          icon: 'error',
+        });
         return;
       }
       const userRow = arr[userIdx];
@@ -260,7 +308,11 @@ export default function AssistantScreen() {
           content: userRow.content,
         });
       } catch (err) {
-        Alert.alert('Failed', err instanceof Error ? err.message : String(err));
+        showAlert({
+          title: 'Failed to retry',
+          message: err instanceof Error ? err.message : String(err),
+          icon: 'error',
+        });
       }
       return;
     }
@@ -271,8 +323,6 @@ export default function AssistantScreen() {
     }
   };
 
-  // Hide stream bookkeeping rows for tools that queue their own interactive
-  // row (choice/question/confirmation) — the interactive row is the real one.
   const visibleMessages = (messages ?? []).filter((m) => {
     if (m.role !== 'tool') return true;
     const rs = (m.toolResult as { status?: unknown } | null | undefined)?.status;
@@ -283,46 +333,59 @@ export default function AssistantScreen() {
     <ThemedView style={styles.container}>
       <KeyboardAvoidingContainer style={styles.safe}>
         <SafeAreaView style={styles.safe} edges={['top']}>
+          {/* Header */}
           <View style={[styles.header, { borderBottomColor: theme.border }]}>
             <View style={styles.headerTop}>
               <View style={styles.headerLeft}>
-                <Text style={[styles.headerTitle, { color: theme.text }]}>Assistant</Text>
-                <View style={[styles.aiBadge, { backgroundColor: theme.backgroundElement }]}>
-                  <AppIcon name="sparkles" tintColor={theme.aiAccent} size={13} />
-                  <Text style={[styles.aiBadgeText, { color: theme.textSecondary }]}>AI</Text>
-                </View>
-              </View>
-              <View style={styles.headerActions}>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Open conversation history"
                   onPress={() => setShowThreadList(true)}
-                  hitSlop={6}
+                  hitSlop={8}
                   style={({ pressed }) => [
                     styles.iconBtn,
-                    { borderColor: theme.border, opacity: pressed ? 0.65 : 1 },
+                    {
+                      backgroundColor: theme.backgroundElement,
+                      borderColor: theme.border,
+                      opacity: pressed ? 0.65 : 1,
+                    },
                   ]}
                 >
-                  <AppIcon name="menu" tintColor={theme.text} size={20} />
+                  <AppIcon name="menu" tintColor={theme.text} size={18} />
                 </Pressable>
+
+                <View style={styles.headerTitleWrap}>
+                  <Text style={[styles.headerTitle, { color: theme.text }]}>
+                    {currentThread?.title ?? 'Assistant'}
+                  </Text>
+                  <View style={[styles.aiBadge, { backgroundColor: `${theme.aiAccent}1A` }]}>
+                    <AppIcon name="sparkles" tintColor={theme.aiAccent} size={11} />
+                    <Text style={[styles.aiBadgeText, { color: theme.aiAccent }]}>AI</Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.headerActions}>
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Start a new conversation"
                   onPress={() => startNewThread()}
                   hitSlop={6}
                   style={({ pressed }) => [
-                    styles.iconBtn,
+                    styles.newChatBtn,
                     {
                       backgroundColor: theme.primary,
-                      borderColor: theme.primary,
-                      opacity: pressed ? 0.78 : 1,
+                      opacity: pressed ? 0.8 : 1,
                     },
                   ]}
                 >
-                  <AppIcon name="add" tintColor={theme.primaryText} size={22} />
+                  <AppIcon name="add" tintColor={theme.primaryText} size={16} />
+                  <Text style={[styles.newChatText, { color: theme.primaryText }]}>New</Text>
                 </Pressable>
               </View>
             </View>
+
+            {/* Quick Actions Scroll */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -343,48 +406,47 @@ export default function AssistantScreen() {
                   !activeThreadId && { opacity: 0.5 },
                 ]}
               >
-                <Text
-                  style={{
-                    color: theme.textSecondary,
-                    fontWeight: '600',
-                    fontSize: 10,
-                  }}
-                  numberOfLines={1}
-                >
+                <AppIcon name="sparkles" tintColor={theme.primary} size={12} />
+                <Text style={[styles.modelChipText, { color: theme.text }]} numberOfLines={1}>
                   {modelLabelFor(currentModelId)}
                 </Text>
+                <AppIcon name="chevronDown" tintColor={theme.textSecondary} size={12} />
               </Pressable>
+
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Open knowledge"
+                accessibilityLabel="Open knowledge base"
                 onPress={() => setShowKnowledge(true)}
                 hitSlop={6}
-                style={[styles.toolChip, { borderColor: theme.border }]}
+                style={[
+                  styles.toolChip,
+                  { borderColor: theme.border, backgroundColor: theme.backgroundElement },
+                ]}
               >
-                <AppIcon name="knowledge" tintColor={theme.textSecondary} size={16} />
+                <AppIcon name="knowledge" tintColor={theme.textSecondary} size={14} />
                 <Text style={[styles.toolChipText, { color: theme.text }]}>Knowledge</Text>
               </Pressable>
+
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Open assistant preferences"
                 onPress={() => setShowPreferences(true)}
                 hitSlop={6}
-                style={[styles.toolChip, { borderColor: theme.border }]}
+                style={[
+                  styles.toolChip,
+                  { borderColor: theme.border, backgroundColor: theme.backgroundElement },
+                ]}
               >
-                <AppIcon name="settings" tintColor={theme.textSecondary} size={16} />
+                <AppIcon name="settings" tintColor={theme.textSecondary} size={14} />
                 <Text style={[styles.toolChipText, { color: theme.text }]}>Preferences</Text>
               </Pressable>
             </ScrollView>
           </View>
 
+          {/* Chat List Area */}
           <View style={styles.listArea}>
             {activeThreadId === null ? (
-              <EmptyIntro
-                title="Ask Bimi anything"
-                subtitle="Urgency, replies, tasks, meetings, trends — across all your chats."
-                presets={PRESETS}
-                onPick={(p) => startNewThread(p)}
-              />
+              <EmptyIntro presets={PRESET_CARDS} onPick={(p) => startNewThread(p)} />
             ) : (
               <>
                 <FlashList
@@ -401,6 +463,12 @@ export default function AssistantScreen() {
                       message={item}
                       onOpenContact={openChat}
                       onLongPress={() => setActionTarget(item)}
+                      onCopy={() => handleCopy(item.content ?? '')}
+                      onEdit={() => {
+                        setEditingMessage(item);
+                        setEditingDraft(item.content ?? '');
+                      }}
+                      onRegenerate={handleRegenerate}
                       followUps={
                         item._id === lastAssistantMessage?._id && item.status === 'done'
                           ? (item.suggestedFollowUps ?? [])
@@ -413,12 +481,7 @@ export default function AssistantScreen() {
                     />
                   )}
                   ListEmptyComponent={
-                    <EmptyIntro
-                      title="Start this conversation"
-                      subtitle="Tap a prompt or type your own below."
-                      presets={PRESETS}
-                      onPick={(p) => send(activeThreadId, p)}
-                    />
+                    <EmptyIntro presets={PRESET_CARDS} onPick={(p) => send(activeThreadId, p)} />
                   }
                 />
                 <ScrollToBottomPill
@@ -430,6 +493,7 @@ export default function AssistantScreen() {
             )}
           </View>
 
+          {/* Edit user message bar */}
           {editingMessage ? (
             <View
               style={[
@@ -441,7 +505,7 @@ export default function AssistantScreen() {
               ]}
             >
               <Text style={[styles.editLabel, { color: theme.textSecondary }]}>
-                Editing your message — sending replaces the AI&apos;s answer.
+                Editing your prompt — resending will regenerate the answer.
               </Text>
               <TextInput
                 value={editingDraft}
@@ -484,75 +548,91 @@ export default function AssistantScreen() {
             </View>
           ) : null}
 
+          {/* Composer */}
           <View
             style={[
-              styles.composer,
+              styles.composerWrap,
               {
                 borderTopColor: theme.border,
                 backgroundColor: theme.background,
               },
             ]}
           >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Talk to Bimi"
-              onPress={() =>
-                router.push(
-                  activeThreadId
-                    ? { pathname: '/voice', params: { threadId: activeThreadId } }
-                    : '/voice',
-                )
-              }
-              style={[styles.micBtn, { borderColor: theme.border }]}
-            >
-              <AppIcon name="mic" tintColor={theme.textSecondary} size={20} />
-            </Pressable>
-            <TextInput
-              value={composer}
-              onChangeText={setComposer}
-              placeholder="Ask Bimi…"
-              placeholderTextColor={theme.textSecondary}
-              multiline
-              editable
+            <View
               style={[
-                styles.input,
+                styles.composerInputRow,
                 {
-                  color: theme.text,
                   backgroundColor: theme.backgroundElement,
                   borderColor: theme.border,
                 },
               ]}
-            />
-            {busy && runningAssistantMessage ? (
+            >
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="Stop generating"
-                onPress={onPressStop}
-                style={[styles.sendBtn, { backgroundColor: theme.text }]}
+                accessibilityLabel="Talk to Bimi"
+                onPress={() =>
+                  router.push(
+                    activeThreadId
+                      ? { pathname: '/voice', params: { threadId: activeThreadId } }
+                      : '/voice',
+                  )
+                }
+                style={styles.micBtn}
               >
-                <AppIcon name="stop" tintColor={theme.background} size={18} />
+                <AppIcon name="mic" tintColor={theme.textSecondary} size={19} />
               </Pressable>
-            ) : (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Send message"
-                onPress={onSubmitComposer}
-                disabled={busy || composer.trim().length === 0}
-                style={[
-                  styles.sendBtn,
-                  { backgroundColor: theme.primary },
-                  (busy || composer.trim().length === 0) && { opacity: 0.5 },
-                ]}
-              >
-                {busy ? (
-                  <ActivityIndicator color={theme.primaryText} size="small" />
-                ) : (
-                  <AppIcon name="send" tintColor={theme.primaryText} size={20} />
-                )}
-              </Pressable>
-            )}
+
+              <TextInput
+                value={composer}
+                onChangeText={setComposer}
+                placeholder="Ask Bimi anything…"
+                placeholderTextColor={theme.textSecondary}
+                multiline
+                editable
+                style={[styles.input, { color: theme.text }]}
+              />
+
+              {busy && runningAssistantMessage ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Stop generating"
+                  onPress={onPressStop}
+                  style={[styles.sendBtn, { backgroundColor: theme.text }]}
+                >
+                  <AppIcon name="stop" tintColor={theme.background} size={16} />
+                </Pressable>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Send message"
+                  onPress={onSubmitComposer}
+                  disabled={busy || composer.trim().length === 0}
+                  style={[
+                    styles.sendBtn,
+                    {
+                      backgroundColor:
+                        composer.trim().length > 0 ? theme.primary : `${theme.textSecondary}33`,
+                    },
+                    busy && { opacity: 0.5 },
+                  ]}
+                >
+                  {busy ? (
+                    <ActivityIndicator color={theme.primaryText} size="small" />
+                  ) : (
+                    <AppIcon
+                      name="send"
+                      tintColor={
+                        composer.trim().length > 0 ? theme.primaryText : theme.textSecondary
+                      }
+                      size={18}
+                    />
+                  )}
+                </Pressable>
+              )}
+            </View>
           </View>
 
+          {/* Modals & Sheets */}
           <ThreadList
             instance={instance}
             visible={showThreadList}
@@ -573,10 +653,11 @@ export default function AssistantScreen() {
                 await setThreadModel({ threadId: selectedThreadId, modelId: id });
                 setThreadId(selectedThreadId);
               } catch (err) {
-                Alert.alert(
-                  'Could not change model',
-                  err instanceof Error ? err.message : String(err),
-                );
+                showAlert({
+                  title: 'Could not change model',
+                  message: err instanceof Error ? err.message : String(err),
+                  icon: 'error',
+                });
               }
             }}
             onClose={() => setShowModelPicker(false)}
@@ -607,54 +688,65 @@ export default function AssistantScreen() {
 }
 
 function EmptyIntro({
-  title,
-  subtitle,
   presets,
   onPick,
 }: {
-  title: string;
-  subtitle: string;
-  presets: string[];
+  presets: typeof PRESET_CARDS;
   onPick: (preset: string) => void;
 }) {
   const theme = useTheme();
   return (
-    <View style={styles.intro}>
-      <View
-        style={[
-          styles.introBadge,
-          {
-            backgroundColor: theme.backgroundElement,
-            borderColor: theme.border,
-          },
-        ]}
-      >
-        <AppIcon name="sparkles" tintColor={theme.primary} size={22} />
+    <ScrollView contentContainerStyle={styles.introScroll} showsVerticalScrollIndicator={false}>
+      <View style={styles.intro}>
+        <View
+          style={[
+            styles.introOrb,
+            {
+              backgroundColor: `${theme.aiAccent}1A`,
+              borderColor: `${theme.aiAccent}33`,
+            },
+          ]}
+        >
+          <AppIcon name="sparkles" tintColor={theme.aiAccent} size={28} />
+        </View>
+
+        <Text style={[styles.introTitle, { color: theme.text }]}>How can I help you today?</Text>
+        <Text style={[styles.introSubtitle, { color: theme.textSecondary }]}>
+          Search messages, prepare replies, manage tasks and track meetings across WhatsApp.
+        </Text>
+
+        <View style={styles.cardGrid}>
+          {presets.map((item) => (
+            <Pressable
+              key={item.title}
+              onPress={() => onPick(item.prompt)}
+              style={({ pressed }) => [
+                styles.presetCard,
+                {
+                  backgroundColor: theme.backgroundElement,
+                  borderColor: theme.border,
+                  opacity: pressed ? 0.75 : 1,
+                },
+              ]}
+            >
+              <View style={styles.presetCardHeader}>
+                <View style={[styles.presetIconWrap, { backgroundColor: `${theme.primary}15` }]}>
+                  <AppIcon name={item.icon} tintColor={theme.primary} size={16} />
+                </View>
+                <AppIcon name="arrowUpRight" tintColor={theme.textSecondary} size={14} />
+              </View>
+              <Text style={[styles.presetCardTitle, { color: theme.text }]}>{item.title}</Text>
+              <Text
+                style={[styles.presetCardDesc, { color: theme.textSecondary }]}
+                numberOfLines={2}
+              >
+                {item.desc}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
-      <Text style={[styles.introTitle, { color: theme.text }]}>{title}</Text>
-      <Text style={[styles.introSubtitle, { color: theme.textSecondary }]}>{subtitle}</Text>
-      <View style={styles.suggestionList}>
-        {presets.map((p) => (
-          <Pressable
-            key={p}
-            onPress={() => onPick(p)}
-            style={({ pressed }) => [
-              styles.suggestionRow,
-              {
-                borderColor: theme.border,
-                backgroundColor: theme.backgroundElement,
-              },
-              pressed && { opacity: 0.6 },
-            ]}
-          >
-            <Text style={[styles.suggestionText, { color: theme.text }]} numberOfLines={1}>
-              {p}
-            </Text>
-            <AppIcon name="arrowUpRight" tintColor={theme.textSecondary} size={15} />
-          </Pressable>
-        ))}
-      </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -662,6 +754,9 @@ function MessageRow({
   message,
   onOpenContact,
   onLongPress,
+  onCopy,
+  onEdit,
+  onRegenerate,
   followUps,
   onPickFollowUp,
   busy,
@@ -669,11 +764,15 @@ function MessageRow({
   message: RowDoc;
   onOpenContact: (contactId: Id<'contacts'>) => void;
   onLongPress: () => void;
+  onCopy: () => void;
+  onEdit?: () => void;
+  onRegenerate?: () => void;
   followUps: string[];
   onPickFollowUp: (s: string) => void;
   busy: boolean;
 }) {
   const theme = useTheme();
+  const [copied, setCopied] = useState(false);
 
   if (message.role === 'tool') {
     return <ToolStepRow row={message} onOpenContact={onOpenContact} />;
@@ -682,13 +781,9 @@ function MessageRow({
   const isUser = message.role === 'user';
   const isRunning = message.status === 'running';
   const isEmpty = !message.content || message.content.length === 0;
-  // Show the block whenever there is reasoning at all. It used to appear only
-  // past 140 characters, which meant a short run rendered the block while
-  // streaming and then made it disappear the instant it finished — reading as
-  // the panel slamming shut on its own. It stays collapsed by default, so a
-  // one-line header is the whole cost of keeping it stable.
   const reasoningText = (message.reasoning ?? '').trim();
   const showReasoning = reasoningText.length > 0;
+
   const cited = (message.citedMessageIds ?? []).map((mid, idx) => ({
     messageId: mid,
     contactId:
@@ -698,34 +793,65 @@ function MessageRow({
     preview: '',
   }));
 
+  const handleCopyPress = () => {
+    onCopy();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <View style={[styles.bubbleWrap, isUser ? styles.bubbleRight : styles.bubbleLeft]}>
+      {/* Assistant Header Badge */}
+      {!isUser ? (
+        <View style={styles.assistantMetaRow}>
+          <View
+            style={[
+              styles.avatarWrap,
+              {
+                backgroundColor: `${theme.aiAccent}1A`,
+                borderColor: `${theme.aiAccent}33`,
+              },
+            ]}
+          >
+            <AppIcon name="sparkles" tintColor={theme.aiAccent} size={13} />
+          </View>
+          <Text style={[styles.assistantName, { color: theme.text }]}>Bimi</Text>
+          {isRunning ? (
+            <View style={styles.activePill}>
+              <ActivityIndicator size="small" color={theme.aiAccent} />
+              <Text style={[styles.activePillText, { color: theme.aiAccent }]}>Generating…</Text>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {/* Reasoning Block */}
       {!isUser && showReasoning ? (
         <View style={styles.assistantContent}>
           <ReasoningBlock reasoning={message.reasoning ?? ''} isStreaming={isRunning} />
         </View>
       ) : null}
 
+      {/* Message Bubble */}
       <Pressable
         onLongPress={onLongPress}
         delayLongPress={300}
         style={[
           styles.bubble,
           isUser
-            ? [styles.userBubble, { backgroundColor: theme.bubbleSent }]
-            : {
-                backgroundColor: 'transparent',
-              },
+            ? [
+                styles.userBubble,
+                {
+                  backgroundColor: theme.bubbleSent,
+                },
+              ]
+            : styles.assistantBubble,
         ]}
       >
         {!isUser && isRunning && isEmpty ? (
           <View style={styles.thinkingRow}>
             <ActivityIndicator size="small" color={theme.textSecondary} />
-            <Text
-              style={[styles.bubbleText, { color: theme.bubbleReceivedText, fontStyle: 'italic' }]}
-            >
-              Thinking…
-            </Text>
+            <Text style={[styles.thinkingText, { color: theme.textSecondary }]}>Thinking…</Text>
           </View>
         ) : isUser ? (
           <Text style={[styles.bubbleText, { color: theme.bubbleSentText }]}>
@@ -741,6 +867,7 @@ function MessageRow({
         )}
       </Pressable>
 
+      {/* Citations Card */}
       {!isUser && cited.length > 0 ? (
         <ToolResultCard
           rows={cited.map((r) => ({
@@ -753,6 +880,94 @@ function MessageRow({
         />
       ) : null}
 
+      {/* Assistant Action Bar (Copy / Regenerate / More) */}
+      {!isUser && !isRunning && !isEmpty ? (
+        <View style={styles.actionToolbar}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={copied ? 'Copied to clipboard' : 'Copy answer'}
+            onPress={handleCopyPress}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.actionPill,
+              {
+                backgroundColor: theme.backgroundElement,
+                borderColor: theme.border,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <AppIcon
+              name={copied ? 'check' : 'compose'}
+              tintColor={copied ? '#10B981' : theme.textSecondary}
+              size={13}
+            />
+            <Text
+              style={[styles.actionPillText, { color: copied ? '#10B981' : theme.textSecondary }]}
+            >
+              {copied ? 'Copied' : 'Copy'}
+            </Text>
+          </Pressable>
+
+          {onRegenerate ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Regenerate answer"
+              onPress={onRegenerate}
+              disabled={busy}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.actionPill,
+                {
+                  backgroundColor: theme.backgroundElement,
+                  borderColor: theme.border,
+                  opacity: pressed || busy ? 0.6 : 1,
+                },
+              ]}
+            >
+              <AppIcon name="waveform" tintColor={theme.textSecondary} size={13} />
+              <Text style={[styles.actionPillText, { color: theme.textSecondary }]}>
+                Regenerate
+              </Text>
+            </Pressable>
+          ) : null}
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="More actions"
+            onPress={onLongPress}
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.actionPill,
+              {
+                backgroundColor: theme.backgroundElement,
+                borderColor: theme.border,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <AppIcon name="settings" tintColor={theme.textSecondary} size={13} />
+          </Pressable>
+        </View>
+      ) : null}
+
+      {/* User Quick Actions (Edit) */}
+      {isUser && onEdit ? (
+        <View style={styles.userActionToolbar}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Edit prompt"
+            onPress={onEdit}
+            hitSlop={6}
+            style={({ pressed }) => [styles.userActionBtn, { opacity: pressed ? 0.6 : 0.8 }]}
+          >
+            <AppIcon name="compose" tintColor={theme.textSecondary} size={13} />
+            <Text style={[styles.userActionText, { color: theme.textSecondary }]}>Edit</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {/* Suggested Follow-Ups */}
       {!isUser && followUps.length > 0 ? (
         <View style={{ width: '100%' }}>
           <FollowUps suggestions={followUps} onPick={onPickFollowUp} disabled={busy} />
@@ -764,11 +979,11 @@ function MessageRow({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safe: { flex: 1 },
+  safe: { flex: 1, maxWidth: 960, width: '100%', alignSelf: 'center' },
   listArea: { flex: 1 },
   header: {
     paddingHorizontal: Spacing.three,
-    paddingTop: 12,
+    paddingTop: 10,
     paddingBottom: 10,
     gap: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -781,172 +996,356 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     flexShrink: 1,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
-  headerActions: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  aiBadge: {
-    height: 24,
-    paddingHorizontal: 8,
-    borderRadius: 12,
+  headerTitleWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    flexShrink: 1,
   },
-  aiBadgeText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4 },
+  headerTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.sansBold,
+    letterSpacing: -0.2,
+  },
+  aiBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  aiBadgeText: {
+    fontSize: 10,
+    fontFamily: Fonts.sansBold,
+    letterSpacing: 0.3,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  newChatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  newChatText: {
+    fontSize: 13,
+    fontFamily: Fonts.sansBold,
+  },
+  headerTools: {
+    gap: 8,
+    paddingRight: 4,
   },
   modelChip: {
-    height: 36,
-    paddingHorizontal: 12,
+    height: 32,
+    paddingHorizontal: 10,
     borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-    maxWidth: 150,
-  },
-  headerTools: { gap: 8, paddingRight: 4 },
-  toolChip: {
-    height: 36,
-    paddingHorizontal: 11,
-    borderRadius: 18,
     borderWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  toolChipText: { fontSize: 12, fontWeight: '600' },
+  modelChipText: {
+    fontSize: 11,
+    fontFamily: Fonts.sansSemiBold,
+    maxWidth: 130,
+  },
+  toolChip: {
+    height: 32,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  toolChipText: {
+    fontSize: 11,
+    fontFamily: Fonts.sansSemiBold,
+  },
+  introScroll: {
+    paddingBottom: 40,
+  },
   intro: {
     width: '100%',
-    maxWidth: 720,
+    maxWidth: 680,
     alignSelf: 'center',
-    paddingHorizontal: Spacing.five,
-    paddingTop: Spacing.six,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.five,
     alignItems: 'center',
   },
-  introBadge: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
+  introOrb: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
   },
-  introBadgeText: { fontSize: 24 },
-  introTitle: { fontSize: 18, fontWeight: '700' },
+  introTitle: {
+    fontSize: 22,
+    fontFamily: Fonts.sansBold,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
   introSubtitle: {
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 19,
     textAlign: 'center',
     marginTop: 6,
-    maxWidth: 300,
+    maxWidth: 380,
+    fontFamily: Fonts.sans,
   },
-  suggestionList: { width: '100%', marginTop: 20, gap: 8 },
-  suggestionRow: {
+  cardGrid: {
+    width: '100%',
+    marginTop: 24,
+    gap: 10,
+  },
+  presetCard: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 14,
+    gap: 6,
+  },
+  presetCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    marginBottom: 2,
   },
-  suggestionText: { fontSize: 14, fontWeight: '600', flex: 1 },
-  suggestionArrow: { fontSize: 14, fontWeight: '700' },
+  presetIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  presetCardTitle: {
+    fontSize: 15,
+    fontFamily: Fonts.sansBold,
+  },
+  presetCardDesc: {
+    fontSize: 12,
+    fontFamily: Fonts.sans,
+    lineHeight: 16,
+  },
   listContent: {
     width: '100%',
-    maxWidth: 800,
+    maxWidth: 760,
     alignSelf: 'center',
     paddingHorizontal: Spacing.three,
-    paddingVertical: 12,
-    gap: 10,
+    paddingVertical: 14,
+    gap: 14,
   },
   bubbleWrap: {
     width: '100%',
-    maxWidth: 800,
+    maxWidth: 760,
     minWidth: 0,
     alignSelf: 'center',
     marginVertical: 2,
   },
-  bubbleRight: { alignItems: 'flex-end' },
-  bubbleLeft: { alignItems: 'flex-start' },
-  assistantContent: { width: '100%', minWidth: 0, maxWidth: 720 },
-  bubble: { minWidth: 0, maxWidth: '100%', borderRadius: 18 },
-  userBubble: {
-    maxWidth: 720,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderBottomRightRadius: 5,
+  bubbleRight: {
+    alignItems: 'flex-end',
   },
-  bubbleText: { fontSize: 15, lineHeight: 21, flexShrink: 1 },
-  thinkingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  bubbleLeft: {
+    alignItems: 'flex-start',
+  },
+  assistantMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  avatarWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  assistantName: {
+    fontSize: 13,
+    fontFamily: Fonts.sansBold,
+    letterSpacing: -0.1,
+  },
+  activePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginLeft: 6,
+  },
+  activePillText: {
+    fontSize: 11,
+    fontFamily: Fonts.sansMedium,
+  },
+  assistantContent: {
+    width: '100%',
+    minWidth: 0,
+    maxWidth: 720,
+  },
+  bubble: {
+    minWidth: 0,
+    maxWidth: '100%',
+  },
+  assistantBubble: {
+    backgroundColor: 'transparent',
+    paddingLeft: 2,
+  },
+  userBubble: {
+    maxWidth: 620,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 20,
+    borderBottomRightRadius: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  bubbleText: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontFamily: Fonts.sans,
+  },
+  thinkingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  thinkingText: {
+    fontSize: 13,
+    fontStyle: 'italic',
+    fontFamily: Fonts.sans,
+  },
+  actionToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingLeft: 2,
+  },
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  actionPillText: {
+    fontSize: 11,
+    fontFamily: Fonts.sansSemiBold,
+  },
+  userActionToolbar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    marginRight: 4,
+  },
+  userActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  userActionText: {
+    fontSize: 11,
+    fontFamily: Fonts.sansMedium,
+  },
   editBar: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingTop: 8,
-    paddingBottom: 4,
+    paddingBottom: 6,
     borderTopWidth: StyleSheet.hairlineWidth,
     gap: 6,
   },
-  editLabel: { fontSize: 11, fontWeight: '600' },
+  editLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.sansSemiBold,
+  },
   editInput: {
-    minHeight: 40,
+    minHeight: 44,
     maxHeight: 120,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 14,
+    fontFamily: Fonts.sans,
   },
-  editActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
   editBtn: {
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
     minWidth: 76,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  composer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
+  composerWrap: {
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  composerInputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    gap: 6,
+  },
   input: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 38,
     maxHeight: 120,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     fontSize: 15,
+    fontFamily: Fonts.sans,
   },
   sendBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 1,
   },
   micBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: StyleSheet.hairlineWidth,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 1,
   },
 });

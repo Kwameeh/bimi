@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -21,7 +22,7 @@ import { ThemedView } from '@/components/themed-view';
 import { AppIcon } from '@/components/ui/app-icon';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
 import { SelectButton, SelectionBar, SelectionCheck } from '@/components/ui/selection-bar';
-import { Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { deleteInChunks, useSelection } from '@/hooks/use-selection';
 import { useInstance } from '@/lib/instance';
@@ -235,7 +236,7 @@ export default function MemoryScreen() {
             />
             {search.length > 0 ? (
               <Pressable onPress={() => setSearch('')} hitSlop={10} style={styles.searchClear}>
-                <Text style={{ color: theme.textSecondary, fontSize: 18 }}>×</Text>
+                <AppIcon name="close" size={16} tintColor={theme.textSecondary} />
               </Pressable>
             ) : null}
           </View>
@@ -346,6 +347,8 @@ export default function MemoryScreen() {
 
         {/* FAB — thumb-reachable add button */}
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add memory"
           onPress={startAdd}
           style={({ pressed }) => [
             styles.fab,
@@ -353,7 +356,7 @@ export default function MemoryScreen() {
             pressed && { opacity: 0.85 },
           ]}
         >
-          <Text style={[styles.fabPlus, { color: theme.primaryText }]}>+</Text>
+          <AppIcon name="compose" tintColor={theme.primaryText} size={24} />
         </Pressable>
 
         <MemoryActionsSheet
@@ -799,7 +802,12 @@ function MemoryEditor({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safe: { flex: 1 },
+  safe: {
+    flex: 1,
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    alignSelf: 'center',
+  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -940,7 +948,7 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 18,
-    bottom: 24,
+    bottom: Platform.select({ web: 76, default: 24 }),
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -951,7 +959,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  fabPlus: { fontSize: 28, fontWeight: '300', lineHeight: 30 },
+  fabPlus: { fontSize: 28, fontFamily: Fonts.sansSemiBold, lineHeight: 30 },
 
   // Actions bottom sheet
   backdrop: {
@@ -966,18 +974,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 28,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   actionsSheetTitle: {
     fontSize: 13,
     marginBottom: 12,
     paddingHorizontal: 4,
+    fontFamily: Fonts.sansSemiBold,
   },
   actionRow: {
     paddingVertical: 14,
     paddingHorizontal: 4,
   },
-  actionLabel: { fontSize: 15, fontWeight: '600' },
-  actionSub: { fontSize: 12, marginTop: 2 },
+  actionLabel: { fontSize: 15, fontFamily: Fonts.sansSemiBold },
+  actionSub: { fontSize: 12, marginTop: 2, fontFamily: Fonts.sans },
   cancelBtn: {
     marginTop: 12,
     paddingVertical: 14,
@@ -994,6 +1006,9 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 28,
     maxHeight: '90%',
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   editorGrabber: {
     alignSelf: 'center',
@@ -1005,7 +1020,7 @@ const styles = StyleSheet.create({
   },
   editorLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginTop: 12,
@@ -1021,6 +1036,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     lineHeight: 21,
+    fontFamily: Fonts.sans,
     textAlignVertical: 'top',
   },
   pinToggle: {

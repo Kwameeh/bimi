@@ -32,13 +32,13 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
 
 const styles = StyleSheet.create({
   small: {
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.sansMedium ?? Fonts.sans,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
   },
   smallBold: {
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.sansBold ?? Fonts.sans,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '700',
@@ -50,14 +50,14 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   title: {
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.sansBold ?? Fonts.sans,
     fontSize: 28,
     fontWeight: '700',
     lineHeight: 34,
     letterSpacing: -0.4,
   },
   subtitle: {
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.sansBold ?? Fonts.sans,
     fontSize: 20,
     lineHeight: 26,
     fontWeight: '700',
@@ -69,13 +69,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   linkPrimary: {
-    fontFamily: Fonts.sans,
+    fontFamily: Fonts.sansSemiBold ?? Fonts.sans,
     lineHeight: 30,
     fontSize: 14,
     fontWeight: '600',
   },
   code: {
-    fontFamily: Fonts.mono,
+    fontFamily: Fonts.monoMedium ?? Fonts.mono,
     fontWeight: Platform.select({ android: '700' }) ?? '500',
     fontSize: 12,
   },

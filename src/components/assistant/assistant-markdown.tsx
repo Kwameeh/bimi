@@ -104,6 +104,19 @@ class CitationRenderer extends Renderer {
   }
 }
 
+function sanitizeMarkdown(input: string): string {
+  if (!input) return '';
+  let cleaned = input;
+  // Remove XML-like tool / function tags e.g. <function_call>...</function_call>
+  cleaned = cleaned.replace(
+    /<(?:function_call|tool_call|\|python_tag\|)[\s\S]*?(?:<\/(?:function_call|tool_call)>|<\|eom_id\|>|$)/gi,
+    '',
+  );
+  // Remove raw JSON function calls accidentally printed as text
+  cleaned = cleaned.replace(/\{[\s\r\n]*"(?:name|type|tool|function)"[\s\S]*?\}(?:\s*\}|)/g, '');
+  return cleaned;
+}
+
 export function AssistantMarkdown({
   text,
   variant,
@@ -112,6 +125,7 @@ export function AssistantMarkdown({
   onOpenMessage,
 }: Props) {
   const theme = useTheme();
+  const sanitizedText = useMemo(() => sanitizeMarkdown(text), [text]);
 
   const textColor = variant === 'user' ? theme.bubbleSentText : theme.bubbleReceivedText;
   const mutedColor = variant === 'user' ? theme.bubbleSentText : theme.textSecondary;
@@ -139,6 +153,7 @@ export function AssistantMarkdown({
       },
       text: {
         color: textColor,
+        fontFamily: Fonts.sans,
         fontSize: 15,
         lineHeight: 22,
         flexShrink: 1,
@@ -146,45 +161,55 @@ export function AssistantMarkdown({
           ? ({ overflowWrap: 'anywhere', wordBreak: 'break-word' } as TextStyle)
           : null),
       },
-      strong: { fontWeight: '700', color: textColor },
+      strong: {
+        fontFamily: Fonts.sansBold ?? Fonts.sans,
+        fontWeight: '700',
+        color: textColor,
+      },
       em: { fontStyle: 'italic', color: textColor },
       link: {
         color: variant === 'user' ? theme.bubbleSentText : theme.primary,
         textDecorationLine: 'underline',
       },
       list: { paddingLeft: 0, marginVertical: 2 },
-      li: { marginVertical: 1 },
+      li: { fontFamily: Fonts.sans, marginVertical: 1 },
       h1: {
+        fontFamily: Fonts.sansBold ?? Fonts.sans,
         color: textColor,
         fontSize: 18,
         fontWeight: '700',
         marginVertical: 4,
       },
       h2: {
+        fontFamily: Fonts.sansBold ?? Fonts.sans,
         color: textColor,
         fontSize: 16,
         fontWeight: '700',
         marginVertical: 4,
       },
       h3: {
+        fontFamily: Fonts.sansBold ?? Fonts.sans,
         color: textColor,
         fontSize: 15,
         fontWeight: '700',
         marginVertical: 4,
       },
       h4: {
+        fontFamily: Fonts.sansBold ?? Fonts.sans,
         color: textColor,
         fontSize: 14,
         fontWeight: '700',
         marginVertical: 4,
       },
       h5: {
+        fontFamily: Fonts.sansBold ?? Fonts.sans,
         color: textColor,
         fontSize: 13,
         fontWeight: '700',
         marginVertical: 4,
       },
       h6: {
+        fontFamily: Fonts.sansBold ?? Fonts.sans,
         color: textColor,
         fontSize: 12,
         fontWeight: '700',
@@ -193,13 +218,14 @@ export function AssistantMarkdown({
       codespan: {
         color: textColor,
         backgroundColor: variant === 'user' ? 'rgba(255,255,255,0.18)' : theme.backgroundElement,
-        fontFamily: Fonts.mono,
+        fontFamily: Fonts.monoMedium ?? Fonts.mono,
         fontSize: 13,
         paddingHorizontal: 4,
         borderRadius: 4,
       },
       code: {
         backgroundColor: variant === 'user' ? 'rgba(255,255,255,0.18)' : theme.backgroundElement,
+        fontFamily: Fonts.monoMedium ?? Fonts.mono,
         padding: 8,
         borderRadius: 6,
         marginVertical: 4,
@@ -234,7 +260,7 @@ export function AssistantMarkdown({
   return (
     <View style={{ width: '100%', minWidth: 0, maxWidth: '100%' }}>
       <Markdown
-        value={text}
+        value={sanitizedText}
         renderer={renderer}
         flatListProps={{
           scrollEnabled: false,

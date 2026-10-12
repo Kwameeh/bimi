@@ -64,3 +64,25 @@
   --color-bimi-unread-badge: var(--bimi-unread-badge);
   --color-bimi-danger: var(--bimi-danger);
 }
+
+html,
+body,
+#root,
+[data-root] {
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+}

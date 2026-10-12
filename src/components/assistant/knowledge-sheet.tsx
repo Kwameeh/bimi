@@ -16,6 +16,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { SelectButton, SelectionBar, SelectionCheck } from '@/components/ui/selection-bar';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
+import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { deleteInChunks, useSelection } from '@/hooks/use-selection';
 
@@ -430,6 +431,9 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 28,
     maxHeight: '85%',
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   editorSheet: {
     borderTopLeftRadius: 16,
@@ -439,6 +443,9 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 28,
     maxHeight: '85%',
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerRow: {
@@ -454,11 +461,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
     fontSize: 14,
+    fontFamily: Fonts.sans,
     marginBottom: 10,
   },
   groupLabel: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     letterSpacing: 0.4,
     textTransform: 'uppercase',
     paddingHorizontal: 4,
@@ -470,8 +478,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     marginBottom: 4,
   },
-  title: { fontSize: 14, fontWeight: '600' },
-  body: { fontSize: 11, marginTop: 2 },
+  title: { fontSize: 14, fontFamily: Fonts.sansSemiBold },
+  body: { fontSize: 11, marginTop: 2, fontFamily: Fonts.sans },
   kindChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,

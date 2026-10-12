@@ -198,6 +198,8 @@ export default function ConversationScreen() {
             rightSlot={
               <View style={styles.headerRight}>
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Open Assistant copilot"
                   onPress={() => setAssistantOpen(true)}
                   hitSlop={10}
                   style={({ pressed }) => [
@@ -208,7 +210,7 @@ export default function ConversationScreen() {
                     },
                   ]}
                 >
-                  <ThemedText style={styles.sparkleText}>✦</ThemedText>
+                  <AppIcon name="sparkles" tintColor="#FFFFFF" size={17} />
                 </Pressable>
                 <DraftsPill instance={instance} contactId={validContactId} />
               </View>
@@ -342,7 +344,12 @@ function Header(props: {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safe: { flex: 1 },
+  safe: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 960,
+    alignSelf: 'center',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 
+import { AppIcon } from '@/components/ui/app-icon';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -153,9 +154,7 @@ export function SelectionCheck({ checked }: { checked: boolean }) {
         checked && { backgroundColor: theme.primary, borderColor: theme.primary },
       ]}
     >
-      {checked ? (
-        <Text style={{ color: theme.primaryText, fontWeight: '800', fontSize: 13 }}>✓</Text>
-      ) : null}
+      {checked ? <AppIcon name="check" tintColor={theme.primaryText} size={13} /> : null}
     </View>
   );
 }
