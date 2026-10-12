@@ -41,6 +41,8 @@ export type VoiceSession = {
   volume: number;
   /** The assistant row currently streaming or awaiting an answer. */
   activeRow: Doc<'assistantMessages'> | null;
+  /** Active row currently waiting on an approval, choice, or question. */
+  pendingRow: Doc<'assistantMessages'> | null;
   messages: Doc<'assistantMessages'>[];
   error: string | null;
   micAvailable: boolean;
@@ -58,6 +60,19 @@ export type VoiceSession = {
   interrupt: () => void;
   /** Type instead of talk — same path, so approvals still work by voice. */
   sendText: (text: string) => void;
+  /** Resolve an approval prompt directly (via tap or intent). */
+  resolveApproval: (approved: boolean) => Promise<void>;
+  /** Pick an option for an awaiting choice directly. */
+  selectChoice: (choice: string) => Promise<void>;
+  /** Submit answers for awaiting questions directly. */
+  submitQuestionAnswers: (
+    answers: {
+      header?: string;
+      question?: string;
+      selected?: string[];
+      other?: string;
+    }[],
+  ) => Promise<void>;
 };
 
 function isAwaiting(row: Doc<'assistantMessages'> | undefined | null): boolean {
@@ -172,6 +187,7 @@ export function useVoiceSession({
           if (intent === 'approve' || intent === 'reject') {
             setPhase('thinking');
             setLastUtterance(text);
+            awaitingReplyRef.current = true;
             await resolveConfirmation({
               confirmationMessageId: row._id,
               approved: intent === 'approve',
@@ -189,6 +205,7 @@ export function useVoiceSession({
           if (index !== null) {
             setPhase('thinking');
             setLastUtterance(text);
+            awaitingReplyRef.current = true;
             await submitChoice({ choiceMessageId: row._id, choice: options[index] });
             return;
           }
@@ -214,6 +231,7 @@ export function useVoiceSession({
             const index = matchOption(text, labels);
             setPhase('thinking');
             setLastUtterance(text);
+            awaitingReplyRef.current = true;
             await submitAnswers({
               questionMessageId: row._id,
               answers: [
@@ -434,6 +452,83 @@ export function useVoiceSession({
     finishSpeaking();
   }, [finishSpeaking, requestCancelTurn, runningRow, tts]);
 
+  const resolveApproval = useCallback(
+    async (approved: boolean) => {
+      const row = pendingRow;
+      if (!row || row.status !== 'awaiting_confirmation') return;
+      tts.stop();
+      setPhase('thinking');
+      setLastUtterance(approved ? 'Approved' : 'Denied');
+      awaitingReplyRef.current = true;
+      try {
+        await resolveConfirmation({
+          confirmationMessageId: row._id,
+          approved,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        awaitingReplyRef.current = false;
+        setPhase(conversationalOpenRef.current ? 'listening' : 'idle');
+      }
+    },
+    [pendingRow, resolveConfirmation, tts],
+  );
+
+  const selectChoice = useCallback(
+    async (choice: string) => {
+      const row = pendingRow;
+      if (!row || row.status !== 'awaiting_choice') return;
+      tts.stop();
+      setPhase('thinking');
+      setLastUtterance(choice);
+      awaitingReplyRef.current = true;
+      try {
+        await submitChoice({
+          choiceMessageId: row._id,
+          choice,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        awaitingReplyRef.current = false;
+        setPhase(conversationalOpenRef.current ? 'listening' : 'idle');
+      }
+    },
+    [pendingRow, submitChoice, tts],
+  );
+
+  const submitQuestionAnswers = useCallback(
+    async (
+      answers: {
+        header?: string;
+        question?: string;
+        selected?: string[];
+        other?: string;
+      }[],
+    ) => {
+      const row = pendingRow;
+      if (!row || row.status !== 'awaiting_questions') return;
+      tts.stop();
+      setPhase('thinking');
+      setLastUtterance(answers.map((a) => a.selected?.join(', ') || a.other || '').join('; '));
+      awaitingReplyRef.current = true;
+      try {
+        await submitAnswers({
+          questionMessageId: row._id,
+          answers: answers.map((a) => ({
+            header: a.header ?? '',
+            selected: a.selected ?? [],
+            other: a.other,
+          })),
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        awaitingReplyRef.current = false;
+        setPhase(conversationalOpenRef.current ? 'listening' : 'idle');
+      }
+    },
+    [pendingRow, submitAnswers, tts],
+  );
+
   const sendText = useCallback((text: string) => {
     void handleUtteranceRef.current(text);
   }, []);
@@ -452,6 +547,7 @@ export function useVoiceSession({
     lastUtterance,
     volume: listener.volume,
     activeRow: pendingRow ?? runningRow,
+    pendingRow,
     messages: rows,
     error: error ?? listener.error,
     micAvailable: listener.available,
@@ -462,6 +558,9 @@ export function useVoiceSession({
     setConversationalOpen,
     interrupt,
     sendText,
+    resolveApproval,
+    selectChoice,
+    submitQuestionAnswers,
   };
 }
 
