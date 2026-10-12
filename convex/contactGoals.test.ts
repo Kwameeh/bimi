@@ -1273,4 +1273,3 @@ describe('runNow', () => {
     expect(res.message).toBe('Goal turn is already in progress');
   });
 });
-

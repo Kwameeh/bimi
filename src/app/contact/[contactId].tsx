@@ -1145,11 +1145,7 @@ function GoalRow({
             </Pressable>
           ) : (
             <>
-              <Pressable
-                onPress={() => void onRunNow()}
-                disabled={runningNow}
-                hitSlop={8}
-              >
+              <Pressable onPress={() => void onRunNow()} disabled={runningNow} hitSlop={8}>
                 <Text
                   style={{
                     color: runningNow ? theme.textSecondary : theme.primary,

@@ -571,9 +571,7 @@ export const onInboundForContactInternal = internalMutation({
       active
         .filter((g) => g.recurrence === 'until_done')
         .sort((a, b) => a.createdAt - b.createdAt)[0] ??
-      active
-        .filter((g) => g.recurrence === 'once')
-        .sort((a, b) => a.createdAt - b.createdAt)[0];
+      active.filter((g) => g.recurrence === 'once').sort((a, b) => a.createdAt - b.createdAt)[0];
     if (!candidate) return { kind: 'none' };
     return await tryClaim(ctx, candidate, args.nowMs);
   },
