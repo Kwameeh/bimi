@@ -266,13 +266,13 @@ export type GoalAssessment = {
  * into an unsolicited goal message: inbound turns fall back to the normal
  * reply pipeline and scheduled turns are converted to `wait` by the caller.
  */
-export function parseGoalAssessment(raw: string): GoalAssessment {
+export function parseGoalAssessment(raw: string, isOpener = false): GoalAssessment {
   const out: GoalAssessment = {
-    action: 'reply_only',
+    action: isOpener ? 'start_goal' : 'reply_only',
     completed: false,
     confidence: 0.5,
     goalRelevant: false,
-    shouldRaise: false,
+    shouldRaise: isOpener,
     reasoning: '',
   };
   try {
@@ -282,7 +282,7 @@ export function parseGoalAssessment(raw: string): GoalAssessment {
     const parsed = JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>;
     out.completed = parsed.completed === true;
     out.goalRelevant = parsed.goalRelevant === true;
-    out.shouldRaise = parsed.shouldRaise === true;
+    out.shouldRaise = parsed.shouldRaise === true || isOpener;
     const action = parsed.action;
     if (
       action === 'complete' ||
@@ -292,12 +292,18 @@ export function parseGoalAssessment(raw: string): GoalAssessment {
       action === 'wait' ||
       action === 'pause'
     ) {
-      out.action = action;
+      // On an opener turn, do not let an uncompleted assessment stall the goal with wait/reply_only
+      if (isOpener && !out.completed && (action === 'wait' || action === 'reply_only')) {
+        out.action = 'start_goal';
+        out.shouldRaise = true;
+      } else {
+        out.action = action;
+      }
     } else if (out.completed) {
       out.action = 'complete';
     } else if (out.goalRelevant || out.shouldRaise) {
       // Backward compatibility for older model output during deployment.
-      out.action = 'weave_goal';
+      out.action = isOpener ? 'start_goal' : 'weave_goal';
     }
     const nextCheckHours =
       typeof parsed.nextCheckHours === 'string'

@@ -317,6 +317,35 @@ describe('claiming', () => {
     expect(result.kind).toBe('none');
   });
 
+  test('an active once goal is claimed on inbound if no until_done goal exists', async () => {
+    const t = setup();
+    const contactId = await seedContact(t);
+    const goalId = await seedGoal(t, contactId, { recurrence: 'once' });
+
+    const result = await t.mutation(internal.contactGoals.onInboundForContactInternal, {
+      contactId,
+      nowMs: Date.now(),
+    });
+    expect(result.kind).toBe('claimed');
+    expect(result.leaseToken).toBeTruthy();
+    expect((await getGoal(t, goalId))?.turnLockToken).toBe(result.leaseToken);
+  });
+
+  test('an until_done goal takes precedence over a once goal on inbound', async () => {
+    const t = setup();
+    const contactId = await seedContact(t);
+    const onceGoal = await seedGoal(t, contactId, { recurrence: 'once' });
+    const untilDoneGoal = await seedGoal(t, contactId, { recurrence: 'until_done' });
+
+    const result = await t.mutation(internal.contactGoals.onInboundForContactInternal, {
+      contactId,
+      nowMs: Date.now(),
+    });
+    expect(result.kind).toBe('claimed');
+    expect((await getGoal(t, untilDoneGoal))?.turnLockToken).toBe(result.leaseToken);
+    expect((await getGoal(t, onceGoal))?.turnLockToken).toBeUndefined();
+  });
+
   test('a stale lease token cannot write', async () => {
     const t = setup();
     const contactId = await seedContact(t);
@@ -431,6 +460,22 @@ describe('stall cap', () => {
     expect((await getGoal(t, goalId))?.turnLockToken).toBeUndefined();
     // ...so the very next turn can actually be claimed.
     await expect(claim(t, goalId)).resolves.toBeTruthy();
+  });
+
+  test('resume an immediate once goal schedules execution right away', async () => {
+    const t = setup();
+    const contactId = await seedContact(t);
+    const goalId = await seedGoal(t, contactId, {
+      recurrence: 'once',
+      status: 'paused',
+    });
+
+    await t.mutation(api.contactGoals.updateStatus, { goalId, status: 'active' });
+    await drain(t);
+
+    expect(sendText).toHaveBeenCalledTimes(1);
+    const goal = await getGoal(t, goalId);
+    expect(goal?.status).toBe('done');
   });
 
   test('an inbound message does not reset counters before strategy confirms goal engagement', async () => {
@@ -1151,4 +1196,81 @@ describe('create', () => {
     expect(goal?.mode).toBe('auto');
     expect(goal?.nextRunAt).toBe(12345);
   });
+
+  test('an immediate once goal opens the conversation immediately', async () => {
+    const t = setup();
+    const contactId = await seedContact(t);
+    const goalId = await t.mutation(api.contactGoals.create, {
+      contactId,
+      title: 'Quick invitation',
+      instructions: 'Ask if they received the document.',
+      kind: 'check_in',
+      recurrence: 'once',
+      mode: 'auto',
+    });
+    await drain(t);
+
+    expect(sendText).toHaveBeenCalledTimes(1);
+    const goal = await getGoal(t, goalId);
+    expect(goal?.status).toBe('done');
+  });
+
+  test('a once goal with preferredTime does not fire on create', async () => {
+    const t = setup();
+    const contactId = await seedContact(t);
+    await t.mutation(api.contactGoals.create, {
+      contactId,
+      title: 'Scheduled ping',
+      instructions: 'Say hi.',
+      kind: 'check_in',
+      recurrence: 'once',
+      preferredTime: '15:00',
+      mode: 'auto',
+    });
+    await drain(t);
+
+    expect(sendText).not.toHaveBeenCalled();
+    expect(runJsonExtraction).not.toHaveBeenCalled();
+  });
 });
+
+describe('runNow', () => {
+  test('triggers turn immediately regardless of schedule', async () => {
+    const t = setup();
+    const contactId = await seedContact(t);
+    const goalId = await seedGoal(t, contactId, {
+      recurrence: 'daily',
+      preferredTime: '09:00',
+    });
+
+    const res = await t.mutation(api.contactGoals.runNow, { goalId });
+    expect(res.success).toBe(true);
+    await drain(t);
+
+    expect(sendText).toHaveBeenCalledTimes(1);
+  });
+
+  test('refuses to run a paused or done goal', async () => {
+    const t = setup();
+    const contactId = await seedContact(t);
+    const goalId = await seedGoal(t, contactId, { status: 'paused' });
+
+    await expect(t.mutation(api.contactGoals.runNow, { goalId })).rejects.toThrow(
+      'Only active goals can be run',
+    );
+  });
+
+  test('reports failure when goal turn is already in progress', async () => {
+    const t = setup();
+    const contactId = await seedContact(t);
+    const goalId = await seedGoal(t, contactId, {
+      turnLockUntil: Date.now() + 60_000,
+      turnLockToken: 'held',
+    });
+
+    const res = await t.mutation(api.contactGoals.runNow, { goalId });
+    expect(res.success).toBe(false);
+    expect(res.message).toBe('Goal turn is already in progress');
+  });
+});
+

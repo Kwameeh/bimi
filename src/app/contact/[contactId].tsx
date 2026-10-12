@@ -1020,9 +1020,26 @@ function GoalRow({
   const updateStatus = useMutation(api.contactGoals.updateStatus);
   const updateMode = useMutation(api.contactGoals.updateMode);
   const removeGoal = useMutation(api.contactGoals.remove);
+  const runNow = useMutation(api.contactGoals.runNow);
+  const [runningNow, setRunningNow] = useState(false);
 
   const isAuto = goal.mode === 'auto';
   const isPaused = goal.status === 'paused';
+
+  const onRunNow = async () => {
+    if (runningNow) return;
+    setRunningNow(true);
+    try {
+      const res = await runNow({ goalId: goal._id });
+      if (!res.success) {
+        Alert.alert('Goal', res.message);
+      }
+    } catch (err) {
+      Alert.alert('Goal', err instanceof Error ? err.message : String(err));
+    } finally {
+      setRunningNow(false);
+    }
+  };
 
   const toggleMode = () => {
     if (isAuto) {
@@ -1096,6 +1113,11 @@ function GoalRow({
           </Pressable>
         </View>
         <Text style={{ color: theme.textSecondary, fontSize: 12 }}>{goal.instructions}</Text>
+        {goal.lastDraftId ? (
+          <Text style={{ color: theme.primary, fontSize: 11, fontWeight: '600' }}>
+            ✦ Draft queued in Approvals
+          </Text>
+        ) : null}
         {isPaused ? (
           <Text style={{ color: theme.textSecondary, fontSize: 11 }}>
             {pausedGoalLabel(goal.pausedReason)}
@@ -1123,6 +1145,21 @@ function GoalRow({
             </Pressable>
           ) : (
             <>
+              <Pressable
+                onPress={() => void onRunNow()}
+                disabled={runningNow}
+                hitSlop={8}
+              >
+                <Text
+                  style={{
+                    color: runningNow ? theme.textSecondary : theme.primary,
+                    fontWeight: '700',
+                    fontSize: 12,
+                  }}
+                >
+                  {runningNow ? 'Running...' : 'Run now'}
+                </Text>
+              </Pressable>
               <Pressable
                 onPress={() => void updateStatus({ goalId: goal._id, status: 'paused' })}
                 hitSlop={8}
