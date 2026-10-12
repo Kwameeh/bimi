@@ -87,6 +87,52 @@ describe('goal strategy assessment', () => {
     );
     expect(pause.pauseReason).toBe('declined');
   });
+
+  test('opener mode defaults to start_goal to prevent initial stall', () => {
+    for (const raw of ['', 'not json', '{']) {
+      const assessment = parseGoalAssessment(raw, true);
+      expect(assessment.action).toBe('start_goal');
+      expect(assessment.shouldRaise).toBe(true);
+      expect(goalOwnsReply(assessment, false)).toBe(true);
+    }
+
+    // Passive action 'wait' promotes to 'start_goal' on opener
+    const wait = parseGoalAssessment(
+      JSON.stringify({
+        action: 'wait',
+        completed: false,
+        reasoning: 'silence on turn 0',
+      }),
+      true,
+    );
+    expect(wait.action).toBe('start_goal');
+    expect(wait.shouldRaise).toBe(true);
+
+    // Passive action 'reply_only' promotes to 'start_goal' on opener
+    const replyOnly = parseGoalAssessment(
+      JSON.stringify({
+        action: 'reply_only',
+        completed: false,
+        reasoning: 'not relevant',
+      }),
+      true,
+    );
+    expect(replyOnly.action).toBe('start_goal');
+    expect(replyOnly.shouldRaise).toBe(true);
+
+    // But if already completed, opener honors completion
+    const done = parseGoalAssessment(
+      JSON.stringify({
+        action: 'complete',
+        completed: true,
+        reasoning: 'already met',
+      }),
+      true,
+    );
+    expect(done.action).toBe('complete');
+    expect(done.completed).toBe(true);
+    expect(goalOwnsReply(done, false)).toBe(false);
+  });
 });
 
 describe('parsePreferredTime', () => {
