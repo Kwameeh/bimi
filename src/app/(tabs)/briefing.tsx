@@ -391,6 +391,7 @@ export default function BriefingScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            style={styles.rangeScroll}
             contentContainerStyle={styles.rangeRow}
           >
             {RANGE_OPTIONS.map((opt) => {
@@ -555,6 +556,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingBottom: Spacing.two,
   },
+  rangeScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   rangeRow: {
     flexDirection: 'row',
     gap: 8,
@@ -562,6 +567,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rangeChip: {
+    alignSelf: 'center',
     paddingHorizontal: 16,
     height: 38,
     borderRadius: 999,

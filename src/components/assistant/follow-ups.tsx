@@ -17,6 +17,7 @@ export function FollowUps({ suggestions, onPick, disabled }: Props) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.scroll}
       contentContainerStyle={styles.row}
     >
       {suggestions.map((s) => (
@@ -43,15 +44,25 @@ export function FollowUps({ suggestions, onPick, disabled }: Props) {
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   row: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingTop: 6,
     paddingBottom: 4,
     gap: 6,
   },
   chip: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 34,
     paddingHorizontal: 12,
-    paddingVertical: 8,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
     maxWidth: 240,

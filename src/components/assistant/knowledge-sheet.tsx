@@ -316,7 +316,8 @@ function EntryEditor({
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 6, paddingVertical: 8 }}
+              style={styles.kindScroll}
+              contentContainerStyle={styles.kindRow}
             >
               {KINDS.map((k) => (
                 <Pressable
@@ -480,9 +481,24 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 14, fontFamily: Fonts.sansSemiBold },
   body: { fontSize: 11, marginTop: 2, fontFamily: Fonts.sans },
+  kindScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+    marginVertical: 4,
+  },
+  kindRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 4,
+  },
   kindChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 32,
+    paddingHorizontal: 12,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },

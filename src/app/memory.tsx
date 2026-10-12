@@ -246,6 +246,7 @@ export default function MemoryScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            style={styles.typeScroll}
             contentContainerStyle={styles.typeRow}
           >
             <Pressable
@@ -258,10 +259,19 @@ export default function MemoryScreen() {
                 { borderColor: theme.border },
                 typeFilter === null && {
                   backgroundColor: theme.backgroundSelected,
+                  borderColor: theme.primary,
                 },
               ]}
             >
-              <Text style={{ color: theme.text, fontSize: 12, fontWeight: '600' }}>All</Text>
+              <Text
+                style={{
+                  color: theme.text,
+                  fontSize: 12,
+                  fontFamily: Fonts.sansSemiBold,
+                }}
+              >
+                All
+              </Text>
             </Pressable>
             {TYPES.map((t) => (
               <Pressable
@@ -273,11 +283,22 @@ export default function MemoryScreen() {
                 style={[
                   styles.typeChip,
                   { borderColor: theme.border },
-                  typeFilter === t && { backgroundColor: theme.backgroundSelected },
+                  typeFilter === t && {
+                    backgroundColor: theme.backgroundSelected,
+                    borderColor: theme.primary,
+                  },
                 ]}
               >
                 <View style={[styles.typeDot, { backgroundColor: TYPE_COLOR[t] }]} />
-                <Text style={{ color: theme.text, fontSize: 12, fontWeight: '600' }}>{t}</Text>
+                <Text
+                  style={{
+                    color: theme.text,
+                    fontSize: 12,
+                    fontFamily: Fonts.sansSemiBold,
+                  }}
+                >
+                  {t}
+                </Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -860,17 +881,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  typeScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+    marginBottom: 6,
+  },
   typeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.three,
-    paddingVertical: 8,
-    gap: 6,
+    paddingVertical: 2,
+    gap: 8,
   },
   typeChip: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+    height: 34,
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },
