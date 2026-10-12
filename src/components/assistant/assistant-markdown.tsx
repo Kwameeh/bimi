@@ -104,6 +104,19 @@ class CitationRenderer extends Renderer {
   }
 }
 
+function sanitizeMarkdown(input: string): string {
+  if (!input) return '';
+  let cleaned = input;
+  // Remove XML-like tool / function tags e.g. <function_call>...</function_call>
+  cleaned = cleaned.replace(
+    /<(?:function_call|tool_call|\|python_tag\|)[\s\S]*?(?:<\/(?:function_call|tool_call)>|<\|eom_id\|>|$)/gi,
+    '',
+  );
+  // Remove raw JSON function calls accidentally printed as text
+  cleaned = cleaned.replace(/\{[\s\r\n]*"(?:name|type|tool|function)"[\s\S]*?\}(?:\s*\}|)/g, '');
+  return cleaned;
+}
+
 export function AssistantMarkdown({
   text,
   variant,
@@ -112,6 +125,7 @@ export function AssistantMarkdown({
   onOpenMessage,
 }: Props) {
   const theme = useTheme();
+  const sanitizedText = useMemo(() => sanitizeMarkdown(text), [text]);
 
   const textColor = variant === 'user' ? theme.bubbleSentText : theme.bubbleReceivedText;
   const mutedColor = variant === 'user' ? theme.bubbleSentText : theme.textSecondary;
@@ -246,7 +260,7 @@ export function AssistantMarkdown({
   return (
     <View style={{ width: '100%', minWidth: 0, maxWidth: '100%' }}>
       <Markdown
-        value={text}
+        value={sanitizedText}
         renderer={renderer}
         flatListProps={{
           scrollEnabled: false,

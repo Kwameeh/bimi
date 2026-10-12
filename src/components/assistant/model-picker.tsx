@@ -72,9 +72,7 @@ export function ModelPicker({ visible, currentModelId, onSelect, onClose }: Prop
                       {m.blurb}
                     </Text>
                   </View>
-                  {isActive ? (
-                    <AppIcon name="check" tintColor={theme.primary} size={18} />
-                  ) : null}
+                  {isActive ? <AppIcon name="check" tintColor={theme.primary} size={18} /> : null}
                 </Pressable>
               );
             })}

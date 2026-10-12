@@ -134,16 +134,18 @@ export function MessageBubble(props: MessageBubbleProps) {
             ) : null}
           </View>
         ) : null}
-        {props.imageType && props.imageType !== 'other' ? (
-          (() => {
-            const badgeDef = (isDark ? IMAGE_TYPE_BADGE_DARK : IMAGE_TYPE_BADGE)[props.imageType];
-            return (
-              <View style={[styles.imageTypeBadge, { backgroundColor: badgeDef.bg }]}>
-                <Text style={[styles.imageTypeText, { color: badgeDef.fg }]}>{badgeDef.label}</Text>
-              </View>
-            );
-          })()
-        ) : null}
+        {props.imageType && props.imageType !== 'other'
+          ? (() => {
+              const badgeDef = (isDark ? IMAGE_TYPE_BADGE_DARK : IMAGE_TYPE_BADGE)[props.imageType];
+              return (
+                <View style={[styles.imageTypeBadge, { backgroundColor: badgeDef.bg }]}>
+                  <Text style={[styles.imageTypeText, { color: badgeDef.fg }]}>
+                    {badgeDef.label}
+                  </Text>
+                </View>
+              );
+            })()
+          : null}
         {mediaContent}
         {showText ? (
           <Text

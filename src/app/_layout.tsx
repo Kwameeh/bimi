@@ -23,6 +23,7 @@ import {
   JetBrainsMono_600SemiBold,
 } from '@expo-google-fonts/jetbrains-mono';
 
+import { AlertProvider } from '@/components/ui/custom-alert-dialog';
 import { VoiceHotkey } from '@/components/voice/voice-hotkey';
 import { convex } from '@/lib/convex';
 import { usePushTokenRegistration } from '@/lib/use-push-token';
@@ -51,52 +52,54 @@ export default function RootLayout() {
         <ConvexProvider client={convex}>
           <HeroUINativeProvider>
             <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <StatusBar style="auto" />
-              <PushBootstrap />
-              <VoiceHotkey />
-              <Stack
-                screenOptions={{
-                  animation: 'slide_from_right',
-                  animationDuration: 240,
-                  headerShown: false,
-                  contentStyle: { backgroundColor: 'transparent' },
-                }}
-              >
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="chat/[contactId]" />
-                <Stack.Screen name="contact/[contactId]" />
-                <Stack.Screen name="approvals" />
-                <Stack.Screen name="memory" />
-                <Stack.Screen name="contacts" />
-                <Stack.Screen
-                  name="search"
-                  options={{
-                    animation: 'slide_from_bottom',
-                    presentation: 'modal',
+              <AlertProvider>
+                <StatusBar style="auto" />
+                <PushBootstrap />
+                <VoiceHotkey />
+                <Stack
+                  screenOptions={{
+                    animation: 'slide_from_right',
+                    animationDuration: 240,
+                    headerShown: false,
+                    contentStyle: { backgroundColor: 'transparent' },
                   }}
-                />
-                <Stack.Screen
-                  name="media/[messageId]"
-                  options={{
-                    animation: 'fade',
-                    presentation: 'transparentModal',
-                  }}
-                />
-                <Stack.Screen
-                  name="new-chat"
-                  options={{
-                    animation: 'slide_from_bottom',
-                    presentation: 'modal',
-                  }}
-                />
-                <Stack.Screen
-                  name="voice"
-                  options={{
-                    animation: 'fade',
-                    presentation: 'fullScreenModal',
-                  }}
-                />
-              </Stack>
+                >
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="chat/[contactId]" />
+                  <Stack.Screen name="contact/[contactId]" />
+                  <Stack.Screen name="approvals" />
+                  <Stack.Screen name="memory" />
+                  <Stack.Screen name="contacts" />
+                  <Stack.Screen
+                    name="search"
+                    options={{
+                      animation: 'slide_from_bottom',
+                      presentation: 'modal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="media/[messageId]"
+                    options={{
+                      animation: 'fade',
+                      presentation: 'transparentModal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="new-chat"
+                    options={{
+                      animation: 'slide_from_bottom',
+                      presentation: 'modal',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="voice"
+                    options={{
+                      animation: 'fade',
+                      presentation: 'fullScreenModal',
+                    }}
+                  />
+                </Stack>
+              </AlertProvider>
             </ThemeProvider>
           </HeroUINativeProvider>
         </ConvexProvider>
