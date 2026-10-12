@@ -15,6 +15,7 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
+import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 import { api } from '../../../convex/_generated/api';
@@ -321,6 +322,9 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 28,
     maxHeight: '90%',
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   input: {
     minHeight: 100,
@@ -330,6 +334,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 14,
+    fontFamily: Fonts.sans,
     textAlignVertical: 'top',
   },
   section: {
@@ -345,7 +350,7 @@ const styles = StyleSheet.create({
   timeRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
   label: {
     fontSize: 11,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
     marginBottom: 4,
@@ -356,6 +361,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: StyleSheet.hairlineWidth,
     fontSize: 14,
+    fontFamily: Fonts.mono,
   },
   actions: {
     flexDirection: 'row',

@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppIcon } from '@/components/ui/app-icon';
+import { Fonts } from '@/constants/theme';
 
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
@@ -231,7 +232,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 10,
   },
-  openButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
+  openButtonText: { color: '#FFFFFF', fontFamily: Fonts.sansBold, fontSize: 15 },
   playButton: {
     width: 56,
     height: 56,
@@ -240,7 +241,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  lightTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
-  lightSubtle: { color: 'rgba(255,255,255,0.6)', fontSize: 13 },
-  light: { color: '#FFFFFF', fontSize: 14, lineHeight: 20 },
+  lightTitle: { color: '#FFFFFF', fontSize: 18, fontFamily: Fonts.sansBold },
+  lightSubtle: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontFamily: Fonts.sans },
+  light: { color: '#FFFFFF', fontSize: 14, lineHeight: 20, fontFamily: Fonts.sans },
 });

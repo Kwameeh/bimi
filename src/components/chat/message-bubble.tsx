@@ -1,6 +1,6 @@
 import { useQuery } from 'convex/react';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 import { formatMessageTime } from '@/lib/format';
@@ -37,6 +37,16 @@ const IMAGE_TYPE_BADGE: Record<ImageType, { label: string; bg: string; fg: strin
   other: { label: '', bg: '', fg: '' },
 };
 
+const IMAGE_TYPE_BADGE_DARK: Record<ImageType, { label: string; bg: string; fg: string }> = {
+  payment: { label: 'Payment', bg: 'rgba(245, 158, 11, 0.22)', fg: '#FDE68A' },
+  receipt: { label: 'Receipt', bg: 'rgba(16, 185, 129, 0.22)', fg: '#A7F3D0' },
+  flyer: { label: 'Flyer', bg: 'rgba(59, 130, 246, 0.22)', fg: '#BAE6FD' },
+  server_error: { label: 'Server error', bg: 'rgba(239, 68, 68, 0.22)', fg: '#FCA5A5' },
+  notice: { label: 'Notice', bg: 'rgba(139, 92, 246, 0.22)', fg: '#DDD6FE' },
+  screenshot_text: { label: 'Screenshot', bg: 'rgba(148, 163, 184, 0.22)', fg: '#E2E8F0' },
+  other: { label: '', bg: '', fg: '' },
+};
+
 export type MessageBubbleProps = {
   messageId: Id<'messages'>;
   text: string;
@@ -60,6 +70,8 @@ export type MessageBubbleProps = {
 
 export function MessageBubble(props: MessageBubbleProps) {
   const theme = useTheme();
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
   const isOutgoing = props.sender !== 'contact';
   const isAi = props.sender === 'ai';
 
@@ -123,16 +135,14 @@ export function MessageBubble(props: MessageBubbleProps) {
           </View>
         ) : null}
         {props.imageType && props.imageType !== 'other' ? (
-          <View
-            style={[
-              styles.imageTypeBadge,
-              { backgroundColor: IMAGE_TYPE_BADGE[props.imageType].bg },
-            ]}
-          >
-            <Text style={[styles.imageTypeText, { color: IMAGE_TYPE_BADGE[props.imageType].fg }]}>
-              {IMAGE_TYPE_BADGE[props.imageType].label}
-            </Text>
-          </View>
+          (() => {
+            const badgeDef = (isDark ? IMAGE_TYPE_BADGE_DARK : IMAGE_TYPE_BADGE)[props.imageType];
+            return (
+              <View style={[styles.imageTypeBadge, { backgroundColor: badgeDef.bg }]}>
+                <Text style={[styles.imageTypeText, { color: badgeDef.fg }]}>{badgeDef.label}</Text>
+              </View>
+            );
+          })()
         ) : null}
         {mediaContent}
         {showText ? (

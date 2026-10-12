@@ -12,7 +12,7 @@ import {
   SelectionCheck,
   confirmDestructive,
 } from '@/components/ui/selection-bar';
-import { Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { deleteInChunks, useSelection } from '@/hooks/use-selection';
 import { useInstance } from '@/lib/instance';
@@ -50,7 +50,8 @@ export default function TasksScreen() {
             <Text
               style={{
                 color: tab === 'tasks' ? theme.primaryText : theme.text,
-                fontWeight: '600',
+                fontFamily: Fonts.sansSemiBold,
+                fontSize: 13,
               }}
             >
               Tasks
@@ -72,7 +73,8 @@ export default function TasksScreen() {
             <Text
               style={{
                 color: tab === 'reminders' ? theme.primaryText : theme.text,
-                fontWeight: '600',
+                fontFamily: Fonts.sansSemiBold,
+                fontSize: 13,
               }}
             >
               Reminders
@@ -605,7 +607,12 @@ function RemindersList({ instance }: { instance: string }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safe: { flex: 1 },
+  safe: {
+    flex: 1,
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    alignSelf: 'center',
+  },
   header: {
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,
@@ -656,8 +663,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardBody: { flex: 1, gap: 4 },
-  taskTitle: { fontSize: 15, fontWeight: '600' },
-  taskDesc: { fontSize: 13 },
+  taskTitle: { fontSize: 15, fontFamily: Fonts.sansSemiBold },
+  taskDesc: { fontSize: 13, fontFamily: Fonts.sans },
   taskMeta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -667,19 +674,19 @@ const styles = StyleSheet.create({
   priorityChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   priorityText: {
     fontSize: 9,
-    fontWeight: '800',
+    fontFamily: Fonts.sansBold,
     color: '#FFFFFF',
     letterSpacing: 0.4,
   },
   aiChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   aiChipText: {
     fontSize: 9,
-    fontWeight: '800',
+    fontFamily: Fonts.sansBold,
     color: '#FFFFFF',
     letterSpacing: 0.4,
   },
-  taskDue: { fontSize: 12 },
-  openSource: { fontSize: 12, fontWeight: '600' },
+  taskDue: { fontSize: 12, fontFamily: Fonts.sans },
+  openSource: { fontSize: 12, fontFamily: Fonts.sansSemiBold },
   suggestedActions: { gap: 6, justifyContent: 'center' },
   suggestedBtn: {
     paddingHorizontal: 8,

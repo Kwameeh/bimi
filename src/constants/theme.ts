@@ -66,28 +66,60 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
+    sans: 'PlusJakartaSans-Regular',
+    sansMedium: 'PlusJakartaSans-Medium',
+    sansSemiBold: 'PlusJakartaSans-SemiBold',
+    sansBold: 'PlusJakartaSans-Bold',
+    sansExtraBold: 'PlusJakartaSans-ExtraBold',
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+    mono: 'JetBrainsMono-Regular',
+    monoMedium: 'JetBrainsMono-Medium',
   },
-  default: {
-    sans: 'sans-serif',
+  android: {
+    sans: 'PlusJakartaSans-Regular',
+    sansMedium: 'PlusJakartaSans-Medium',
+    sansSemiBold: 'PlusJakartaSans-SemiBold',
+    sansBold: 'PlusJakartaSans-Bold',
+    sansExtraBold: 'PlusJakartaSans-ExtraBold',
     serif: 'serif',
     rounded: 'sans-serif',
-    mono: 'monospace',
+    mono: 'JetBrainsMono-Regular',
+    monoMedium: 'JetBrainsMono-Medium',
   },
   web: {
     sans: 'var(--font-display)',
+    sansMedium: 'var(--font-display)',
+    sansSemiBold: 'var(--font-display)',
+    sansBold: 'var(--font-display)',
+    sansExtraBold: 'var(--font-display)',
     serif: 'var(--font-serif)',
     rounded: 'var(--font-rounded)',
     mono: 'var(--font-mono)',
+    monoMedium: 'var(--font-mono)',
   },
-});
+  default: {
+    sans: 'sans-serif',
+    sansMedium: 'sans-serif-medium',
+    sansSemiBold: 'sans-serif',
+    sansBold: 'sans-serif',
+    sansExtraBold: 'sans-serif',
+    serif: 'serif',
+    rounded: 'sans-serif',
+    mono: 'monospace',
+    monoMedium: 'monospace',
+  },
+}) as {
+  sans: string;
+  sansMedium?: string;
+  sansSemiBold?: string;
+  sansBold?: string;
+  sansExtraBold?: string;
+  serif: string;
+  rounded: string;
+  mono: string;
+  monoMedium?: string;
+};
 
 export const Spacing = {
   half: 2,

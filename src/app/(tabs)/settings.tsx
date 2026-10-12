@@ -19,7 +19,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
 import { AppIcon } from '@/components/ui/app-icon';
-import { Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { AI_MODE_OPTIONS, type AiMode } from '@/lib/ai-modes';
 import { useInstance } from '@/lib/instance';
@@ -352,7 +352,7 @@ export default function SettingsTabScreen() {
                       {busyVoice === `mode:${option.key}` ? (
                         <ActivityIndicator size="small" color={theme.primary} />
                       ) : active ? (
-                        <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+                        <AppIcon name="check" tintColor={theme.primary} size={18} />
                       ) : null}
                     </Pressable>
                   );
@@ -391,7 +391,7 @@ export default function SettingsTabScreen() {
                       {busyVoice === `engine:${option.key}` ? (
                         <ActivityIndicator size="small" color={theme.primary} />
                       ) : active ? (
-                        <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+                        <AppIcon name="check" tintColor={theme.primary} size={18} />
                       ) : null}
                     </Pressable>
                   );
@@ -557,7 +557,7 @@ export default function SettingsTabScreen() {
                       {busyAiMode === opt.value ? (
                         <ActivityIndicator size="small" color={theme.primary} />
                       ) : selected ? (
-                        <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+                        <AppIcon name="check" tintColor={theme.primary} size={18} />
                       ) : null}
                     </Pressable>
                   );
@@ -596,7 +596,7 @@ export default function SettingsTabScreen() {
                 {busyAutoExtract ? (
                   <ActivityIndicator size="small" color={theme.primary} />
                 ) : autoExtractEnabled ? (
-                  <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+                  <AppIcon name="check" tintColor={theme.primary} size={18} />
                 ) : null}
               </Pressable>
             </ThemedView>
@@ -631,7 +631,7 @@ export default function SettingsTabScreen() {
                       {busyMemorySchedule === opt.hours ? (
                         <ActivityIndicator size="small" color={theme.primary} />
                       ) : selected ? (
-                        <Text style={[styles.check, { color: theme.primary }]}>âœ“</Text>
+                        <AppIcon name="check" tintColor={theme.primary} size={18} />
                       ) : null}
                     </Pressable>
                   );
@@ -703,7 +703,7 @@ export default function SettingsTabScreen() {
                       {busy === opt.key ? (
                         <ActivityIndicator size="small" color={theme.primary} />
                       ) : selected ? (
-                        <Text style={[styles.check, { color: theme.primary }]}>✓</Text>
+                        <AppIcon name="check" tintColor={theme.primary} size={18} />
                       ) : null}
                     </Pressable>
                   );
@@ -773,12 +773,19 @@ export default function SettingsTabScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safe: { flex: 1, padding: Spacing.four, gap: Spacing.four },
+  safe: {
+    flex: 1,
+    padding: Spacing.four,
+    gap: Spacing.four,
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    alignSelf: 'center',
+  },
   header: { gap: Spacing.one },
   headerTitle: {
     fontSize: 28,
     lineHeight: 34,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     letterSpacing: -0.4,
   },
   scrollContent: { gap: Spacing.four, paddingBottom: 88 },
@@ -792,15 +799,16 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     gap: 8,
   },
-  toneLabel: { fontSize: 15, fontWeight: '600' },
-  toneDesc: { fontSize: 12, marginTop: 2 },
-  check: { fontSize: 18, fontWeight: '700' },
+  toneLabel: { fontSize: 15, fontFamily: Fonts.sansSemiBold },
+  toneDesc: { fontSize: 12, marginTop: 2, fontFamily: Fonts.sans },
+  check: { fontSize: 18, fontFamily: Fonts.sansBold },
   customWrap: { gap: 8, marginTop: 8 },
   customInput: {
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 8,
     padding: 10,
     fontSize: 14,
+    fontFamily: Fonts.sans,
   },
   saveBtn: {
     paddingHorizontal: 16,

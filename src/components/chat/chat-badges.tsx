@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useColorScheme } from 'react-native';
 import { useTheme } from '@/hooks/use-theme';
 
 export type ChatBadges = {
@@ -16,7 +17,22 @@ export type ChatBadges = {
 
 type BadgeStyle = { bg: string; fg: string; label: string };
 
-function badgeStyles(theme: ReturnType<typeof useTheme>): Record<keyof ChatBadges, BadgeStyle> {
+function badgeStyles(
+  theme: ReturnType<typeof useTheme>,
+  isDark: boolean,
+): Record<keyof ChatBadges, BadgeStyle> {
+  if (isDark) {
+    return {
+      urgent: { bg: 'rgba(239, 68, 68, 0.22)', fg: '#FCA5A5', label: 'Urgent' },
+      mentioned: { bg: 'rgba(139, 92, 246, 0.22)', fg: '#DDD6FE', label: '@You' },
+      needsReply: { bg: 'rgba(245, 158, 11, 0.22)', fg: '#FDE68A', label: 'Needs Reply' },
+      draftReady: { bg: 'rgba(99, 102, 241, 0.22)', fg: '#C7D2FE', label: 'Draft Ready' },
+      deadline: { bg: 'rgba(244, 63, 94, 0.22)', fg: '#FECDD3', label: 'Deadline' },
+      meeting: { bg: 'rgba(59, 130, 246, 0.22)', fg: '#BAE6FD', label: 'Meeting' },
+      muted: { bg: theme.backgroundElement, fg: theme.textSecondary, label: 'Muted' },
+      autoReplied: { bg: 'rgba(16, 185, 129, 0.22)', fg: '#A7F3D0', label: 'Auto-Replied' },
+    };
+  }
   return {
     urgent: { bg: '#FEE2E2', fg: '#B91C1C', label: 'Urgent' },
     mentioned: { bg: '#EDE9FE', fg: '#5B21B6', label: '@You' },
@@ -42,7 +58,8 @@ const ORDER: (keyof ChatBadges)[] = [
 
 export function ChatBadgeRow({ badges }: { badges: ChatBadges }) {
   const theme = useTheme();
-  const styleMap = badgeStyles(theme);
+  const scheme = useColorScheme();
+  const styleMap = badgeStyles(theme, scheme === 'dark');
   const active = ORDER.filter((k) => badges[k]);
   if (active.length === 0) return null;
   return (

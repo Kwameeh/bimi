@@ -2,14 +2,14 @@ import { FlashList } from '@shopify/flash-list';
 import { useAction, useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChatListRow } from '@/components/chat/chat-list-row';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AppIcon } from '@/components/ui/app-icon';
-import { Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useInstance } from '@/lib/instance';
 
@@ -76,7 +76,7 @@ export default function ChatsTabScreen() {
                 },
               ]}
             >
-              <Text style={styles.sparkleText}>✦</Text>
+              <AppIcon name="sparkles" tintColor="#FFFFFF" size={17} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -156,7 +156,12 @@ export default function ChatsTabScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safe: { flex: 1 },
+  safe: {
+    flex: 1,
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    alignSelf: 'center',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -174,7 +179,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sparkleText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -187,14 +191,14 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 28,
+    bottom: Platform.select({ web: 76, default: 28 }),
     width: 56,
     height: 56,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.22,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 6,

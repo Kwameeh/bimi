@@ -27,7 +27,7 @@ import {
   SelectionCheck,
   confirmDestructive,
 } from '@/components/ui/selection-bar';
-import { Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { deleteInChunks, useSelection } from '@/hooks/use-selection';
 import { AI_MODE_OPTIONS } from '@/lib/ai-modes';
@@ -2286,16 +2286,16 @@ const settingsStyles = StyleSheet.create({
   },
   cadenceValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     minWidth: 30,
     textAlign: 'center',
   },
-  cadenceHint: { fontSize: 12, flex: 1 },
+  cadenceHint: { fontSize: 12, flex: 1, fontFamily: Fonts.sans },
 });
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safe: { flex: 1 },
+  safe: { flex: 1, maxWidth: MaxContentWidth, width: '100%', alignSelf: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
@@ -2308,6 +2308,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     fontSize: 16,
+    fontFamily: Fonts.sansSemiBold,
   },
   backButton: {
     padding: 4,
@@ -2328,7 +2329,7 @@ const styles = StyleSheet.create({
   },
   tabBtnText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
   },
   body: { padding: Spacing.four, gap: Spacing.four },
   identity: { alignItems: 'center', gap: Spacing.two },

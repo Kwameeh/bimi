@@ -69,7 +69,9 @@
         {
           "microphonePermission": "Allow Bimi to listen when you talk to it.",
           "speechRecognitionPermission": "Allow Bimi to understand what you say.",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
         }
       ]
     ],
@@ -78,7 +80,11 @@
       "reactCompiler": true
     },
     "extra": {
-      "router": {}
-    }
+      "router": {},
+      "eas": {
+        "projectId": "5dadc790-61d2-40e5-bc45-989936a092b0"
+      }
+    },
+    "owner": "kwameeh"
   }
 }

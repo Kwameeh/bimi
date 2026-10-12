@@ -46,6 +46,21 @@ const symbols = {
     android: 'chevron_right',
     web: 'chevron_right',
   },
+  chat: {
+    ios: 'bubble.left.and.bubble.right.fill',
+    android: 'chat_bubble',
+    web: 'chat_bubble',
+  },
+  checklist: {
+    ios: 'checklist',
+    android: 'checklist',
+    web: 'checklist',
+  },
+  newspaper: {
+    ios: 'newspaper.fill',
+    android: 'newspaper',
+    web: 'newspaper',
+  },
   close: { ios: 'xmark', android: 'close', web: 'close' },
   compose: {
     ios: 'square.and.pencil',

@@ -35,7 +35,7 @@ import { ToolStepRow } from '@/components/assistant/tool-step-row';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
 import { ThemedView } from '@/components/themed-view';
 import { AppIcon } from '@/components/ui/app-icon';
-import { Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useInstance } from '@/lib/instance';
 
@@ -764,7 +764,7 @@ function MessageRow({
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safe: { flex: 1 },
+  safe: { flex: 1, maxWidth: 960, width: '100%', alignSelf: 'center' },
   listArea: { flex: 1 },
   header: {
     paddingHorizontal: Spacing.three,
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
     gap: 8,
     flexShrink: 1,
   },
-  headerTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+  headerTitle: { fontSize: 22, fontFamily: Fonts.sansBold, letterSpacing: -0.3 },
   headerActions: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   aiBadge: {
     height: 24,
@@ -794,7 +794,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  aiBadgeText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4 },
+  aiBadgeText: { fontSize: 11, fontFamily: Fonts.sansBold, letterSpacing: 0.4 },
   iconBtn: {
     width: 40,
     height: 40,
@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  toolChipText: { fontSize: 12, fontWeight: '600' },
+  toolChipText: { fontSize: 12, fontFamily: Fonts.sansSemiBold },
   intro: {
     width: '100%',
     maxWidth: 720,
@@ -841,13 +841,14 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   introBadgeText: { fontSize: 24 },
-  introTitle: { fontSize: 18, fontWeight: '700' },
+  introTitle: { fontSize: 18, fontFamily: Fonts.sansBold },
   introSubtitle: {
     fontSize: 13,
     lineHeight: 18,
     textAlign: 'center',
     marginTop: 6,
     maxWidth: 300,
+    fontFamily: Fonts.sans,
   },
   suggestionList: { width: '100%', marginTop: 20, gap: 8 },
   suggestionRow: {
@@ -860,8 +861,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
-  suggestionText: { fontSize: 14, fontWeight: '600', flex: 1 },
-  suggestionArrow: { fontSize: 14, fontWeight: '700' },
+  suggestionText: { fontSize: 14, fontFamily: Fonts.sansSemiBold, flex: 1 },
+  suggestionArrow: { fontSize: 14, fontFamily: Fonts.sansBold },
   listContent: {
     width: '100%',
     maxWidth: 800,
@@ -887,7 +888,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomRightRadius: 5,
   },
-  bubbleText: { fontSize: 15, lineHeight: 21, flexShrink: 1 },
+  bubbleText: { fontSize: 15, lineHeight: 21, flexShrink: 1, fontFamily: Fonts.sans },
   thinkingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   editBar: {
     paddingHorizontal: 10,
@@ -896,7 +897,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     gap: 6,
   },
-  editLabel: { fontSize: 11, fontWeight: '600' },
+  editLabel: { fontSize: 11, fontFamily: Fonts.sansSemiBold },
   editInput: {
     minHeight: 40,
     maxHeight: 120,
@@ -905,6 +906,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 14,
+    fontFamily: Fonts.sans,
   },
   editActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
   editBtn: {
@@ -933,6 +935,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
     fontSize: 15,
+    fontFamily: Fonts.sans,
   },
   sendBtn: {
     width: 42,

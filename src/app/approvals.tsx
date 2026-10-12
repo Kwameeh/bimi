@@ -10,7 +10,7 @@ import { ThemedView } from '@/components/themed-view';
 import { AppIcon } from '@/components/ui/app-icon';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
 import { SelectButton, SelectionBar, SelectionCheck } from '@/components/ui/selection-bar';
-import { Spacing } from '@/constants/theme';
+import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { deleteInChunks, useSelection } from '@/hooks/use-selection';
 import { useInstance } from '@/lib/instance';
@@ -125,7 +125,7 @@ export default function ApprovalsScreen() {
                   <Text
                     style={{
                       color: active ? theme.primaryText : theme.text,
-                      fontWeight: '600',
+                      fontFamily: Fonts.sansSemiBold,
                       fontSize: 13,
                     }}
                   >
@@ -189,7 +189,12 @@ export default function ApprovalsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  safe: { flex: 1 },
+  safe: {
+    flex: 1,
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    alignSelf: 'center',
+  },
   header: { padding: Spacing.four, gap: Spacing.one },
   headerRow: {
     flexDirection: 'row',

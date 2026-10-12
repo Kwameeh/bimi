@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { AppIcon } from '@/components/ui/app-icon';
 import { Orb } from '@/components/voice/orb';
+import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useInstance } from '@/lib/instance';
 import { useVoiceSession, type VoiceMode } from '@/lib/speech/use-voice-session';
@@ -324,7 +325,7 @@ function controlHint(
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  root: { flex: 1, maxWidth: 680, width: '100%', alignSelf: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -334,17 +335,17 @@ const styles = StyleSheet.create({
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   segment: { flexDirection: 'row', borderRadius: 999, padding: 3 },
   segmentItem: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999 },
-  segmentText: { fontSize: 13, fontWeight: '600' },
+  segmentText: { fontSize: 13, fontFamily: Fonts.sansSemiBold },
   stage: { alignItems: 'center', justifyContent: 'center', paddingTop: 8 },
   status: { marginTop: -18 },
   transcript: { flex: 1 },
   transcriptContent: { paddingHorizontal: 28, paddingBottom: 12, gap: 10 },
-  you: { fontSize: 15, textAlign: 'center', fontStyle: 'italic' },
-  bimi: { fontSize: 18, lineHeight: 26, textAlign: 'center' },
-  error: { fontSize: 14, textAlign: 'center' },
+  you: { fontSize: 15, textAlign: 'center', fontStyle: 'italic', fontFamily: Fonts.sans },
+  bimi: { fontSize: 18, lineHeight: 26, textAlign: 'center', fontFamily: Fonts.sansSemiBold },
+  error: { fontSize: 14, textAlign: 'center', fontFamily: Fonts.sans },
   hints: { alignItems: 'center', gap: 6, marginTop: 8 },
   hintsTitle: { marginBottom: 2 },
-  hint: { fontSize: 15, textAlign: 'center' },
+  hint: { fontSize: 15, textAlign: 'center', fontFamily: Fonts.sans },
   controls: { alignItems: 'center', gap: 12, paddingHorizontal: 24 },
   mic: {
     width: 76,
@@ -363,7 +364,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  interruptText: { fontSize: 16, fontWeight: '600' },
-  controlHint: { textAlign: 'center' },
-  unavailable: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  interruptText: { fontSize: 16, fontFamily: Fonts.sansSemiBold },
+  controlHint: { textAlign: 'center', fontFamily: Fonts.sans },
+  unavailable: { fontSize: 14, textAlign: 'center', lineHeight: 20, fontFamily: Fonts.sans },
 });

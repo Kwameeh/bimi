@@ -14,6 +14,7 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
+import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 import { api } from '../../../convex/_generated/api';
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 999,
   },
-  pillText: { fontSize: 12, fontWeight: '700' },
+  pillText: { fontSize: 12, fontFamily: Fonts.sansBold },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -354,6 +355,9 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 28,
     maxHeight: '85%',
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
     gap: 12,
   },
   title: { marginBottom: 4 },
@@ -363,12 +367,14 @@ const styles = StyleSheet.create({
     padding: 12,
     gap: 10,
   },
-  draftText: { fontSize: 15, lineHeight: 20 },
+  draftText: { fontSize: 15, lineHeight: 20, fontFamily: Fonts.sans },
   input: {
     minHeight: 60,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 8,
     padding: 10,
+    fontSize: 14,
+    fontFamily: Fonts.sans,
     textAlignVertical: 'top',
   },
   variantRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -378,7 +384,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  chipText: { fontSize: 12, fontWeight: '600' },
+  chipText: { fontSize: 12, fontFamily: Fonts.sansSemiBold },
   cardActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
   btn: {
     paddingHorizontal: 12,

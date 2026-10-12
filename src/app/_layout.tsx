@@ -9,6 +9,20 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import {
+  useFonts,
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
+import {
+  JetBrainsMono_400Regular,
+  JetBrainsMono_500Medium,
+  JetBrainsMono_600SemiBold,
+} from '@expo-google-fonts/jetbrains-mono';
+
 import { VoiceHotkey } from '@/components/voice/voice-hotkey';
 import { convex } from '@/lib/convex';
 import { usePushTokenRegistration } from '@/lib/use-push-token';
@@ -20,6 +34,16 @@ function PushBootstrap() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [fontsLoaded] = useFonts({
+    'PlusJakartaSans-Regular': PlusJakartaSans_400Regular,
+    'PlusJakartaSans-Medium': PlusJakartaSans_500Medium,
+    'PlusJakartaSans-SemiBold': PlusJakartaSans_600SemiBold,
+    'PlusJakartaSans-Bold': PlusJakartaSans_700Bold,
+    'PlusJakartaSans-ExtraBold': PlusJakartaSans_800ExtraBold,
+    'JetBrainsMono-Regular': JetBrainsMono_400Regular,
+    'JetBrainsMono-Medium': JetBrainsMono_500Medium,
+    'JetBrainsMono-SemiBold': JetBrainsMono_600SemiBold,
+  });
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

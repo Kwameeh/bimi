@@ -2,6 +2,7 @@ import { useMutation } from 'convex/react';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { AppIcon } from '@/components/ui/app-icon';
 import { confirmDestructive } from '@/components/ui/selection-bar';
 import { useTheme } from '@/hooks/use-theme';
 import { addMeetingToCalendar } from '@/lib/calendar';
@@ -114,8 +115,14 @@ export function MeetingCard({ meeting }: { meeting: Doc<'meetings'> }) {
     >
       <View style={styles.headerRow}>
         <Text style={[styles.headerText, { color: theme.text }]}>{meeting.title ?? 'Meeting'}</Text>
-        <Pressable onPress={onDelete} hitSlop={8} disabled={busy !== null}>
-          <Text style={{ color: theme.textSecondary, fontSize: 18 }}>×</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Delete meeting card"
+          onPress={onDelete}
+          hitSlop={8}
+          disabled={busy !== null}
+        >
+          <AppIcon name="close" tintColor={theme.textSecondary} size={15} />
         </Pressable>
         <View
           style={[

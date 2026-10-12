@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { AppIcon, type AppIconName } from '@/components/ui/app-icon';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
 import { useTheme } from '@/hooks/use-theme';
 import { useInstance } from '@/lib/instance';
@@ -29,14 +30,14 @@ type ActionKey =
   | 'markImportant'
   | 'askBimi';
 
-const ACTIONS: { key: ActionKey; label: string; icon: string }[] = [
-  { key: 'summarize', label: 'Summarize', icon: '✦' },
-  { key: 'draftReply', label: 'Draft Reply', icon: '✎' },
-  { key: 'explain', label: 'Explain', icon: '?' },
-  { key: 'createTask', label: 'Create Task', icon: '✓' },
-  { key: 'addReminder', label: 'Add Reminder', icon: '⏰' },
-  { key: 'markImportant', label: 'Mark Important', icon: '★' },
-  { key: 'askBimi', label: 'Ask Bimi', icon: '💬' },
+const ACTIONS: { key: ActionKey; label: string; icon: AppIconName }[] = [
+  { key: 'summarize', label: 'Summarize', icon: 'sparkles' },
+  { key: 'draftReply', label: 'Draft Reply', icon: 'compose' },
+  { key: 'explain', label: 'Explain', icon: 'document' },
+  { key: 'createTask', label: 'Create Task', icon: 'check' },
+  { key: 'addReminder', label: 'Add Reminder', icon: 'checklist' },
+  { key: 'markImportant', label: 'Mark Important', icon: 'dot' },
+  { key: 'askBimi', label: 'Ask Bimi', icon: 'chat' },
 ];
 
 function getOneHourFromNow(): number {
@@ -195,7 +196,9 @@ export function MessageActionSheet({
                       pressed && { backgroundColor: theme.backgroundSelected },
                     ]}
                   >
-                    <Text style={[styles.icon, { color: theme.aiAccent }]}>{a.icon}</Text>
+                    <View style={styles.iconWrap}>
+                      <AppIcon name={a.icon} tintColor={theme.aiAccent} size={18} />
+                    </View>
                     <Text style={[styles.label, { color: theme.text }]}>
                       {a.key === 'markImportant' && isImportant ? 'Unmark Important' : a.label}
                     </Text>
@@ -301,6 +304,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  iconWrap: { width: 24, alignItems: 'center', justifyContent: 'center' },
   icon: { width: 22, textAlign: 'center', fontSize: 16 },
   label: { flex: 1, fontSize: 15 },
   input: {

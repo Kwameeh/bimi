@@ -4,6 +4,7 @@ import { api } from '../../../convex/_generated/api';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { AppIcon } from '@/components/ui/app-icon';
 import { useTheme } from '@/hooks/use-theme';
 
 import {
@@ -72,7 +73,7 @@ export function ModelPicker({ visible, currentModelId, onSelect, onClose }: Prop
                     </Text>
                   </View>
                   {isActive ? (
-                    <Text style={{ color: theme.primary, fontWeight: '700' }}>✓</Text>
+                    <AppIcon name="check" tintColor={theme.primary} size={18} />
                   ) : null}
                 </Pressable>
               );

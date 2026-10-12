@@ -19,7 +19,7 @@ import { BriefingSection, type SectionRow } from '@/components/briefing/section-
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { confirmDestructive } from '@/components/ui/selection-bar';
-import { Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useInstance } from '@/lib/instance';
 
@@ -535,7 +535,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     lineHeight: 34,
-    fontWeight: '700',
+    fontFamily: Fonts.sansBold,
     letterSpacing: -0.4,
   },
   maxWidth: { maxWidth: 1180 },
@@ -560,7 +560,7 @@ const styles = StyleSheet.create({
   },
   rangeLabel: {
     textAlign: 'center',
-    fontWeight: '600',
+    fontFamily: Fonts.sansSemiBold,
     fontSize: 13,
   },
   scroll: {
@@ -592,10 +592,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 20,
     lineHeight: 24,
-    fontWeight: '800',
+    fontFamily: Fonts.sansExtraBold,
     fontVariant: ['tabular-nums'],
   },
-  summaryLabel: { fontSize: 11, lineHeight: 16, fontWeight: '600' },
+  summaryLabel: { fontSize: 11, lineHeight: 16, fontFamily: Fonts.sansSemiBold },
   summaryDivider: { width: StyleSheet.hairlineWidth, height: 30 },
   center: {
     flex: 1,
