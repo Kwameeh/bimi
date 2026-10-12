@@ -1,6 +1,6 @@
 import { useQuery } from 'convex/react';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 import { formatMessageTime } from '@/lib/format';
@@ -17,6 +17,14 @@ import { VoiceMessage } from './voice-message';
 
 type DeliveryStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'played' | 'error';
 type Sender = 'contact' | 'user' | 'ai';
+
+export type Reaction = {
+  emoji: string;
+  fromMe: boolean;
+  participant?: string;
+  pushName?: string;
+  timestamp?: number;
+};
 
 type ImageType =
   | 'payment'
@@ -65,6 +73,7 @@ export type MessageBubbleProps = {
   needsReply?: boolean;
   isUrgent?: boolean;
   imageType?: ImageType;
+  reactions?: Reaction[];
   onLongPress?: (messageId: Id<'messages'>) => void;
 };
 
@@ -79,6 +88,32 @@ export function MessageBubble(props: MessageBubbleProps) {
     api.meetings.getForMessage,
     !isOutgoing ? { messageId: props.messageId } : 'skip',
   );
+
+  const groupedReactions = React.useMemo(() => {
+    if (!props.reactions || props.reactions.length === 0) return [];
+    const map = new Map<
+      string,
+      { emoji: string; count: number; hasMyReaction: boolean; names: string[] }
+    >();
+    for (const r of props.reactions) {
+      if (!r.emoji) continue;
+      const existing = map.get(r.emoji);
+      const name = r.fromMe ? 'You' : r.pushName || r.participant || 'Someone';
+      if (existing) {
+        existing.count += 1;
+        if (r.fromMe) existing.hasMyReaction = true;
+        if (!existing.names.includes(name)) existing.names.push(name);
+      } else {
+        map.set(r.emoji, {
+          emoji: r.emoji,
+          count: 1,
+          hasMyReaction: r.fromMe,
+          names: [name],
+        });
+      }
+    }
+    return Array.from(map.values());
+  }, [props.reactions]);
 
   const mediaContent = renderMediaContent(props, isOutgoing);
   const showText = mediaContent === null && props.text.length > 0;
@@ -170,6 +205,63 @@ export function MessageBubble(props: MessageBubbleProps) {
           </Text>
           {isOutgoing ? <MessageStatusTicks status={props.deliveryStatus} /> : null}
         </View>
+        {groupedReactions.length > 0 ? (
+          <View
+            style={[
+              styles.reactionsContainer,
+              isOutgoing ? styles.reactionsRight : styles.reactionsLeft,
+            ]}
+          >
+            {groupedReactions.map((g) => (
+              <Pressable
+                key={g.emoji}
+                accessibilityRole="button"
+                accessibilityLabel={`${g.emoji} reaction by ${g.names.join(', ')}`}
+                onPress={() => {
+                  Alert.alert(`${g.emoji} (${g.count})`, g.names.join(', '), [{ text: 'OK' }]);
+                }}
+                style={({ pressed }) => [
+                  styles.reactionPill,
+                  {
+                    backgroundColor: g.hasMyReaction
+                      ? isDark
+                        ? 'rgba(59, 130, 246, 0.28)'
+                        : '#DBEAFE'
+                      : isDark
+                        ? 'rgba(255, 255, 255, 0.12)'
+                        : 'rgba(0, 0, 0, 0.05)',
+                    borderColor: g.hasMyReaction
+                      ? '#3B82F6'
+                      : isDark
+                        ? 'rgba(255, 255, 255, 0.16)'
+                        : 'rgba(0, 0, 0, 0.08)',
+                    opacity: pressed ? 0.75 : 1,
+                  },
+                ]}
+              >
+                <Text style={styles.reactionEmoji}>{g.emoji}</Text>
+                {g.count > 1 ? (
+                  <Text
+                    style={[
+                      styles.reactionCount,
+                      {
+                        color: g.hasMyReaction
+                          ? isDark
+                            ? '#93C5FD'
+                            : '#1D4ED8'
+                          : isDark
+                            ? '#E2E8F0'
+                            : '#475569',
+                      },
+                    ]}
+                  >
+                    {g.count}
+                  </Text>
+                ) : null}
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
       </Pressable>
       {meeting ? <MeetingCard meeting={meeting} /> : null}
     </View>
@@ -239,4 +331,35 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   timestamp: { fontSize: 11 },
+  reactionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 4,
+    alignItems: 'center',
+  },
+  reactionsLeft: {
+    alignSelf: 'flex-start',
+  },
+  reactionsRight: {
+    alignSelf: 'flex-end',
+  },
+  reactionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  reactionEmoji: {
+    fontSize: 13,
+    lineHeight: 16,
+  },
+  reactionCount: {
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 14,
+  },
 });

@@ -316,3 +316,59 @@ export async function sendText(args: SendTextArgs): Promise<SendTextResult> {
     raw: parsed,
   };
 }
+
+export type SendReactionArgs = {
+  instance: string;
+  remoteJid: string;
+  messageId: string;
+  emoji: string;
+  fromMe?: boolean;
+};
+
+export async function sendReaction(args: SendReactionArgs): Promise<{ success: boolean; raw?: unknown }> {
+  const baseUrl = getEnv('EVOLUTION_API_BASE_URL');
+  const apiKey = getEnv('EVOLUTION_API_KEY');
+  if (!baseUrl) throw new Error('Evolution not configured: set EVOLUTION_API_BASE_URL');
+  if (!apiKey) throw new Error('Evolution not configured: set EVOLUTION_API_KEY');
+
+  const resolvedJid = await resolveLidJid({
+    baseUrl,
+    apiKey,
+    instance: args.instance,
+    remoteJid: args.remoteJid,
+  });
+
+  const url = `${baseUrl.replace(/\/$/, '')}/message/sendReaction/${encodeURIComponent(args.instance)}`;
+  const body = {
+    key: {
+      remoteJid: resolvedJid,
+      fromMe: args.fromMe ?? false,
+      id: args.messageId,
+    },
+    reaction: args.emoji,
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      apikey: apiKey,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const rawText = await response.text();
+  let parsed: unknown;
+  try {
+    parsed = rawText.length > 0 ? JSON.parse(rawText) : null;
+  } catch {
+    parsed = rawText;
+  }
+
+  if (!response.ok) {
+    throw new Error(`Evolution sendReaction failed (${response.status}): ${rawText}`);
+  }
+
+  return { success: true, raw: parsed };
+}
+

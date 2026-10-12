@@ -333,6 +333,100 @@ export const updateDeliveryStatus = internalMutation({
   },
 });
 
+export const applyReaction = internalMutation({
+  args: {
+    instance: v.string(),
+    targetMessageId: v.string(),
+    emoji: v.string(),
+    fromMe: v.boolean(),
+    participant: v.optional(v.string()),
+    remoteJid: v.optional(v.string()),
+    pushName: v.optional(v.string()),
+    timestamp: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query('messages')
+      .withIndex('by_instance_and_messageId', (q) =>
+        q.eq('instance', args.instance).eq('messageId', args.targetMessageId),
+      )
+      .unique();
+
+    if (!existing) {
+      return { success: false, reason: 'message_not_found' as const };
+    }
+
+    const isGroup = existing.remoteJid.endsWith('@g.us');
+    const currentReactions = existing.reactions ?? [];
+
+    const matchesReactor = (r: { fromMe: boolean; participant?: string }) => {
+      if (args.fromMe) {
+        return r.fromMe === true;
+      }
+      if (r.fromMe) {
+        return false;
+      }
+      if (isGroup && args.participant) {
+        return r.participant === args.participant;
+      }
+      return true;
+    };
+
+    const trimmedEmoji = args.emoji.trim();
+    let nextReactions;
+
+    if (trimmedEmoji.length === 0) {
+      nextReactions = currentReactions.filter((r) => !matchesReactor(r));
+    } else {
+      nextReactions = [
+        ...currentReactions.filter((r) => !matchesReactor(r)),
+        {
+          emoji: trimmedEmoji,
+          fromMe: args.fromMe,
+          participant: args.participant,
+          pushName: args.pushName,
+          timestamp: args.timestamp ?? Math.floor(Date.now() / 1000),
+        },
+      ];
+    }
+
+    await ctx.db.patch(existing._id, { reactions: nextReactions });
+    return {
+      success: true,
+      messageId: existing._id,
+      count: nextReactions.length,
+    };
+  },
+});
+
+export const cleanupReactionMessages = internalMutation({
+  args: {
+    instance: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const query = args.instance
+      ? ctx.db
+          .query('messages')
+          .withIndex('by_instance_and_timestamp', (q) => q.eq('instance', args.instance!))
+      : ctx.db.query('messages');
+
+    const dummyMessages = (await query.take(500)).filter(
+      (m) =>
+        m.messageType === 'reactionMessage' ||
+        m.text.includes('[reactionMessage received') ||
+        m.text.includes('reactionMessage received — not handled'),
+    );
+
+    for (const m of dummyMessages) {
+      await ctx.db.delete(m._id);
+      await refreshChatState(ctx, m.contactId);
+    }
+
+    return { deleted: dummyMessages.length };
+  },
+});
+
+
 export const attachMediaStorageId = internalMutation({
   args: {
     messageId: v.id('messages'),
@@ -733,3 +827,40 @@ export const send = action({
     return { messageId: insertedId, sentMessageId: sendResult.messageId };
   },
 });
+
+export const react = action({
+  args: {
+    messageId: v.id('messages'),
+    emoji: v.string(),
+  },
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ ok: boolean }> => {
+    const msg: Doc<'messages'> | null = await ctx.runQuery(
+      internal.messages.getMessageForProcessing,
+      { messageId: args.messageId },
+    );
+    if (!msg) throw new Error('Message not found');
+
+    const { sendReaction } = await import('./providers/evolution');
+    await sendReaction({
+      instance: msg.instance,
+      remoteJid: msg.remoteJid,
+      messageId: msg.messageId,
+      emoji: args.emoji,
+      fromMe: msg.fromMe,
+    });
+
+    await ctx.runMutation(internal.messages.applyReaction, {
+      instance: msg.instance,
+      targetMessageId: msg.messageId,
+      emoji: args.emoji,
+      fromMe: true,
+      timestamp: Math.floor(Date.now() / 1000),
+    });
+
+    return { ok: true };
+  },
+});
+

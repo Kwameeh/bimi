@@ -48,6 +48,14 @@ const toneValidator = v.union(
   v.literal('custom'),
 );
 
+export const reactionValidator = v.object({
+  emoji: v.string(),
+  fromMe: v.boolean(),
+  participant: v.optional(v.string()),
+  pushName: v.optional(v.string()),
+  timestamp: v.optional(v.number()),
+});
+
 export default defineSchema({
   contacts: defineTable({
     instance: v.string(),
@@ -251,6 +259,7 @@ export default defineSchema({
       ),
     ),
     extractedFields: v.optional(v.any()),
+    reactions: v.optional(v.array(reactionValidator)),
   })
     .index('by_instance_and_messageId', ['instance', 'messageId'])
     .index('by_contact', ['contactId'])
