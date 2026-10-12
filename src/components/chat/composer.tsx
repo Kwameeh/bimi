@@ -61,7 +61,11 @@ export function Composer({ onSend, placeholder = 'Message' }: Props) {
         {sending ? (
           <ActivityIndicator color={theme.primaryText} />
         ) : (
-          <AppIcon name="send" tintColor={theme.primaryText} size={20} />
+          <AppIcon
+            name="send"
+            tintColor={canSend ? theme.primaryText : theme.textSecondary}
+            size={20}
+          />
         )}
       </Pressable>
     </View>
@@ -87,7 +91,12 @@ const styles = StyleSheet.create({
     maxHeight: 140,
     justifyContent: 'center',
   },
-  input: { fontSize: 16, lineHeight: 20 },
+  input: {
+    fontSize: 16,
+    lineHeight: 20,
+    paddingTop: Platform.OS === 'android' ? 6 : 0,
+    paddingBottom: Platform.OS === 'android' ? 6 : 0,
+  },
   sendButton: {
     width: 44,
     height: 44,

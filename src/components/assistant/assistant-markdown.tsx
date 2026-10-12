@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 import type { Id } from '../../../convex/_generated/dataModel';
@@ -192,7 +193,7 @@ export function AssistantMarkdown({
       codespan: {
         color: textColor,
         backgroundColor: variant === 'user' ? 'rgba(255,255,255,0.18)' : theme.backgroundElement,
-        fontFamily: 'ui-monospace',
+        fontFamily: Fonts.mono,
         fontSize: 13,
         paddingHorizontal: 4,
         borderRadius: 4,

@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { ConfirmCard } from '@/components/assistant/confirm-card';
 import { QuestionCard } from '@/components/assistant/question-card';
 import { AppIcon } from '@/components/ui/app-icon';
+import { Fonts } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 import type { Doc, Id } from '../../../convex/_generated/dataModel';
@@ -244,5 +245,5 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  expandBody: { fontSize: 11, fontFamily: 'ui-monospace' },
+  expandBody: { fontSize: 11, fontFamily: Fonts.mono },
 });

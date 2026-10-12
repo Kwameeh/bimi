@@ -105,6 +105,7 @@ export default function ChatsTabScreen() {
             contentInsetAdjustmentBehavior="automatic"
             data={chats}
             keyExtractor={(item) => item.contact._id}
+            contentContainerStyle={styles.listContent}
             ItemSeparatorComponent={() => (
               <View style={[styles.separator, { backgroundColor: theme.border }]} />
             )}
@@ -182,6 +183,7 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
   },
   separator: { height: StyleSheet.hairlineWidth, marginLeft: 80 },
+  listContent: { paddingBottom: 96 },
   fab: {
     position: 'absolute',
     right: 20,

@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppIcon } from '@/components/ui/app-icon';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
 import { SelectButton, SelectionBar, SelectionCheck } from '@/components/ui/selection-bar';
 import { Spacing } from '@/constants/theme';
@@ -159,7 +160,18 @@ export default function MemoryScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={[styles.header, styles.headerRow]}>
-          <ThemedText type="title">Memory</ThemedText>
+          <View style={styles.headerTitleGroup}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={() => router.back()}
+              hitSlop={12}
+              style={styles.backBtn}
+            >
+              <AppIcon name="back" tintColor={theme.primary} size={22} />
+            </Pressable>
+            <ThemedText type="title">Memory</ThemedText>
+          </View>
           {!selection.active && visibleIds.length > 0 ? (
             <SelectButton onPress={selection.enter} />
           ) : null}
@@ -793,6 +805,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  headerTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  backBtn: { padding: 4 },
   header: {
     paddingHorizontal: Spacing.four,
     paddingVertical: Spacing.three,

@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from 'convex/react';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ApprovalCard } from '@/components/approvals/approval-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppIcon } from '@/components/ui/app-icon';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
 import { SelectButton, SelectionBar, SelectionCheck } from '@/components/ui/selection-bar';
 import { Spacing } from '@/constants/theme';
@@ -28,6 +30,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 
 export default function ApprovalsScreen() {
   const theme = useTheme();
+  const router = useRouter();
   const instance = useInstance();
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -60,12 +63,23 @@ export default function ApprovalsScreen() {
         <SafeAreaView style={styles.safe} edges={['top']}>
           <View style={styles.header}>
             <View style={styles.headerRow}>
-              <ThemedText type="title">Approvals</ThemedText>
+              <View style={styles.headerTitleGroup}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
+                  onPress={() => router.back()}
+                  hitSlop={12}
+                  style={styles.backBtn}
+                >
+                  <AppIcon name="back" tintColor={theme.primary} size={22} />
+                </Pressable>
+                <ThemedText type="title">Approvals</ThemedText>
+              </View>
               {items !== undefined && items.length > 0 && !selection.active ? (
                 <SelectButton onPress={selection.enter} />
               ) : null}
             </View>
-            <ThemedText type="small" themeColor="textSecondary">
+            <ThemedText type="small" themeColor="textSecondary" style={styles.subtitle}>
               {items === undefined
                 ? 'Loading…'
                 : items.length === 0
@@ -182,6 +196,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  headerTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  backBtn: { padding: 4 },
+  subtitle: { marginTop: 2 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

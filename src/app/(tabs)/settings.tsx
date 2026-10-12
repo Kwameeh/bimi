@@ -781,7 +781,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.4,
   },
-  scrollContent: { gap: Spacing.four, paddingBottom: Spacing.four },
+  scrollContent: { gap: Spacing.four, paddingBottom: 88 },
   section: { borderRadius: 12, padding: Spacing.three, gap: Spacing.one },
   toneList: { gap: 8, marginTop: 8 },
   toneRow: {
