@@ -40,6 +40,8 @@ const ACTIONS: { key: ActionKey; label: string; icon: AppIconName }[] = [
   { key: 'askBimi', label: 'Ask Bimi', icon: 'chat' },
 ];
 
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
 function getOneHourFromNow(): number {
   return Date.now() + 60 * 60 * 1000;
 }
@@ -68,6 +70,7 @@ export function MessageActionSheet({
   const instance = useInstance();
   const [mode, setMode] = useState<ViewMode>({ kind: 'menu' });
   const [busy, setBusy] = useState<ActionKey | null>(null);
+  const [reactingEmoji, setReactingEmoji] = useState<string | null>(null);
   const [askText, setAskText] = useState('');
 
   const summarize = useAction(api.messageActions.summarize);
@@ -75,15 +78,31 @@ export function MessageActionSheet({
   const draftReply = useAction(api.messageActions.draftReplyForMessage);
   const createTask = useAction(api.messageActions.createTaskFromMessage);
   const askBimi = useAction(api.messageActions.askBimi);
+  const reactToMessage = useAction(api.messages.react);
   const markImportant = useMutation(api.messageActions.markImportant);
   const createReminder = useMutation(api.reminders.create);
 
   const close = useCallback(() => {
     setMode({ kind: 'menu' });
     setBusy(null);
+    setReactingEmoji(null);
     setAskText('');
     onClose();
   }, [onClose]);
+
+  const handleQuickReaction = async (emoji: string) => {
+    if (!messageId || reactingEmoji) return;
+    setReactingEmoji(emoji);
+    try {
+      await reactToMessage({ messageId, emoji });
+      close();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      Alert.alert('Reaction failed', msg);
+    } finally {
+      setReactingEmoji(null);
+    }
+  };
 
   const handleAction = async (key: ActionKey) => {
     if (busy || !messageId) return;
@@ -183,6 +202,30 @@ export function MessageActionSheet({
             {mode.kind === 'menu' ? (
               <View>
                 <ThemedText type="smallBold" style={styles.title}>
+                  Quick reaction
+                </ThemedText>
+                <View style={styles.quickReactionsRow}>
+                  {QUICK_EMOJIS.map((emoji) => (
+                    <Pressable
+                      key={emoji}
+                      accessibilityRole="button"
+                      accessibilityLabel={`React with ${emoji}`}
+                      onPress={() => handleQuickReaction(emoji)}
+                      disabled={reactingEmoji !== null}
+                      style={({ pressed }) => [
+                        styles.quickReactionBtn,
+                        {
+                          backgroundColor: theme.backgroundElement,
+                          borderColor: theme.border,
+                          opacity: pressed || reactingEmoji ? 0.6 : 1,
+                        },
+                      ]}
+                    >
+                      <Text style={styles.quickReactionEmoji}>{emoji}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <ThemedText type="smallBold" style={[styles.title, { marginTop: 8 }]}>
                   Message actions
                 </ThemedText>
                 {ACTIONS.map((a) => (
@@ -297,6 +340,23 @@ const styles = StyleSheet.create({
     maxHeight: '70%',
   },
   title: { marginBottom: 8 },
+  quickReactionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    marginBottom: 6,
+  },
+  quickReactionBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickReactionEmoji: {
+    fontSize: 22,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

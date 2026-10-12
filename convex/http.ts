@@ -356,6 +356,9 @@ function planIngest(preview: ReturnType<typeof getMessagePreview>):
         scheduleProcessing: true,
       };
     }
+    case 'reactionMessage': {
+      return { skipped: 'reaction_message' };
+    }
     default: {
       return {
         args: {
@@ -401,6 +404,150 @@ function collectStatusUpdates(payload: unknown): Array<{
     updates.push({ messageId, deliveryStatus: status });
   }
   return updates;
+}
+
+export type ExtractedReaction = {
+  instance: string;
+  targetMessageId: string;
+  emoji: string;
+  fromMe: boolean;
+  participant?: string;
+  remoteJid?: string;
+  pushName?: string;
+  timestamp?: number;
+};
+
+export function extractReactions(payload: unknown): ExtractedReaction[] {
+  if (!isRecord(payload)) return [];
+  const instance = typeof payload.instance === 'string' ? payload.instance : '';
+  if (!instance) return [];
+
+  const results: ExtractedReaction[] = [];
+  const event = typeof payload.event === 'string' ? payload.event : undefined;
+
+  // Case 1: Baileys / Evolution event messages.reaction
+  if (event === 'messages.reaction') {
+    const dataItems = Array.isArray(payload.data)
+      ? payload.data
+      : isRecord(payload.data)
+        ? [payload.data]
+        : [];
+    for (const item of dataItems) {
+      if (!isRecord(item)) continue;
+      const reactionObj = isRecord(item.reaction) ? item.reaction : undefined;
+      const reactionKey = isRecord(reactionObj?.key)
+        ? reactionObj.key
+        : isRecord(item.key)
+          ? item.key
+          : undefined;
+      const targetMessageId =
+        typeof reactionKey?.id === 'string'
+          ? reactionKey.id
+          : typeof item.messageId === 'string'
+            ? item.messageId
+            : undefined;
+      const emoji =
+        typeof reactionObj?.text === 'string'
+          ? reactionObj.text
+          : typeof item.text === 'string'
+            ? item.text
+            : undefined;
+      if (!targetMessageId || emoji === undefined) continue;
+
+      const fromMe =
+        typeof item.fromMe === 'boolean'
+          ? item.fromMe
+          : typeof reactionKey?.fromMe === 'boolean'
+            ? reactionKey.fromMe
+            : false;
+
+      const participant =
+        typeof item.participant === 'string'
+          ? item.participant
+          : typeof item.sender === 'string'
+            ? item.sender
+            : typeof reactionKey?.participant === 'string'
+              ? reactionKey.participant
+              : undefined;
+
+      const remoteJid =
+        typeof item.remoteJid === 'string'
+          ? item.remoteJid
+          : typeof reactionKey?.remoteJid === 'string'
+            ? reactionKey.remoteJid
+            : undefined;
+
+      const pushName = typeof item.pushName === 'string' ? item.pushName : undefined;
+      const ts =
+        typeof item.timestamp === 'number'
+          ? item.timestamp
+          : typeof reactionObj?.senderTimestampMs === 'number'
+            ? Math.floor(reactionObj.senderTimestampMs / 1000)
+            : typeof reactionObj?.senderTimestampMs === 'string'
+              ? Math.floor(Number(reactionObj.senderTimestampMs) / 1000)
+              : undefined;
+
+      results.push({
+        instance,
+        targetMessageId,
+        emoji,
+        fromMe,
+        participant,
+        remoteJid,
+        pushName,
+        timestamp: ts,
+      });
+    }
+    return results;
+  }
+
+  // Case 2: messages.upsert with reactionMessage
+  const data = isRecord(payload.data) ? payload.data : undefined;
+  if (!data) return results;
+
+  const message = isRecord(data.message) ? data.message : undefined;
+  const reactionMessage = isRecord(message?.reactionMessage) ? message.reactionMessage : undefined;
+
+  if (reactionMessage || data.messageType === 'reactionMessage') {
+    const rxKey = isRecord(reactionMessage?.key) ? reactionMessage.key : undefined;
+    const targetMessageId = typeof rxKey?.id === 'string' ? rxKey.id : undefined;
+    const emoji = typeof reactionMessage?.text === 'string' ? reactionMessage.text : '';
+
+    if (targetMessageId !== undefined) {
+      const outerKey = isRecord(data.key) ? data.key : undefined;
+      const fromMe = outerKey?.fromMe === true;
+      const participant =
+        typeof outerKey?.participant === 'string' && outerKey.participant.length > 0
+          ? outerKey.participant
+          : typeof data.participant === 'string' && data.participant.length > 0
+            ? data.participant
+            : undefined;
+      const remoteJid = typeof outerKey?.remoteJid === 'string' ? outerKey.remoteJid : undefined;
+      const pushName = typeof data.pushName === 'string' ? data.pushName : undefined;
+
+      const ts =
+        typeof data.messageTimestamp === 'number'
+          ? data.messageTimestamp
+          : typeof reactionMessage?.senderTimestampMs === 'number'
+            ? Math.floor(reactionMessage.senderTimestampMs / 1000)
+            : typeof reactionMessage?.senderTimestampMs === 'string'
+              ? Math.floor(Number(reactionMessage.senderTimestampMs) / 1000)
+              : undefined;
+
+      results.push({
+        instance,
+        targetMessageId,
+        emoji,
+        fromMe,
+        participant,
+        remoteJid,
+        pushName,
+        timestamp: ts,
+      });
+    }
+  }
+
+  return results;
 }
 
 http.route({
@@ -464,6 +611,54 @@ http.route({
         status: 200,
         headers: { 'content-type': 'application/json' },
       });
+    }
+
+    const reactions = extractReactions(payload);
+    if (reactions.length > 0) {
+      let applied = 0;
+      for (const rx of reactions) {
+        await ctx.runMutation(internal.messages.applyReaction, {
+          instance: rx.instance,
+          targetMessageId: rx.targetMessageId,
+          emoji: rx.emoji,
+          fromMe: rx.fromMe,
+          participant: rx.participant,
+          remoteJid: rx.remoteJid,
+          pushName: rx.pushName,
+          timestamp: rx.timestamp,
+        });
+        applied += 1;
+      }
+      console.log('Evolution reactions applied', {
+        instance: isRecord(payload) ? payload.instance : undefined,
+        count: applied,
+      });
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          event,
+          reactionsApplied: applied,
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        },
+      );
+    }
+
+    if (preview?.messageType === 'reactionMessage') {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          event,
+          ignored: true,
+          reason: 'unhandled_reaction_payload',
+        }),
+        {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        },
+      );
     }
 
     if (event !== 'messages.upsert') {

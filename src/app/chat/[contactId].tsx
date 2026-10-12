@@ -12,7 +12,7 @@ import { DateSeparator } from '@/components/chat/date-separator';
 import { DraftsPill } from '@/components/chat/drafts-pill';
 import { FollowupSnackbar } from '@/components/chat/followup-snackbar';
 import { MessageActionSheet } from '@/components/chat/message-action-sheet';
-import { MessageBubble } from '@/components/chat/message-bubble';
+import { MessageBubble, type Reaction } from '@/components/chat/message-bubble';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { AppIcon } from '@/components/ui/app-icon';
@@ -53,6 +53,7 @@ type FlatMessage = {
   needsReply?: boolean;
   isUrgent?: boolean;
   imageType?: ImageType;
+  reactions?: Reaction[];
 };
 
 type Row =
@@ -137,6 +138,7 @@ export default function ConversationScreen() {
           needsReply: m.needsReply,
           isUrgent: m.isUrgent,
           imageType: m.imageType,
+          reactions: m.reactions,
         },
         showParticipant,
       });
@@ -272,6 +274,7 @@ export default function ConversationScreen() {
                     needsReply={item.msg.needsReply}
                     isUrgent={item.msg.isUrgent}
                     imageType={item.msg.imageType}
+                    reactions={item.msg.reactions}
                     onLongPress={handleLongPress}
                   />
                 );
