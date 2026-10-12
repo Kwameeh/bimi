@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppIcon } from '@/components/ui/app-icon';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useInstance } from '@/lib/instance';
@@ -12,6 +13,7 @@ import {
   type ContactPermissionState,
 } from '@/services/contact-sync';
 import { SymbolView } from 'expo-symbols';
+import { useRouter } from 'expo-router';
 import { useMutation, useQuery } from 'convex/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { AppState, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -74,6 +76,7 @@ function chunkArray<T>(items: T[], size: number) {
 }
 
 export default function ContactsSyncScreen() {
+  const router = useRouter();
   const theme = useTheme();
   const instance = useInstance();
 
@@ -213,6 +216,17 @@ export default function ContactsSyncScreen() {
     <ThemedView style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <SafeAreaView style={styles.safeArea}>
+          <View style={styles.headerBar}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              onPress={() => router.back()}
+              hitSlop={12}
+              style={styles.backBtn}
+            >
+              <AppIcon name="back" tintColor={theme.primary} size={22} />
+            </Pressable>
+          </View>
           <View style={styles.header}>
             <View style={[styles.iconBadge, { backgroundColor: theme.backgroundElement }]}>
               <SymbolView
@@ -406,6 +420,14 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.five,
     paddingBottom: BottomTabInset + Spacing.four,
     gap: Spacing.four,
+  },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  backBtn: {
+    padding: 4,
   },
   header: {
     flexDirection: 'row',

@@ -166,6 +166,15 @@ function formatSeconds(s: number): string {
 function Backdrop({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <Pressable style={styles.backdrop} onPress={onClose}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close media"
+        onPress={onClose}
+        hitSlop={12}
+        style={styles.closeBtn}
+      >
+        <AppIcon name="close" tintColor="#FFFFFF" size={22} />
+      </Pressable>
       <View onStartShouldSetResponder={() => true}>{children}</View>
     </Pressable>
   );
@@ -178,6 +187,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: 48,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
   },
   fullImage: { width: '100%', height: '100%' },
   card: { gap: 8, alignItems: 'center' },

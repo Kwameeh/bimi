@@ -46,6 +46,7 @@ export default function ContactDetailsScreen() {
   );
   const refreshGroupInfo = useAction(api.contacts.refreshGroupInfo);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'goals' | 'memory' | 'style'>('overview');
 
   if (!validContactId || contact === undefined) {
     return (
@@ -82,13 +83,22 @@ export default function ContactDetailsScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            onPress={() => router.back()}
+            hitSlop={12}
+            style={styles.backButton}
+          >
             <AppIcon name="back" tintColor={theme.primary} size={22} />
           </Pressable>
-          <View style={{ width: 24 }} />
+          <ThemedText type="smallBold" numberOfLines={1} style={styles.headerTitle}>
+            {contact.displayName ?? contact.remoteJid}
+          </ThemedText>
+          <View style={{ width: 28 }} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.body}>
+        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           <View style={styles.identity}>
             <Avatar
               name={contact.displayName}
@@ -127,83 +137,203 @@ export default function ContactDetailsScreen() {
             </ThemedText>
           </Pressable>
 
-          <ContactMemorySection
-            contactId={validContactId}
-            contactName={contact.displayName ?? contact.pushName ?? undefined}
-          />
+          <View
+            style={[
+              styles.tabBar,
+              { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+            ]}
+          >
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === 'overview' }}
+              onPress={() => setActiveTab('overview')}
+              style={[
+                styles.tabBtn,
+                activeTab === 'overview' && {
+                  backgroundColor: theme.background,
+                  borderColor: theme.border,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.05,
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowRadius: 3,
+                  elevation: 1,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.tabBtnText,
+                  { color: activeTab === 'overview' ? theme.primary : theme.textSecondary },
+                ]}
+              >
+                Overview
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === 'goals' }}
+              onPress={() => setActiveTab('goals')}
+              style={[
+                styles.tabBtn,
+                activeTab === 'goals' && {
+                  backgroundColor: theme.background,
+                  borderColor: theme.border,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.05,
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowRadius: 3,
+                  elevation: 1,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.tabBtnText,
+                  { color: activeTab === 'goals' ? theme.primary : theme.textSecondary },
+                ]}
+              >
+                Goals
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === 'memory' }}
+              onPress={() => setActiveTab('memory')}
+              style={[
+                styles.tabBtn,
+                activeTab === 'memory' && {
+                  backgroundColor: theme.background,
+                  borderColor: theme.border,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.05,
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowRadius: 3,
+                  elevation: 1,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.tabBtnText,
+                  { color: activeTab === 'memory' ? theme.primary : theme.textSecondary },
+                ]}
+              >
+                Memory
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === 'style' }}
+              onPress={() => setActiveTab('style')}
+              style={[
+                styles.tabBtn,
+                activeTab === 'style' && {
+                  backgroundColor: theme.background,
+                  borderColor: theme.border,
+                  shadowColor: '#000',
+                  shadowOpacity: 0.05,
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowRadius: 3,
+                  elevation: 1,
+                },
+              ]}
+            >
+              <ThemedText
+                style={[
+                  styles.tabBtnText,
+                  { color: activeTab === 'style' ? theme.primary : theme.textSecondary },
+                ]}
+              >
+                Style
+              </ThemedText>
+            </Pressable>
+          </View>
 
-          <ContactGoalsSection
-            contactId={validContactId}
-            contactLabel={contact.displayName ?? contact.pushName ?? 'this contact'}
-          />
-
-          <ContactReplyStyleSection contactId={validContactId} />
-
-          <ChatSettingsSection contactId={validContactId} />
-
-          {isGroup ? (
+          {activeTab === 'overview' ? (
             <>
-              {contact.groupDescription ? (
-                <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-                  <ThemedText type="smallBold">Description</ThemedText>
-                  <ThemedText type="small" themeColor="textSecondary">
-                    {contact.groupDescription}
-                  </ThemedText>
-                </View>
-              ) : null}
+              <ChatSettingsSection contactId={validContactId} />
 
-              <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-                <View style={styles.sectionHeader}>
-                  <ThemedText type="smallBold">
-                    Participants
-                    {contact.groupParticipants ? ` (${contact.groupParticipants.length})` : ''}
-                  </ThemedText>
-                  <Pressable
-                    onPress={handleRefresh}
-                    disabled={refreshing}
-                    hitSlop={8}
-                    style={({ pressed }) => [pressed && { opacity: 0.65 }]}
-                  >
-                    {refreshing ? (
-                      <ActivityIndicator color={theme.primary} />
+              {isGroup ? (
+                <>
+                  {contact.groupDescription ? (
+                    <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
+                      <ThemedText type="smallBold">Description</ThemedText>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {contact.groupDescription}
+                      </ThemedText>
+                    </View>
+                  ) : null}
+
+                  <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
+                    <View style={styles.sectionHeader}>
+                      <ThemedText type="smallBold">
+                        Participants
+                        {contact.groupParticipants ? ` (${contact.groupParticipants.length})` : ''}
+                      </ThemedText>
+                      <Pressable
+                        onPress={handleRefresh}
+                        disabled={refreshing}
+                        hitSlop={8}
+                        style={({ pressed }) => [pressed && { opacity: 0.65 }]}
+                      >
+                        {refreshing ? (
+                          <ActivityIndicator color={theme.primary} />
+                        ) : (
+                          <ThemedText type="smallBold" style={{ color: theme.primary }}>
+                            Refresh
+                          </ThemedText>
+                        )}
+                      </Pressable>
+                    </View>
+                    {contact.groupParticipants && contact.groupParticipants.length > 0 ? (
+                      <View style={styles.participantList}>
+                        {contact.groupParticipants.map((p) => (
+                          <View key={p.id} style={styles.participantRow}>
+                            <Avatar name={p.id.split('@')[0]} size={36} />
+                            <View style={{ flex: 1 }}>
+                              <ThemedText type="small">{p.id.split('@')[0]}</ThemedText>
+                              {p.admin ? (
+                                <ThemedText type="small" themeColor="textSecondary">
+                                  {p.admin === 'superadmin' ? 'Group owner' : 'Admin'}
+                                </ThemedText>
+                              ) : null}
+                            </View>
+                          </View>
+                        ))}
+                      </View>
                     ) : (
-                      <ThemedText type="smallBold" style={{ color: theme.primary }}>
-                        Refresh
+                      <ThemedText type="small" themeColor="textSecondary">
+                        Tap Refresh to load participants from the server.
                       </ThemedText>
                     )}
-                  </Pressable>
-                </View>
-                {contact.groupParticipants && contact.groupParticipants.length > 0 ? (
-                  <View style={styles.participantList}>
-                    {contact.groupParticipants.map((p) => (
-                      <View key={p.id} style={styles.participantRow}>
-                        <Avatar name={p.id.split('@')[0]} size={36} />
-                        <View style={{ flex: 1 }}>
-                          <ThemedText type="small">{p.id.split('@')[0]}</ThemedText>
-                          {p.admin ? (
-                            <ThemedText type="small" themeColor="textSecondary">
-                              {p.admin === 'superadmin' ? 'Group owner' : 'Admin'}
-                            </ThemedText>
-                          ) : null}
-                        </View>
-                      </View>
-                    ))}
                   </View>
-                ) : (
-                  <ThemedText type="small" themeColor="textSecondary">
-                    Tap Refresh to load participants from the server.
-                  </ThemedText>
-                )}
-              </View>
+                </>
+              ) : (
+                <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
+                  <ThemedText type="smallBold">About</ThemedText>
+                  {contact.source ? <Row label="Source" value={contact.source} /> : null}
+                  {contact.pushName ? <Row label="WhatsApp name" value={contact.pushName} /> : null}
+                  {contact.deviceContactId ? <Row label="Device contact" value="Synced" /> : null}
+                </View>
+              )}
             </>
-          ) : (
-            <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-              <ThemedText type="smallBold">About</ThemedText>
-              {contact.source ? <Row label="Source" value={contact.source} /> : null}
-              {contact.pushName ? <Row label="WhatsApp name" value={contact.pushName} /> : null}
-              {contact.deviceContactId ? <Row label="Device contact" value="Synced" /> : null}
-            </View>
-          )}
+          ) : null}
+
+          {activeTab === 'goals' ? (
+            <ContactGoalsSection
+              contactId={validContactId}
+              contactLabel={contact.displayName ?? contact.pushName ?? 'this contact'}
+            />
+          ) : null}
+
+          {activeTab === 'memory' ? (
+            <ContactMemorySection
+              contactId={validContactId}
+              contactName={contact.displayName ?? contact.pushName ?? undefined}
+            />
+          ) : null}
+
+          {activeTab === 'style' ? <ContactReplyStyleSection contactId={validContactId} /> : null}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -2173,6 +2303,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
+  },
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  backButton: {
+    padding: 4,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 4,
+    gap: 4,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   body: { padding: Spacing.four, gap: Spacing.four },
   identity: { alignItems: 'center', gap: Spacing.two },

@@ -323,7 +323,11 @@ export default function BriefingScreen() {
         </View>
 
         <View style={[styles.rangeContainer, wide && styles.maxWidth]}>
-          <View style={styles.rangeRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.rangeRow}
+          >
             {RANGE_OPTIONS.map((opt) => {
               const active = range === opt.key;
               return (
@@ -342,7 +346,7 @@ export default function BriefingScreen() {
                   ]}
                 >
                   <Text
-                    numberOfLines={2}
+                    numberOfLines={1}
                     style={[styles.rangeLabel, { color: active ? theme.primaryText : theme.text }]}
                   >
                     {opt.label}
@@ -350,7 +354,7 @@ export default function BriefingScreen() {
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
         </View>
 
         {usingLive && liveLoading ? (
@@ -538,19 +542,17 @@ const styles = StyleSheet.create({
   rangeContainer: {
     width: '100%',
     alignSelf: 'center',
-    paddingHorizontal: Spacing.four,
     paddingBottom: Spacing.two,
   },
   rangeRow: {
     flexDirection: 'row',
-    gap: 6,
-    width: '100%',
+    gap: 8,
+    paddingHorizontal: Spacing.four,
+    alignItems: 'center',
   },
   rangeChip: {
-    flex: 1,
-    minWidth: 0,
-    height: 42,
-    paddingHorizontal: 6,
+    paddingHorizontal: 16,
+    height: 38,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
@@ -559,12 +561,12 @@ const styles = StyleSheet.create({
   rangeLabel: {
     textAlign: 'center',
     fontWeight: '600',
-    fontSize: 11,
-    lineHeight: 13,
+    fontSize: 13,
   },
   scroll: {
     padding: Spacing.four,
     paddingTop: 8,
+    paddingBottom: 88,
     gap: 16,
     width: '100%',
     alignSelf: 'center',
@@ -579,9 +581,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 18,
-    borderCurve: 'continuous',
     paddingVertical: 14,
-    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.06)',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 2,
   },
   summaryNumber: {
     textAlign: 'center',

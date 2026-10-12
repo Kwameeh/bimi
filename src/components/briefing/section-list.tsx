@@ -41,7 +41,11 @@ export function BriefingSection({
         {
           borderColor: theme.border,
           backgroundColor: theme.backgroundElement,
-          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)',
+          shadowColor: '#000',
+          shadowOpacity: 0.05,
+          shadowOffset: { width: 0, height: 4 },
+          shadowRadius: 10,
+          elevation: 2,
         },
       ]}
     >
