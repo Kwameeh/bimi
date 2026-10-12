@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,6 +22,7 @@ import { Avatar } from '@/components/chat/avatar';
 import { AppIcon } from '@/components/ui/app-icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useAlert } from '@/components/ui/custom-alert-dialog';
 import {
   SelectButton,
   SelectionBar,
@@ -416,6 +418,7 @@ function daysAgoLabel(ms?: number): string {
 
 function ChatSettingsSection({ contactId }: { contactId: Id<'contacts'> }) {
   const theme = useTheme();
+  const { showConfirm, showAlert } = useAlert();
   const settings = useQuery(api.chatSettings.getChatSettings, { contactId });
   const setPriority = useMutation(api.chatSettings.setPriority);
   const setMuted = useMutation(api.chatSettings.setMuted);
@@ -432,33 +435,43 @@ function ChatSettingsSection({ contactId }: { contactId: Id<'contacts'> }) {
     try {
       await setIncomingMessageMode({ contactId, mode });
     } catch (error) {
-      Alert.alert(
-        'Could not update message handling',
-        error instanceof Error ? error.message : 'Please try again.',
-      );
+      showAlert({
+        title: 'Could not update message handling',
+        message: error instanceof Error ? error.message : 'Please try again.',
+      });
     } finally {
       setSavingIncomingMode(false);
     }
   };
 
-  const chooseIncomingMode = (mode: IncomingMessageMode) => {
+  const chooseIncomingMode = async (mode: IncomingMessageMode) => {
     if (savingIncomingMode || mode === settings?.incomingMessageMode) return;
     if (mode !== 'ignore') {
-      void saveIncomingMode(mode);
+      await saveIncomingMode(mode);
       return;
     }
-    Alert.alert(
-      'Ignore new incoming messages?',
-      'Messages received while this is enabled will not appear in Bimi and cannot be recovered inside Bimi. Existing history and sent messages are not affected.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Ignore messages',
-          style: 'destructive',
-          onPress: () => void saveIncomingMode('ignore'),
-        },
-      ],
-    );
+
+    let confirmed = false;
+    try {
+      confirmed = await showConfirm({
+        title: 'Ignore new incoming messages?',
+        message:
+          'Messages received while this is enabled will not appear in Bimi and cannot be recovered inside Bimi. Existing history and sent messages are not affected.',
+        confirmText: 'Ignore messages',
+        cancelText: 'Cancel',
+        destructive: true,
+      });
+    } catch {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        confirmed = window.confirm(
+          'Ignore new incoming messages?\n\nMessages received while this is enabled will not appear in Bimi and cannot be recovered inside Bimi. Existing history and sent messages are not affected.',
+        );
+      }
+    }
+
+    if (confirmed) {
+      await saveIncomingMode('ignore');
+    }
   };
 
   if (!settings) {
@@ -1147,6 +1160,7 @@ function GoalRow({
   onStartSelect?: () => void;
 }) {
   const theme = useTheme();
+  const { showConfirm } = useAlert();
   const updateStatus = useMutation(api.contactGoals.updateStatus);
   const updateMode = useMutation(api.contactGoals.updateMode);
   const removeGoal = useMutation(api.contactGoals.remove);
@@ -1171,24 +1185,32 @@ function GoalRow({
     }
   };
 
-  const toggleMode = () => {
+  const toggleMode = async () => {
     if (isAuto) {
       void updateMode({ goalId: goal._id, mode: 'draft' });
       return;
     }
     // Switching to auto grants Bimi authority to message a third party without
     // review — the one control here that deserves a confirmation.
-    Alert.alert(
-      'Let Bimi send these?',
-      `Bimi will send messages for "${goal.title}" to ${contactLabel} without asking you first.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send automatically',
-          onPress: () => void updateMode({ goalId: goal._id, mode: 'auto' }),
-        },
-      ],
-    );
+    let confirmed = false;
+    try {
+      confirmed = await showConfirm({
+        title: 'Let Bimi send these?',
+        message: `Bimi will send messages for "${goal.title}" to ${contactLabel} without asking you first.`,
+        confirmText: 'Send automatically',
+        cancelText: 'Cancel',
+      });
+    } catch {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        confirmed = window.confirm(
+          `Let Bimi send these?\n\nBimi will send messages for "${goal.title}" to ${contactLabel} without asking you first.`,
+        );
+      }
+    }
+
+    if (confirmed) {
+      void updateMode({ goalId: goal._id, mode: 'auto' });
+    }
   };
 
   return (

@@ -426,7 +426,6 @@ export const cleanupReactionMessages = internalMutation({
   },
 });
 
-
 export const attachMediaStorageId = internalMutation({
   args: {
     messageId: v.id('messages'),
@@ -833,10 +832,7 @@ export const react = action({
     messageId: v.id('messages'),
     emoji: v.string(),
   },
-  handler: async (
-    ctx,
-    args,
-  ): Promise<{ ok: boolean }> => {
+  handler: async (ctx, args): Promise<{ ok: boolean }> => {
     const msg: Doc<'messages'> | null = await ctx.runQuery(
       internal.messages.getMessageForProcessing,
       { messageId: args.messageId },
@@ -863,4 +859,3 @@ export const react = action({
     return { ok: true };
   },
 });
-

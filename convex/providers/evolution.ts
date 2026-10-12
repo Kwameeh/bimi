@@ -325,7 +325,9 @@ export type SendReactionArgs = {
   fromMe?: boolean;
 };
 
-export async function sendReaction(args: SendReactionArgs): Promise<{ success: boolean; raw?: unknown }> {
+export async function sendReaction(
+  args: SendReactionArgs,
+): Promise<{ success: boolean; raw?: unknown }> {
   const baseUrl = getEnv('EVOLUTION_API_BASE_URL');
   const apiKey = getEnv('EVOLUTION_API_KEY');
   if (!baseUrl) throw new Error('Evolution not configured: set EVOLUTION_API_BASE_URL');
@@ -371,4 +373,3 @@ export async function sendReaction(args: SendReactionArgs): Promise<{ success: b
 
   return { success: true, raw: parsed };
 }
-

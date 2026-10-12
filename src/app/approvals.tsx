@@ -103,6 +103,7 @@ export default function ApprovalsScreen() {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            style={styles.filterScroll}
             contentContainerStyle={styles.filterRow}
           >
             {FILTERS.map((f) => {
@@ -150,6 +151,7 @@ export default function ApprovalsScreen() {
           ) : (
             <ScrollView
               contentInsetAdjustmentBehavior="automatic"
+              style={styles.listScroll}
               contentContainerStyle={styles.list}
             >
               {items.map((it) => {
@@ -218,17 +220,30 @@ const styles = StyleSheet.create({
   },
   rowCheck: { paddingLeft: Spacing.two },
   rowBody: { flex: 1 },
+  filterScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+    marginBottom: Spacing.two,
+  },
   filterRow: {
     paddingHorizontal: Spacing.four,
-    paddingBottom: Spacing.two,
+    paddingVertical: 2,
     gap: 8,
     flexDirection: 'row',
+    alignItems: 'center',
   },
   filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 36,
+    paddingHorizontal: 16,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
+  },
+  listScroll: {
+    flex: 1,
   },
   center: {
     flex: 1,

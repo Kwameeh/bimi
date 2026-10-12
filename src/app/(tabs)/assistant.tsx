@@ -389,6 +389,7 @@ export default function AssistantScreen() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
+              style={styles.headerToolsScroll}
               contentContainerStyle={styles.headerTools}
             >
               <Pressable
@@ -1048,11 +1049,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: Fonts.sansBold,
   },
+  headerToolsScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   headerTools: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     paddingRight: 4,
   },
   modelChip: {
+    alignSelf: 'center',
     height: 32,
     paddingHorizontal: 10,
     borderRadius: 999,
@@ -1067,6 +1075,7 @@ const styles = StyleSheet.create({
     maxWidth: 130,
   },
   toolChip: {
+    alignSelf: 'center',
     height: 32,
     paddingHorizontal: 10,
     borderRadius: 16,
