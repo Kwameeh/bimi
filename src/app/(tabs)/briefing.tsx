@@ -15,7 +15,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ActionPlanCard } from '@/components/briefing/action-plan-card';
-import { BriefingSection, type SectionRow } from '@/components/briefing/section-list';
+import { AttentionFeed, type AttentionItem } from '@/components/briefing/attention-feed';
+import { BriefingPulseCard, type FilterCategory } from '@/components/briefing/briefing-pulse-card';
+import {
+  IntelBento,
+  type IntelAutoReply,
+  type IntelDocument,
+  type IntelFyi,
+  type IntelTrend,
+} from '@/components/briefing/intel-bento';
+import { MeetingAgenda, type AgendaMeeting } from '@/components/briefing/meeting-agenda';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { confirmDestructive } from '@/components/ui/selection-bar';
@@ -132,6 +141,7 @@ export default function BriefingScreen() {
   const askMissed = useAction(api.summaries.askMissedSummary);
   const [refreshing, setRefreshing] = useState(false);
   const [range, setRange] = useState<Range>('today');
+  const [filter, setFilter] = useState<FilterCategory>('all');
   const [live, setLive] = useState<{ range: Range; data: LiveSections } | null>(null);
 
   const openChat = (contactId: Id<'contacts'>) => {
@@ -233,7 +243,6 @@ export default function BriefingScreen() {
   const liveLoading = usingLive && live?.range !== range;
   const liveData = live?.range === range ? live.data : null;
 
-  // Choose source based on mode
   const data: LiveSections | null = usingLive
     ? liveData
     : summary
@@ -247,55 +256,109 @@ export default function BriefingScreen() {
         }
       : null;
 
-  const urgentRows: SectionRow[] = (data?.urgent ?? []).map((r) => ({
-    key: r.messageId,
-    title: r.contactName ?? 'Unknown',
-    subtitle: r.preview,
+  // 1. Attention Items (Urgent & Needs Reply)
+  const urgentAttentionItems: AttentionItem[] = (data?.urgent ?? []).map((r) => ({
+    id: r.messageId,
+    contactId: r.contactId,
+    contactName: r.contactName ?? 'Unknown',
+    preview: r.preview,
+    type: 'urgent',
     onPress: () => openChat(r.contactId),
   }));
-  const needsReplyRows: SectionRow[] = (data?.needsReply ?? []).map((r) => ({
-    key: r.messageId,
-    title: r.contactName ?? 'Unknown',
-    subtitle: r.preview,
+
+  const needsReplyAttentionItems: AttentionItem[] = (data?.needsReply ?? []).map((r) => ({
+    id: r.messageId,
+    contactId: r.contactId,
+    contactName: r.contactName ?? 'Unknown',
+    preview: r.preview,
+    type: 'needsReply',
     onPress: () => openChat(r.contactId),
   }));
-  const taskRows: SectionRow[] =
-    isToday && summary
-      ? summary.tasks.map((t) => ({
-          key: t.taskId,
-          title: t.title,
-          subtitle: t.dueAt ? `Due ${new Date(t.dueAt).toLocaleDateString()}` : undefined,
-        }))
-      : [];
-  const meetingRows: SectionRow[] = (data?.meetings ?? []).map((r) => ({
-    key: r.messageId,
-    title: r.contactName ?? 'Unknown',
-    subtitle: r.preview,
+
+  const allAttentionItems = [...urgentAttentionItems, ...needsReplyAttentionItems];
+
+  const filteredAttentionItems =
+    filter === 'urgent'
+      ? urgentAttentionItems
+      : filter === 'needsReply'
+        ? needsReplyAttentionItems
+        : allAttentionItems;
+
+  // 2. Meetings
+  const pendingMeetingItems: AgendaMeeting[] = (pendingMeetings ?? []).map((entry) => {
+    const m = entry.meeting;
+    const firstTime = m.proposedTimes?.[0];
+    const timeLabel = firstTime
+      ? new Date(firstTime.startAt).toLocaleString(undefined, {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        })
+      : 'Time pending';
+    return {
+      id: m._id,
+      contactId: m.contactId,
+      contactName: entry.contactName ?? 'Unknown',
+      title: m.title,
+      timeLabel,
+      isPending: true,
+      onPress: () => openChat(m.contactId),
+      onDelete: () =>
+        confirmDestructive({
+          title: 'Delete this meeting?',
+          message: 'It clears from your briefing and the chat. The contact is not told anything.',
+          confirmLabel: 'Delete',
+          onConfirm: () => void removeMeeting({ meetingId: m._id }),
+        }),
+    };
+  });
+
+  const summaryMeetingItems: AgendaMeeting[] = (data?.meetings ?? []).map((r) => ({
+    id: r.messageId,
+    contactId: r.contactId,
+    contactName: r.contactName ?? 'Unknown',
+    title: r.preview,
+    timeLabel: 'Detected in conversation',
+    isPending: false,
     onPress: () => openChat(r.contactId),
   }));
-  const documentRows: SectionRow[] = (data?.documents ?? []).map((r) => ({
+
+  const allMeetings: AgendaMeeting[] = isToday
+    ? [...pendingMeetingItems, ...summaryMeetingItems]
+    : summaryMeetingItems;
+
+  // 3. Tasks
+  const taskRows = isToday && summary ? summary.tasks : [];
+
+  // 4. Documents & Intelligence
+  const documentItems: IntelDocument[] = (data?.documents ?? []).map((r) => ({
     key: r.messageId,
-    title: r.contactName ?? 'Unknown',
-    subtitle: r.fileName,
+    contactName: r.contactName ?? 'Unknown',
+    fileName: r.fileName,
     onPress: () => openChat(r.contactId),
   }));
-  const autoRepliedRows: SectionRow[] = (data?.autoReplied ?? []).map((r) => ({
+
+  const autoRepliedItems: IntelAutoReply[] = (data?.autoReplied ?? []).map((r) => ({
     key: r.messageId,
-    title: r.contactName ?? 'Unknown',
-    subtitle: r.preview,
+    contactName: r.contactName ?? 'Unknown',
+    preview: r.preview,
     onPress: () => openChat(r.contactId),
   }));
-  const fyiRows: SectionRow[] = (data?.fyi ?? []).map((r) => ({
+
+  const fyiItems: IntelFyi[] = (data?.fyi ?? []).map((r) => ({
     key: r.messageId,
-    title: r.contactName ?? 'Unknown',
-    subtitle: r.preview,
+    contactName: r.contactName ?? 'Unknown',
+    preview: r.preview,
     onPress: () => openChat(r.contactId),
   }));
-  const trendRows: SectionRow[] =
+
+  const trendItems: IntelTrend[] =
     isToday && summary?.trends
       ? summary.trends.map((t, idx) => ({
           key: `trend-${idx}-${t.label}`,
-          title: t.label,
+          label: t.label,
           subtitle:
             t.contactIds.length > 0
               ? `${t.contactIds.length} contact${t.contactIds.length === 1 ? '' : 's'}${
@@ -311,6 +374,7 @@ export default function BriefingScreen() {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safe} edges={['top']}>
+        {/* Header Section */}
         <View style={[styles.header, wide && styles.maxWidth]}>
           <ThemedText style={styles.headerTitle} selectable>
             {isToday ? "Today's briefing" : rangeToMs(range, pref?.lastOpenedAt).label}
@@ -322,6 +386,7 @@ export default function BriefingScreen() {
           ) : null}
         </View>
 
+        {/* Range Selector Chips */}
         <View style={[styles.rangeContainer, wide && styles.maxWidth]}>
           <ScrollView
             horizontal
@@ -335,7 +400,10 @@ export default function BriefingScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                   key={opt.key}
-                  onPress={() => setRange(opt.key)}
+                  onPress={() => {
+                    setRange(opt.key);
+                    setFilter('all');
+                  }}
                   style={({ pressed }) => [
                     styles.rangeChip,
                     { borderColor: theme.border, opacity: pressed ? 0.72 : 1 },
@@ -373,147 +441,90 @@ export default function BriefingScreen() {
               />
             }
           >
-            <View
-              style={[
-                styles.summaryStrip,
-                {
-                  backgroundColor: theme.backgroundElement,
-                  borderColor: theme.border,
-                },
-              ]}
-            >
-              <View>
-                <Text style={[styles.summaryNumber, { color: theme.danger }]}>
-                  {urgentRows.length}
-                </Text>
-                <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Urgent</Text>
-              </View>
-              <View style={[styles.summaryDivider, { backgroundColor: theme.border }]} />
-              <View>
-                <Text style={[styles.summaryNumber, { color: theme.primary }]}>
-                  {needsReplyRows.length}
-                </Text>
-                <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>
-                  Need reply
-                </Text>
-              </View>
-              <View style={[styles.summaryDivider, { backgroundColor: theme.border }]} />
-              <View>
-                <Text style={[styles.summaryNumber, { color: theme.text }]}>{taskRows.length}</Text>
-                <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Tasks</Text>
-              </View>
-            </View>
-            <View style={[styles.grid, wide && styles.gridWide]}>
-              {isToday && summary && (summary.actionPlan?.length ?? 0) > 0 ? (
-                <View style={styles.gridItem}>
+            {/* 1. Executive Focus Pulse Card */}
+            <BriefingPulseCard
+              urgentCount={urgentAttentionItems.length}
+              needsReplyCount={needsReplyAttentionItems.length}
+              meetingsCount={allMeetings.length}
+              tasksCount={taskRows.length}
+              activeFilter={filter}
+              onSelectFilter={setFilter}
+            />
+
+            {/* 2. Unified Action Center (Urgent & Needs Reply Feed) */}
+            {filter === 'all' || filter === 'urgent' || filter === 'needsReply' ? (
+              <AttentionFeed items={filteredAttentionItems} />
+            ) : null}
+
+            {/* 3. Action Plan & Extracted Tasks */}
+            {filter === 'all' || filter === 'tasks' ? (
+              <>
+                {isToday && summary && (summary.actionPlan?.length ?? 0) > 0 ? (
                   <ActionPlanCard summary={summary} />
-                </View>
-              ) : null}
-              {isToday ? (
-                <BriefingSection
-                  title="Pending meetings"
-                  rows={(pendingMeetings ?? []).map((entry) => {
-                    const m = entry.meeting;
-                    const firstTime = m.proposedTimes?.[0];
-                    const timeLabel = firstTime
-                      ? new Date(firstTime.startAt).toLocaleString(undefined, {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                        })
-                      : 'No time proposed';
-                    return {
-                      key: m._id,
-                      title: entry.contactName ?? 'Unknown',
-                      subtitle: `${timeLabel}${m.title ? ` · ${m.title}` : ''}`,
-                      onPress: () =>
-                        router.push({
-                          pathname: '/chat/[contactId]',
-                          params: { contactId: m.contactId },
-                        }),
-                      // Meetings are extracted automatically, so a misread used to
-                      // sit here permanently with no way to clear it.
-                      onDelete: () =>
-                        confirmDestructive({
-                          title: 'Delete this meeting?',
-                          message:
-                            'It clears from your briefing and the chat. The contact is not told anything.',
-                          confirmLabel: 'Delete',
-                          onConfirm: () => void removeMeeting({ meetingId: m._id }),
-                        }),
-                    };
-                  })}
-                  emptyText="No pending meetings."
-                  defaultOpen
-                  accent="#8B7FFF"
-                  icon="◷"
-                />
-              ) : null}
-              <BriefingSection
-                title="Urgent"
-                rows={urgentRows}
-                emptyText="Nothing urgent."
-                accent={theme.danger}
-                icon="!"
+                ) : null}
+
+                {taskRows.length > 0 ? (
+                  <View style={styles.tasksSection}>
+                    <View style={styles.tasksHeader}>
+                      <Text style={[styles.tasksTitle, { color: theme.text }]}>
+                        Extracted Tasks
+                      </Text>
+                      <Pressable onPress={() => router.push('/(tabs)/tasks')} hitSlop={6}>
+                        <Text style={[styles.viewAllTasks, { color: theme.primary }]}>
+                          View all tasks ›
+                        </Text>
+                      </Pressable>
+                    </View>
+                    <View style={styles.tasksList}>
+                      {taskRows.map((t) => (
+                        <Pressable
+                          key={t.taskId}
+                          onPress={() => router.push('/(tabs)/tasks')}
+                          style={[
+                            styles.taskItem,
+                            {
+                              backgroundColor: theme.backgroundElement,
+                              borderColor: theme.border,
+                            },
+                          ]}
+                        >
+                          <View style={[styles.taskBullet, { backgroundColor: '#F59E0B' }]} />
+                          <View style={styles.taskTextGroup}>
+                            <Text
+                              numberOfLines={1}
+                              style={[styles.taskItemTitle, { color: theme.text }]}
+                            >
+                              {t.title}
+                            </Text>
+                            {t.dueAt ? (
+                              <Text style={[styles.taskDueText, { color: theme.textSecondary }]}>
+                                Due {new Date(t.dueAt).toLocaleDateString()}
+                              </Text>
+                            ) : null}
+                          </View>
+                          <Text style={[styles.taskArrow, { color: theme.textSecondary }]}>›</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+              </>
+            ) : null}
+
+            {/* 4. Scheduled & Pending Meetings */}
+            {filter === 'all' || filter === 'meetings' ? (
+              <MeetingAgenda meetings={allMeetings} />
+            ) : null}
+
+            {/* 5. Intelligence Bento: Documents, AI Activity & Trends */}
+            {filter === 'all' ? (
+              <IntelBento
+                documents={documentItems}
+                autoReplied={autoRepliedItems}
+                fyi={fyiItems}
+                trends={trendItems}
               />
-              <BriefingSection
-                title="Needs reply"
-                rows={needsReplyRows}
-                emptyText="No messages waiting for a reply."
-                accent={theme.primary}
-                icon="↩"
-              />
-              {isToday ? (
-                <BriefingSection
-                  title="Tasks"
-                  rows={taskRows}
-                  emptyText="No new tasks."
-                  accent="#F59E0B"
-                  icon="✓"
-                />
-              ) : null}
-              <BriefingSection
-                title="Meetings"
-                rows={meetingRows}
-                emptyText="No meetings detected."
-                accent="#8B7FFF"
-                icon="◷"
-              />
-              <BriefingSection
-                title="Documents"
-                rows={documentRows}
-                emptyText="No documents received."
-                accent="#14B8A6"
-                icon="□"
-              />
-              <BriefingSection
-                title="Auto-replied"
-                rows={autoRepliedRows}
-                emptyText="Bimi didn't auto-reply to anything."
-                accent="#22C55E"
-                icon="↗"
-              />
-              <BriefingSection
-                title="FYI"
-                rows={fyiRows}
-                emptyText="No FYI updates."
-                defaultOpen={false}
-                accent="#64748B"
-                icon="i"
-              />
-              {isToday ? (
-                <BriefingSection
-                  title="Trends & patterns"
-                  rows={trendRows}
-                  emptyText="No notable patterns today."
-                  defaultOpen
-                  accent="#EC4899"
-                  icon="⌁"
-                />
-              ) : null}
-            </View>
+            ) : null}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -572,31 +583,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   scrollWide: { maxWidth: 920 },
-  grid: { gap: 14 },
-  gridWide: { gap: 16 },
-  gridItem: { minWidth: 340, flexGrow: 1, flexBasis: 480 },
-  summaryStrip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 18,
-    paddingVertical: 14,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  summaryNumber: {
-    textAlign: 'center',
-    fontSize: 20,
-    lineHeight: 24,
-    fontFamily: Fonts.sansExtraBold,
-    fontVariant: ['tabular-nums'],
-  },
-  summaryLabel: { fontSize: 11, lineHeight: 16, fontFamily: Fonts.sansSemiBold },
-  summaryDivider: { width: StyleSheet.hairlineWidth, height: 30 },
   center: {
     flex: 1,
     alignItems: 'center',
@@ -609,5 +595,55 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 8,
+  },
+  tasksSection: {
+    gap: 10,
+  },
+  tasksHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+  },
+  tasksTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.sansBold,
+    letterSpacing: -0.2,
+  },
+  viewAllTasks: {
+    fontSize: 13,
+    fontFamily: Fonts.sansSemiBold,
+  },
+  tasksList: {
+    gap: 8,
+  },
+  taskItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  taskBullet: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  taskTextGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  taskItemTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.sansSemiBold,
+  },
+  taskDueText: {
+    fontSize: 12,
+    fontFamily: Fonts.sans,
+  },
+  taskArrow: {
+    fontSize: 16,
+    fontFamily: Fonts.sansBold,
   },
 });

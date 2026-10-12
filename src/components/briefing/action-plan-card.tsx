@@ -1,9 +1,9 @@
 import { useMutation } from 'convex/react';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { Fonts, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 import { api } from '../../../convex/_generated/api';
@@ -21,6 +21,9 @@ export function ActionPlanCard({ summary }: Props) {
 
   if (plan.length === 0) return null;
 
+  const completedCount = plan.filter((item) => Boolean(item.doneAt)).length;
+  const progressRatio = plan.length > 0 ? completedCount / plan.length : 0;
+
   const onOpenContact = (contactId: Id<'contacts'> | undefined) => {
     if (!contactId) return;
     router.push({
@@ -29,107 +32,218 @@ export function ActionPlanCard({ summary }: Props) {
     });
   };
 
-  const onLongPress = (order: number, done: boolean) => {
+  const handleToggle = (order: number, done: boolean) => {
     if (done) return;
-    Alert.alert('Mark this item done?', undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Mark done',
-        onPress: () => markDone({ summaryId: summary._id, order }),
-      },
-    ]);
+    void markDone({ summaryId: summary._id, order });
   };
 
   const priorityColor = (p: string): string => {
-    if (p === 'urgent') return '#B91C1C';
-    if (p === 'high') return '#92400E';
+    if (p === 'urgent') return theme.danger;
+    if (p === 'high') return '#F59E0B';
     return theme.textSecondary;
   };
 
   return (
     <View
-      style={[styles.wrap, { borderColor: theme.border, backgroundColor: theme.backgroundElement }]}
+      style={[
+        styles.wrap,
+        {
+          borderColor: theme.border,
+          backgroundColor: theme.backgroundElement,
+          shadowColor: '#000',
+          shadowOpacity: 0.04,
+          shadowOffset: { width: 0, height: 4 },
+          shadowRadius: 10,
+          elevation: 2,
+        },
+      ]}
     >
-      <ThemedText type="smallBold">Today’s plan</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary" style={{ marginTop: 2, marginBottom: 8 }}>
-        Tap to open the chat · long-press to mark done
-      </ThemedText>
+      <View style={styles.header}>
+        <View style={styles.headerTitleGroup}>
+          <Text style={[styles.title, { color: theme.text }]}>Today’s Plan</Text>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+            {completedCount === plan.length
+              ? 'All priorities completed!'
+              : `${completedCount} of ${plan.length} completed`}
+          </Text>
+        </View>
+        <View style={[styles.badge, { backgroundColor: `${theme.primary}15` }]}>
+          <Text style={[styles.badgeText, { color: theme.primary }]}>
+            {Math.round(progressRatio * 100)}%
+          </Text>
+        </View>
+      </View>
 
-      {plan.map((item) => {
-        const done = !!item.doneAt;
-        return (
-          <Pressable
-            key={item.order}
-            onPress={() => onOpenContact(item.contactId)}
-            onLongPress={() => onLongPress(item.order, done)}
-            delayLongPress={350}
-            style={({ pressed }) => [
-              styles.row,
-              { borderBottomColor: theme.border },
-              pressed && { opacity: 0.7 },
-            ]}
-          >
+      <View style={[styles.progressBarBg, { backgroundColor: theme.surface }]}>
+        <View
+          style={[
+            styles.progressBarFill,
+            {
+              backgroundColor: theme.primary,
+              width: `${Math.max(progressRatio * 100, 4)}%`,
+            },
+          ]}
+        />
+      </View>
+
+      <View style={styles.list}>
+        {plan.map((item) => {
+          const done = Boolean(item.doneAt);
+          const pColor = priorityColor(item.priority);
+
+          return (
             <View
+              key={item.order}
               style={[
-                styles.numberCircle,
-                { borderColor: priorityColor(item.priority) },
-                done && { opacity: 0.4 },
+                styles.row,
+                {
+                  borderBottomColor: theme.border,
+                  opacity: done ? 0.6 : 1,
+                },
               ]}
             >
-              <Text style={[styles.numberText, { color: priorityColor(item.priority) }]}>
-                {item.order}
-              </Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text
+              <Pressable
+                hitSlop={8}
+                onPress={() => handleToggle(item.order, done)}
                 style={[
-                  styles.action,
-                  { color: theme.text },
-                  done && {
-                    textDecorationLine: 'line-through',
-                    color: theme.textSecondary,
+                  styles.checkbox,
+                  {
+                    borderColor: done ? theme.primary : pColor,
+                    backgroundColor: done ? theme.primary : 'transparent',
                   },
                 ]}
               >
-                {item.action}
-              </Text>
-              {item.reason ? (
-                <Text style={[styles.reason, { color: theme.textSecondary }]} numberOfLines={2}>
-                  {item.reason}
+                {done ? (
+                  <Text style={[styles.checkText, { color: theme.primaryText }]}>✓</Text>
+                ) : (
+                  <Text style={[styles.orderText, { color: pColor }]}>{item.order}</Text>
+                )}
+              </Pressable>
+
+              <Pressable onPress={() => onOpenContact(item.contactId)} style={styles.textContainer}>
+                <Text
+                  style={[
+                    styles.action,
+                    {
+                      color: theme.text,
+                      textDecorationLine: done ? 'line-through' : 'none',
+                    },
+                  ]}
+                >
+                  {item.action}
                 </Text>
+                {item.reason ? (
+                  <Text style={[styles.reason, { color: theme.textSecondary }]} numberOfLines={2}>
+                    {item.reason}
+                  </Text>
+                ) : null}
+              </Pressable>
+
+              {item.contactId ? (
+                <Pressable
+                  hitSlop={6}
+                  onPress={() => onOpenContact(item.contactId)}
+                  style={styles.openChatIcon}
+                >
+                  <Text style={[styles.arrow, { color: theme.textSecondary }]}>›</Text>
+                </Pressable>
               ) : null}
             </View>
-            {done ? <Text style={{ color: theme.textSecondary, fontSize: 16 }}>✓</Text> : null}
-          </Pressable>
-        );
-      })}
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    borderRadius: 12,
+    borderRadius: 18,
+    borderCurve: 'continuous',
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 12,
-    marginBottom: 4,
+    padding: Spacing.four,
+    gap: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTitleGroup: {
+    gap: 2,
+  },
+  title: {
+    fontSize: 16,
+    fontFamily: Fonts.sansBold,
+    letterSpacing: -0.2,
+  },
+  subtitle: {
+    fontSize: 12,
+    fontFamily: Fonts.sans,
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontFamily: Fonts.sansBold,
+  },
+  progressBarBg: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  list: {
+    paddingTop: 4,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 8,
+    gap: 12,
+    paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  numberCircle: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  checkbox: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  numberText: { fontSize: 12, fontWeight: '700' },
-  action: { fontSize: 14, fontWeight: '600' },
-  reason: { fontSize: 11, marginTop: 2 },
+  checkText: {
+    fontSize: 12,
+    fontFamily: Fonts.sansBold,
+  },
+  orderText: {
+    fontSize: 11,
+    fontFamily: Fonts.sansBold,
+  },
+  textContainer: {
+    flex: 1,
+    gap: 2,
+  },
+  action: {
+    fontSize: 14,
+    lineHeight: 19,
+    fontFamily: Fonts.sansSemiBold,
+  },
+  reason: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontFamily: Fonts.sans,
+  },
+  openChatIcon: {
+    paddingHorizontal: 4,
+  },
+  arrow: {
+    fontSize: 18,
+    fontFamily: Fonts.sansBold,
+  },
 });

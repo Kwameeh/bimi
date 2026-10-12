@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from 'convex/react';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -98,8 +98,10 @@ function TasksList({ instance }: { instance: string }) {
   const setStatus = useMutation(api.tasks.setStatus);
   const remove = useMutation(api.tasks.remove);
   const removeMany = useMutation(api.tasks.removeMany);
+  const mergeDuplicates = useMutation(api.tasks.mergeDuplicates);
   const selection = useSelection<Id<'tasks'>>();
   const [deleting, setDeleting] = useState(false);
+  const [merging, setMerging] = useState(false);
 
   const openSource = (contactId: Id<'contacts'> | undefined) => {
     if (!contactId) return;
@@ -113,6 +115,25 @@ function TasksList({ instance }: { instance: string }) {
       selection.exit();
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleMergeDuplicates = async () => {
+    setMerging(true);
+    try {
+      const res = await mergeDuplicates({ instance });
+      if (res.mergedCount > 0) {
+        Alert.alert(
+          'Duplicates cleaned',
+          `Merged ${res.mergedCount} duplicate task${res.mergedCount === 1 ? '' : 's'}.`,
+        );
+      } else {
+        Alert.alert('No duplicates', 'All open tasks are distinct.');
+      }
+    } catch (err) {
+      Alert.alert('Merge failed', err instanceof Error ? err.message : String(err));
+    } finally {
+      setMerging(false);
     }
   };
 
@@ -161,36 +182,50 @@ function TasksList({ instance }: { instance: string }) {
         />
       ) : (
         <View style={styles.toolbar}>
-          {done.length > 0 ? (
-            <Pressable
-              onPress={() =>
-                confirmDestructive({
-                  title: `Clear ${done.length} completed task${done.length === 1 ? '' : 's'}?`,
-                  message: 'This cannot be undone.',
-                  confirmLabel: 'Clear',
-                  onConfirm: () => {
-                    void deleteInChunks(
-                      done.map((t) => t._id),
-                      (taskIds) => removeMany({ taskIds }),
-                    );
-                  },
-                })
-              }
-              hitSlop={8}
-            >
-              <Text
-                style={{
-                  color: theme.textSecondary,
-                  fontSize: 14,
-                  fontWeight: '600',
-                }}
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+            {done.length > 0 ? (
+              <Pressable
+                onPress={() =>
+                  confirmDestructive({
+                    title: `Clear ${done.length} completed task${done.length === 1 ? '' : 's'}?`,
+                    message: 'This cannot be undone.',
+                    confirmLabel: 'Clear',
+                    onConfirm: () => {
+                      void deleteInChunks(
+                        done.map((t) => t._id),
+                        (taskIds) => removeMany({ taskIds }),
+                      );
+                    },
+                  })
+                }
+                hitSlop={8}
               >
-                Clear done
-              </Text>
-            </Pressable>
-          ) : (
-            <View />
-          )}
+                <Text
+                  style={{
+                    color: theme.textSecondary,
+                    fontSize: 14,
+                    fontWeight: '600',
+                  }}
+                >
+                  Clear done
+                </Text>
+              </Pressable>
+            ) : null}
+            {open.length > 1 ? (
+              <Pressable onPress={handleMergeDuplicates} disabled={merging} hitSlop={8}>
+                <Text
+                  style={{
+                    color: theme.primary,
+                    fontSize: 14,
+                    fontWeight: '600',
+                    opacity: merging ? 0.5 : 1,
+                  }}
+                >
+                  {merging ? 'Cleaning…' : 'Clean duplicates'}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
           <SelectButton onPress={selection.enter} />
         </View>
       )}
@@ -212,6 +247,7 @@ function TasksList({ instance }: { instance: string }) {
                 priority={t.priority ?? undefined}
                 done={false}
                 isAi={t.createdBy === 'ai'}
+                mentionCount={t.mentionCount}
                 onOpenSource={
                   t.contactId ? () => openSource(t.contactId as Id<'contacts'>) : undefined
                 }
@@ -241,6 +277,7 @@ function TasksList({ instance }: { instance: string }) {
                 description={t.description ?? undefined}
                 done
                 isAi={t.createdBy === 'ai'}
+                mentionCount={t.mentionCount}
                 onToggle={() => setStatus({ taskId: t._id, status: 'open' })}
                 onDelete={() => remove({ taskId: t._id })}
                 {...rowProps(t)}
@@ -260,6 +297,7 @@ function TaskRow(props: {
   priority?: 'urgent' | 'high' | 'normal' | 'low';
   done: boolean;
   isAi?: boolean;
+  mentionCount?: number;
   onToggle: () => void;
   onDelete: () => void;
   onOpenSource?: () => void;
@@ -324,6 +362,13 @@ function TaskRow(props: {
           {props.isAi ? (
             <View style={[styles.aiChip, { backgroundColor: theme.aiAccent }]}>
               <Text style={styles.aiChipText}>✦ AI</Text>
+            </View>
+          ) : null}
+          {props.mentionCount && props.mentionCount > 1 ? (
+            <View style={[styles.mentionChip, { backgroundColor: theme.backgroundSelected }]}>
+              <Text style={[styles.mentionChipText, { color: theme.textSecondary }]}>
+                ✦ {props.mentionCount} chats
+              </Text>
             </View>
           ) : null}
           {props.dueAt ? (
@@ -684,6 +729,15 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansBold,
     color: '#FFFFFF',
     letterSpacing: 0.4,
+  },
+  mentionChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  mentionChipText: {
+    fontSize: 10,
+    fontFamily: Fonts.sansSemiBold,
   },
   taskDue: { fontSize: 12, fontFamily: Fonts.sans },
   openSource: { fontSize: 12, fontFamily: Fonts.sansSemiBold },

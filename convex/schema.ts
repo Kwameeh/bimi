@@ -314,6 +314,10 @@ export default defineSchema({
     status: v.union(v.literal('open'), v.literal('done')),
     completedAt: v.optional(v.number()),
     createdBy: v.union(v.literal('user'), v.literal('ai')),
+    mentionCount: v.optional(v.number()),
+    sourceContactIds: v.optional(v.array(v.id('contacts'))),
+    sourceMessageIds: v.optional(v.array(v.id('messages'))),
+    lastMentionedAt: v.optional(v.number()),
   })
     .index('by_instance_and_status', ['instance', 'status'])
     .index('by_contact', ['contactId'])
