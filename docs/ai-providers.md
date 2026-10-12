@@ -14,35 +14,125 @@ Set provider credentials and selection settings on the **Convex backend**. The E
 | `deepseek`          | `DEEPSEEK_API_KEY`                                        | `DEEPSEEK_MODEL`                        | `DEEPSEEK_MODELS`                        |
 | `openai-compatible` | `OPENAI_COMPATIBLE_API_KEY`, `OPENAI_COMPATIBLE_BASE_URL` | `OPENAI_COMPATIBLE_MODEL`               | `OPENAI_COMPATIBLE_MODELS`               |
 
-Additional lists are comma-separated native model IDs. A provider appears only with credentials, required endpoint settings, and at least one model. Cloudflare retains the existing curated list. Other providers require explicit models, so deployments can select models available to their accounts. Assistant models must support native tool calling.
+Additional lists (`*_MODELS`) are comma-separated native model IDs made selectable in the client's assistant model picker. A provider appears in the picker only with valid credentials and at least one model. Assistant models must support native tool calling.
 
-`BIMI_AI_MODEL` overrides the default for the selected provider. Optional `BIMI_AI_TEXT_MODEL`, `BIMI_AI_JSON_MODEL`, `BIMI_AI_REPLY_MODEL`, and `BIMI_AI_SUMMARY_MODEL` override background tasks on that same provider. These values are native model IDs, without a Bimi provider prefix.
+---
 
-Saved conversation selections use `provider/model`, such as `openai/your-model-id`; Cloudflare IDs retain their existing format. Changing the deployment default affects conversations without an explicit selection and background tasks. Explicit selections stay on their chosen provider. Removed providers/models produce an actionable error rather than automatically sending data elsewhere.
+## Model resolution hierarchy & background tasks
 
-Without new settings, existing Cloudflare assistant, chat, summary, and JSON-extraction defaults apply. `CLOUDFLARE_WORKERS_AI_CHAT_MODEL` and `CLOUDFLARE_WORKERS_AI_SUMMARY_MODEL` remain supported.
+Bimi categorizes text operations into **5 distinct task purposes**:
 
-Compatible endpoint base URLs must include the service's API prefix, such as `http://localhost:8000/v1`. The URL must be reachable **from Convex**; localhost only works with the appropriate backend/model-server network. Supply a placeholder key for endpoints that need no authentication. Set `OPENAI_COMPATIBLE_STRUCTURED_OUTPUTS=true` only if JSON schema output is implemented. Schema extraction falls back to a JSON prompt when structured output fails; feature parsers validate results.
+| Purpose     | Task in Bimi              | What it executes                                                       |
+| :---------- | :------------------------ | :--------------------------------------------------------------------- |
+| `assistant` | Assistant Chat Tab        | Interactive chat turns with tool calling and response streaming        |
+| `reply`     | WhatsApp Replies & Drafts | Auto-replies and proposed draft suggestions for incoming messages      |
+| `summary`   | Summaries & Briefings     | Conversation summaries, group chat digests, and daily briefings        |
+| `json`      | Memory Extraction & Goals | Intent classification, entity/memory extraction, contact goal strategy |
+| `text`      | General Fallback          | Ad-hoc text operations                                                 |
 
-## Example: mix providers
+Whenever a task executes, Bimi determines the model using a **4-tier resolution hierarchy**:
+
+1. **Specific Task Override**:
+   - `BIMI_AI_REPLY_MODEL`: Model used for WhatsApp reply drafts
+   - `BIMI_AI_SUMMARY_MODEL`: Model used for conversation and group digests
+   - `BIMI_AI_JSON_MODEL`: Model used for structured schema/memory extraction & goal evaluation
+   - `BIMI_AI_TEXT_MODEL`: Model used for general text tasks
+2. **Global Text Override (`BIMI_AI_MODEL`)**:
+   - If set, overrides all tasks across the selected provider unless a specific task override above is set.
+3. **Provider Default (`<PROVIDER>_MODEL`)**:
+   - The primary model configured for that provider (e.g. `DEEPSEEK_MODEL`, `GROQ_MODEL`, `OPENAI_MODEL`, `ANTHROPIC_MODEL`).
+   - **If no task-specific overrides are set, this single model automatically handles all 5 tasks.**
+4. **Cloudflare Fallbacks**:
+   - Hardcoded Cloudflare model defaults apply _only_ when `BIMI_AI_PROVIDER=cloudflare` and no other settings are given.
+
+---
+
+## Switching providers: single model vs. task specialization
+
+When switching from Cloudflare to DeepSeek, Groq, OpenAI, or Anthropic, you can choose between two approaches:
+
+### Option 1: Simple 1-model setup (recommended to start)
+
+Provide only the provider name, API key, and default model. That model will power the assistant, replies, summaries, and extraction:
+
+```dotenv
+BIMI_AI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=sk-your-deepseek-key
+DEEPSEEK_MODEL=deepseek-chat
+```
+
+### Option 2: Task-specialized setup (cost & latency optimized)
+
+You can assign lightweight, fast models to high-frequency background operations (summaries, replies) and reserve larger, reasoning-capable models for the assistant and tool calling:
+
+```dotenv
+BIMI_AI_PROVIDER=groq
+GROQ_API_KEY=gsk-your-groq-key
+
+# Strong 70B model for tool-calling assistant and JSON extraction
+GROQ_MODEL=llama-3.3-70b-versatile
+BIMI_AI_JSON_MODEL=llama-3.3-70b-versatile
+
+# Ultra-fast 8B model for WhatsApp replies and daily summaries
+BIMI_AI_REPLY_MODEL=llama-3.1-8b-instant
+BIMI_AI_SUMMARY_MODEL=llama-3.1-8b-instant
+```
+
+---
+
+## In-app model picker vs. background tasks
+
+- **Assistant conversations**: Saved threads use `provider/model` (e.g. `deepseek/deepseek-chat`, `anthropic/claude-3-5-sonnet-latest`). Changing a model in the chat thread header affects **only that conversation**.
+- **System tasks**: WhatsApp replies, contact goal evaluations, and scheduled summary crons **always** run on the backend-configured environment models.
+- **Removed models**: If a model selected in a past conversation is removed from your environment, Bimi surfaces an actionable prompt to choose an available model instead of silently rerouting data.
+
+---
+
+## Example: DeepSeek configuration
+
+DeepSeek operates as a first-class provider via Bimi's OpenAI-compatible adapter:
+
+```dotenv
+BIMI_AI_PROVIDER=deepseek
+DEEPSEEK_API_KEY=sk-your-deepseek-key
+DEEPSEEK_MODEL=deepseek-chat
+
+# Optionally expose both DeepSeek V3 and DeepSeek R1 in the conversation picker:
+DEEPSEEK_MODELS=deepseek-chat,deepseek-reasoner
+
+# DeepSeek is text-only: pair with a vision provider for image analysis
+BIMI_VISION_PROVIDER=cloudflare
+```
+
+> [!NOTE]
+> `deepseek-chat` (DeepSeek V3) is recommended for assistant chat and contact goals because it supports native function/tool calling. If you select `deepseek-reasoner` (R1) for chat, Bimi's stream engine automatically captures thoughts from `reasoningText`.
+
+---
+
+## Example: multi-provider mix
 
 Set these on Convex, substituting model IDs from the providers' current catalogs:
 
 ```dotenv
 BIMI_AI_PROVIDER=anthropic
 ANTHROPIC_API_KEY=your-private-key
-ANTHROPIC_MODEL=your-claude-model-id
+ANTHROPIC_MODEL=claude-3-5-sonnet-latest
 
-# Another provider becomes selectable for conversations.
+# Offload frequent background summaries to Claude Haiku
+BIMI_AI_SUMMARY_MODEL=claude-3-5-haiku-latest
+BIMI_AI_REPLY_MODEL=claude-3-5-haiku-latest
+
+# Another provider becomes selectable for conversations in the app
 DEEPSEEK_API_KEY=your-private-key
-DEEPSEEK_MODEL=your-deepseek-model-id
+DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_MODELS=deepseek-chat,deepseek-reasoner
 
-# Images use a vision-capable Gemini model.
+# Images use a vision-capable Gemini model
 BIMI_VISION_PROVIDER=google
 GOOGLE_GENERATIVE_AI_API_KEY=your-private-key
 BIMI_VISION_MODEL=your-gemini-vision-model-id
 
-# Voice notes and fallback voice input use Whisper on Groq.
+# Voice notes and fallback voice input use Whisper on Groq
 BIMI_TRANSCRIPTION_PROVIDER=groq
 GROQ_API_KEY=your-private-key
 BIMI_TRANSCRIPTION_MODEL=whisper-large-v3-turbo
