@@ -8,7 +8,9 @@
     "scheme": "bimi",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.kwameeh.bimi",
+      "icon": "./assets/expo.icon",
+      "supportsTablet": true
     },
     "android": {
       "package": "com.kwameeh.bimi",
