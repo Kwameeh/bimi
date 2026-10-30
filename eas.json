@@ -30,6 +30,18 @@
         "EXPO_PUBLIC_BIMI_INSTANCE": "kwameeh"
       }
     },
+    "preview-simulator": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://api.convex.twumdufe.com",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://site.convex.twumdufe.com",
+        "EXPO_PUBLIC_BIMI_INSTANCE": "kwameeh"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "android": {
