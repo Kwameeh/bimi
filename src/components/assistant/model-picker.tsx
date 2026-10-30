@@ -83,10 +83,20 @@ export function ModelPicker({ visible, currentModelId, onSelect, onClose }: Prop
   );
 }
 
+const KNOWN_LABELS: Record<string, string> = {
+  'dahl/deepseek-ai/DeepSeek-V4-Flash-0731': 'DeepSeek V4 Flash',
+  'dahl/zai-org/GLM-5.3-Flash': 'GLM 5.3 Flash',
+  'dahl/MiniMaxAI/MiniMax-M2.7': 'MiniMax M2.7',
+};
+
 export function modelLabelFor(id: AssistantModelId | string | null | undefined): string {
-  const resolved = (id ?? DEFAULT_ASSISTANT_MODEL_ID) as AssistantModelId;
   if (!id) return 'Default model';
-  return ASSISTANT_MODELS.find((m) => m.id === resolved)?.label ?? id;
+  const resolved = id as AssistantModelId;
+  const cf = ASSISTANT_MODELS.find((m) => m.id === resolved);
+  if (cf) return cf.label;
+  if (KNOWN_LABELS[id]) return KNOWN_LABELS[id];
+  const parts = id.split('/');
+  return parts.length > 1 ? parts.slice(1).join('/') : id;
 }
 
 const styles = StyleSheet.create({

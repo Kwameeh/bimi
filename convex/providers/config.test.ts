@@ -95,12 +95,49 @@ describe('AI provider selection', () => {
     expect(() => getAssistantModel()).toThrow('OPENAI_API_KEY');
   });
 
+  it('configures Dahl with default models and supports zero-Cloudflare fallback', () => {
+    const env = { DAHL_API_KEY: 'test-dahl-key' };
+    expect(modelSelection('assistant', env)).toEqual({
+      provider: 'dahl',
+      model: 'deepseek-ai/DeepSeek-V4-Flash-0731',
+    });
+    expect(modelSelection('json', env)).toEqual({
+      provider: 'dahl',
+      model: 'deepseek-ai/DeepSeek-V4-Flash-0731',
+    });
+
+    const models = configuredModels(env);
+    expect(models.map((m) => m.id)).toEqual([
+      'dahl/deepseek-ai/DeepSeek-V4-Flash-0731',
+      'dahl/zai-org/GLM-5.3-Flash',
+      'dahl/MiniMaxAI/MiniMax-M2.7',
+    ]);
+    expect(models[0].label).toBe('Dahl · DeepSeek V4 Flash');
+    expect(models[1].label).toBe('Dahl · GLM 5.3 Flash');
+    expect(models[2].label).toBe('Dahl · MiniMax M2.7');
+  });
+
+  it('supports DAHL_INFERENCE_API_KEY alias and custom models', () => {
+    const env = {
+      DAHL_INFERENCE_API_KEY: 'test-key',
+      DAHL_MODEL: 'custom/model-1',
+      DAHL_MODELS: 'custom/model-1, custom/model-2',
+    };
+    expect(modelSelection('assistant', env)).toEqual({
+      provider: 'dahl',
+      model: 'custom/model-1',
+    });
+    const models = configuredModels(env);
+    expect(models.map((m) => m.id)).toEqual(['dahl/custom/model-1', 'dahl/custom/model-2']);
+  });
+
   it.each([
     ['openai', 'OPENAI_API_KEY', 'OPENAI_MODEL'],
     ['anthropic', 'ANTHROPIC_API_KEY', 'ANTHROPIC_MODEL'],
     ['google', 'GOOGLE_GENERATIVE_AI_API_KEY', 'GOOGLE_MODEL'],
     ['groq', 'GROQ_API_KEY', 'GROQ_MODEL'],
     ['deepseek', 'DEEPSEEK_API_KEY', 'DEEPSEEK_MODEL'],
+    ['dahl', 'DAHL_API_KEY', 'DAHL_MODEL'],
     ['openai-compatible', 'OPENAI_COMPATIBLE_API_KEY', 'OPENAI_COMPATIBLE_MODEL'],
   ])('constructs the %s adapter with the exact configured model', (provider, key, modelEnv) => {
     vi.stubEnv('BIMI_AI_PROVIDER', provider);

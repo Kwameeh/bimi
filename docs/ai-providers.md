@@ -12,6 +12,7 @@ Set provider credentials and selection settings on the **Convex backend**. The E
 | `google`            | `GOOGLE_GENERATIVE_AI_API_KEY`                            | `GOOGLE_MODEL`                          | `GOOGLE_MODELS`                          |
 | `groq`              | `GROQ_API_KEY`                                            | `GROQ_MODEL`                            | `GROQ_MODELS`                            |
 | `deepseek`          | `DEEPSEEK_API_KEY`                                        | `DEEPSEEK_MODEL`                        | `DEEPSEEK_MODELS`                        |
+| `dahl`              | `DAHL_API_KEY`                                            | `DAHL_MODEL` (defaults to DeepSeek V4)  | `DAHL_MODELS` (DeepSeek V4, GLM, MiniMax)|
 | `openai-compatible` | `OPENAI_COMPATIBLE_API_KEY`, `OPENAI_COMPATIBLE_BASE_URL` | `OPENAI_COMPATIBLE_MODEL`               | `OPENAI_COMPATIBLE_MODELS`               |
 
 Additional lists (`*_MODELS`) are comma-separated native model IDs made selectable in the client's assistant model picker. A provider appears in the picker only with valid credentials and at least one model. Assistant models must support native tool calling.
@@ -106,6 +107,27 @@ BIMI_VISION_PROVIDER=cloudflare
 
 > [!NOTE]
 > `deepseek-chat` (DeepSeek V3) is recommended for assistant chat and contact goals because it supports native function/tool calling. If you select `deepseek-reasoner` (R1) for chat, Bimi's stream engine automatically captures thoughts from `reasoningText`.
+
+---
+
+## Example: Dahl Global Inference configuration
+
+Dahl (`https://inference.dahl.global/v1`) routes requests to high-performance open models like DeepSeek V4, GLM 5.3, and MiniMax M2.7 via an OpenAI-compatible gateway:
+
+```dotenv
+BIMI_AI_PROVIDER=dahl
+DAHL_API_KEY=your-dahl-api-key
+```
+
+> [!TIP]
+> **Zero-Cloudflare setup**: If you set `DAHL_API_KEY` on Convex without configuring Cloudflare credentials, Bimi automatically defaults to Dahl and enables `deepseek-ai/DeepSeek-V4-Flash-0731` for all text tasks, JSON memory extraction, and summaries.
+>
+> In the in-app assistant model picker, three models are available by default:
+> - **DeepSeek V4 Flash**: `deepseek-ai/DeepSeek-V4-Flash-0731`
+> - **GLM 5.3 Flash**: `zai-org/GLM-5.3-Flash`
+> - **MiniMax M2.7**: `MiniMaxAI/MiniMax-M2.7`
+>
+> Remember to allocate tokens from your account pool to your API key at [inference.dahl.global/account](https://inference.dahl.global/account) before making requests.
 
 ---
 

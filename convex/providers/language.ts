@@ -4,11 +4,11 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { LanguageModel } from 'ai';
 import { createWorkersAI } from 'workers-ai-provider';
-import { envValue, PROVIDERS, requireEnv, type ModelSelection } from './config';
+import { envValue, PROVIDERS, requireEnv, requireProviderApiKey, type ModelSelection } from './config';
 
 /** Provider construction is the only place that knows each SDK's API. */
 export function languageModel({ provider, model }: ModelSelection): LanguageModel {
-  const apiKey = requireEnv(PROVIDERS[provider].key);
+  const apiKey = requireProviderApiKey(provider);
   switch (provider) {
     case 'cloudflare': {
       const workers = createWorkersAI({

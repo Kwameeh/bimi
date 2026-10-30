@@ -7,6 +7,7 @@ export type AiProvider =
   | 'google'
   | 'groq'
   | 'deepseek'
+  | 'dahl'
   | 'openai-compatible';
 export type Environment = Record<string, string | undefined>;
 export type ModelSelection = { provider: AiProvider; model: string };
@@ -48,6 +49,12 @@ export const PROVIDERS: Record<
     prefix: 'DEEPSEEK',
     baseURL: 'https://api.deepseek.com/v1',
   },
+  dahl: {
+    label: 'Dahl',
+    key: 'DAHL_API_KEY',
+    prefix: 'DAHL',
+    baseURL: 'https://inference.dahl.global/v1',
+  },
   'openai-compatible': {
     label: 'OpenAI compatible',
     key: 'OPENAI_COMPATIBLE_API_KEY',
@@ -55,8 +62,45 @@ export const PROVIDERS: Record<
   },
 };
 
+export const DAHL_DEFAULT_MODELS = [
+  'deepseek-ai/DeepSeek-V4-Flash-0731',
+  'zai-org/GLM-5.3-Flash',
+  'MiniMaxAI/MiniMax-M2.7',
+] as const;
+
+export const KNOWN_MODEL_METADATA: Record<string, { label: string; blurb: string }> = {
+  'deepseek-ai/DeepSeek-V4-Flash-0731': {
+    label: 'DeepSeek V4 Flash',
+    blurb: 'Fast reasoning and code intelligence via Dahl.',
+  },
+  'zai-org/GLM-5.3-Flash': {
+    label: 'GLM 5.3 Flash',
+    blurb: 'Bilingual multimodal reasoning model by Zhipu via Dahl.',
+  },
+  'MiniMaxAI/MiniMax-M2.7': {
+    label: 'MiniMax M2.7',
+    blurb: 'Advanced general-purpose reasoning model by MiniMax via Dahl.',
+  },
+};
+
 export function envValue(name: string, env: Environment = process.env): string | null {
   return env[name]?.trim() || null;
+}
+
+export function providerApiKey(provider: AiProvider, env: Environment = process.env): string | null {
+  if (provider === 'dahl') {
+    return envValue('DAHL_API_KEY', env) ?? envValue('DAHL_INFERENCE_API_KEY', env);
+  }
+  return envValue(PROVIDERS[provider].key, env);
+}
+
+export function requireProviderApiKey(
+  provider: AiProvider,
+  env: Environment = process.env,
+): string {
+  const key = providerApiKey(provider, env);
+  if (!key) throw new Error(`AI provider not configured: set ${PROVIDERS[provider].key}`);
+  return key;
 }
 
 export function readProvider(value: string | null, fallback: AiProvider): AiProvider {
@@ -73,17 +117,27 @@ export function requireEnv(name: string, env: Environment = process.env): string
 
 export function providerConfigured(provider: AiProvider, env: Environment = process.env): boolean {
   return (
-    Boolean(envValue(PROVIDERS[provider].key, env)) &&
+    Boolean(providerApiKey(provider, env)) &&
     (provider !== 'cloudflare' || Boolean(envValue('CLOUDFLARE_ACCOUNT_ID', env))) &&
     (provider !== 'openai-compatible' || Boolean(envValue('OPENAI_COMPATIBLE_BASE_URL', env)))
   );
+}
+
+export function defaultProvider(env: Environment = process.env): AiProvider {
+  const explicit = envValue('BIMI_AI_PROVIDER', env);
+  if (explicit) return readProvider(explicit, 'cloudflare');
+  if (providerConfigured('cloudflare', env)) return 'cloudflare';
+  for (const provider of Object.keys(PROVIDERS) as AiProvider[]) {
+    if (providerConfigured(provider, env)) return provider;
+  }
+  return 'cloudflare';
 }
 
 export function modelSelection(
   purpose: 'assistant' | 'text' | 'json' | 'reply' | 'summary' = 'assistant',
   env: Environment = process.env,
 ): ModelSelection {
-  const provider = readProvider(envValue('BIMI_AI_PROVIDER', env), 'cloudflare');
+  const provider = defaultProvider(env);
   const overrides = {
     assistant: 'BIMI_AI_MODEL',
     text: 'BIMI_AI_TEXT_MODEL',
@@ -106,6 +160,8 @@ export function modelSelection(
               '@cf/meta/llama-3.1-8b-instruct')
             : (envValue('CLOUDFLARE_WORKERS_AI_CHAT_MODEL', env) ??
               '@cf/meta/llama-3.1-8b-instruct');
+  } else if (provider === 'dahl' && !override && !shared && !model) {
+    model = 'deepseek-ai/DeepSeek-V4-Flash-0731';
   }
   if (!model)
     throw new Error(
@@ -123,11 +179,13 @@ export function selectionId(selection: ModelSelection): string {
 /** Safe to return to clients: only model metadata, never keys or endpoint URLs. */
 export function configuredModels(env: Environment = process.env): ConfiguredModel[] {
   const result: ConfiguredModel[] = [];
+  const activeProvider = defaultProvider(env);
   for (const provider of Object.keys(PROVIDERS) as AiProvider[]) {
     if (!providerConfigured(provider, env)) continue;
     const definition = PROVIDERS[provider];
+    const rawModels = envValue(`${definition.prefix}_MODELS`, env);
     const models = new Set(
-      (envValue(`${definition.prefix}_MODELS`, env) ?? '')
+      (rawModels ?? '')
         .split(',')
         .map((m) => m.trim())
         .filter(Boolean),
@@ -135,19 +193,26 @@ export function configuredModels(env: Environment = process.env): ConfiguredMode
     const preferred = envValue(`${definition.prefix}_MODEL`, env);
     if (preferred) models.add(preferred);
     if (provider === 'cloudflare') ASSISTANT_MODELS.forEach((m) => models.add(m.id));
-    if (readProvider(envValue('BIMI_AI_PROVIDER', env), 'cloudflare') === provider) {
+    if (provider === 'dahl' && !rawModels) {
+      DAHL_DEFAULT_MODELS.forEach((m) => models.add(m));
+    }
+    if (activeProvider === provider) {
       const shared = envValue('BIMI_AI_MODEL', env);
       if (shared) models.add(shared);
     }
     for (const model of models) {
-      const known =
+      const knownCf =
         provider === 'cloudflare' ? ASSISTANT_MODELS.find((m) => m.id === model) : undefined;
+      const knownMetadata = KNOWN_MODEL_METADATA[model];
+      const label = knownCf?.label ?? knownMetadata?.label ?? model;
+      const blurb =
+        knownCf?.blurb ?? knownMetadata?.blurb ?? 'Configured for this Bimi deployment.';
       result.push({
         provider,
         model,
         id: selectionId({ provider, model }),
-        label: `${definition.label} · ${known?.label ?? model}`,
-        blurb: known?.blurb ?? 'Configured for this Bimi deployment.',
+        label: `${definition.label} · ${label}`,
+        blurb,
       });
     }
   }
