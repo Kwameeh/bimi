@@ -10,7 +10,10 @@
     "ios": {
       "bundleIdentifier": "com.kwameeh.bimi",
       "icon": "./assets/expo.icon",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.kwameeh.bimi",
