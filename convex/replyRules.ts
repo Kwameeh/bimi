@@ -224,8 +224,9 @@ export function decideReplyMode(args: DecisionInput): ReplyDecision {
     return { mode: 'draft_for_approval', reason: 'contact_auto_block' };
   }
 
-  // A group is many third parties at once — the most public place to be wrong.
-  if (args.isGroup) {
+  // In manual or semi-auto mode, groups draft for safety. In full_auto mode,
+  // the user has explicitly authorized autonomous replies in the group.
+  if (args.isGroup && !isFullAuto) {
     return { mode: 'draft_for_approval', reason: 'group_chat_safety' };
   }
 

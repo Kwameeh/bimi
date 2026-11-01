@@ -1118,6 +1118,9 @@ export const runGoalTurnInternal = internalAction({
         `Goal instructions: ${goal.instructions}`,
         `Success criteria: ${goal.successCriteria ?? 'No explicit criteria.'}`,
       ];
+      if (contact.systemPrompt) {
+        goalFacts.push(`Role and rules for this chat / group:\n${contact.systemPrompt}`);
+      }
 
       // --- Assess before writing ---------------------------------------------
       // Only open-ended goals need this. A clock goal fires on the cadence the

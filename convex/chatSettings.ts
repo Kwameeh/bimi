@@ -70,6 +70,8 @@ export const getChatSettings = query({
       lastUserMessageAt: contact.lastUserMessageAt,
       lastMessageAt: contact.lastMessageAt,
       memoryEnabled: contact.memoryEnabled !== false,
+      systemPrompt: contact.systemPrompt ?? '',
+      isGroup: contact.isGroup === true || contact.remoteJid.endsWith('@g.us'),
     };
   },
 });
@@ -188,5 +190,19 @@ export const setAutoReplyRules = mutation({
     }
     await ctx.db.patch(args.contactId, patch);
     return null;
+  },
+});
+
+export const setSystemPrompt = mutation({
+  args: {
+    contactId: v.id('contacts'),
+    systemPrompt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const trimmed = args.systemPrompt.trim();
+    await ctx.db.patch(args.contactId, {
+      systemPrompt: trimmed.length > 0 ? trimmed : undefined,
+    });
+    return trimmed;
   },
 });

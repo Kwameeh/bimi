@@ -444,10 +444,9 @@ export function evaluateGoalGate(input: GoalGateInput): GoalGate {
   if (input.autoReplyBlocked) {
     return { send: false, reason: 'contact_auto_block' };
   }
-  // Parity with decideReplyMode — a group is many third parties at once and an
-  // auto-send there is the most public mistake the app can make, so it always
-  // goes through a human regardless of mode.
-  if (input.isGroup) {
+  // In manual or semi-auto mode, or when goalMode is draft, group messages draft for safety.
+  // When goalMode is auto and the chat is in full_auto, autonomous goal messages are allowed.
+  if (input.isGroup && (input.goalMode !== 'auto' || input.aiMode !== 'full_auto')) {
     return { send: false, reason: 'group_chat_safety' };
   }
   if (input.quietHoursActive && !input.contactBypassQuiet) {

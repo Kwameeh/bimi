@@ -16,7 +16,7 @@ crons.interval(
   {},
 );
 
-crons.interval('contact goals', { hours: 1 }, internal.contactGoals.runDueGoalsInternal, {});
+crons.interval('contact goals', { minutes: 5 }, internal.contactGoals.runDueGoalsInternal, {});
 
 // Profile-picture URLs from WhatsApp are signed and rotate, so cached ones are
 // re-verified on a rolling basis rather than trusted indefinitely.

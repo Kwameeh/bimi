@@ -512,14 +512,16 @@ describe('evaluateGoalGate', () => {
     expect(evaluateGoalGate({ ...base, aiMode: 'manual' }).send).toBe(true);
   });
 
-  test('a group always goes through a human, in every mode', () => {
-    // A group is many third parties at once, so an auto-send there is the most
-    // public mistake available. full_auto used to be an exemption; it is not.
-    for (const aiMode of ['manual', 'semi_auto', 'full_auto', 'silent'] as const) {
+  test('groups draft in manual/semi_auto/silent but auto-send in full_auto with auto goal', () => {
+    for (const aiMode of ['manual', 'semi_auto'] as const) {
       expect(evaluateGoalGate({ ...base, isGroup: true, aiMode }).send).toBe(false);
+      expect(evaluateGoalGate({ ...base, isGroup: true, aiMode }).reason).toBe('group_chat_safety');
     }
-    expect(evaluateGoalGate({ ...base, isGroup: true, aiMode: 'full_auto' }).reason).toBe(
-      'group_chat_safety',
+    expect(evaluateGoalGate({ ...base, isGroup: true, aiMode: 'silent' }).send).toBe(false);
+    expect(evaluateGoalGate({ ...base, isGroup: true, aiMode: 'silent' }).reason).toBe('silent_mode');
+
+    expect(evaluateGoalGate({ ...base, isGroup: true, aiMode: 'full_auto', goalMode: 'auto' }).send).toBe(
+      true,
     );
   });
 

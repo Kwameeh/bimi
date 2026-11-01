@@ -35,6 +35,7 @@ export type AutoReplyContext = {
   openTasks: { title: string; dueAt?: number }[];
   pinnedKnowledge: { title: string; body: string }[];
   searchedKnowledge: { title: string; body: string }[];
+  activeGoals: { title: string; instructions: string }[];
   timezone: string | undefined;
 };
 
@@ -111,6 +112,13 @@ export const getContextInternal = internalQuery({
       .withIndex('by_instance', (q) => q.eq('instance', message.instance))
       .unique();
 
+    const activeGoals = await ctx.db
+      .query('contactGoals')
+      .withIndex('by_contact_and_status', (q) =>
+        q.eq('contactId', message.contactId).eq('status', 'active'),
+      )
+      .take(5);
+
     const pinnedIds = new Set(pinned.map((e) => e._id));
     return {
       message,
@@ -125,6 +133,7 @@ export const getContextInternal = internalQuery({
       searchedKnowledge: searched
         .filter((e) => !pinnedIds.has(e._id))
         .map((e) => ({ title: e.title, body: e.body })),
+      activeGoals: activeGoals.map((g) => ({ title: g.title, instructions: g.instructions })),
       timezone: pref?.quietHoursTimezone,
     };
   },
@@ -272,6 +281,14 @@ export const composeReply = internalAction({
         ? `Open tasks with this contact:\n${context.openTasks
             .map((t) => `- ${t.title}`)
             .join('\n')}`
+        : '',
+      context.contact.systemPrompt
+        ? `Role and rules for this chat / group:\n${context.contact.systemPrompt}`
+        : '',
+      context.activeGoals.length > 0
+        ? `Active goals with this contact / group:\n${context.activeGoals
+            .map((g) => `- "${g.title}": ${g.instructions}`)
+            .join('\n')}\n(Weave goal points naturally into your reply when appropriate)`
         : '',
       `Recent conversation (oldest first):\n${
         context.history.map((h) => `${h.speaker}: ${h.text}`).join('\n') || 'No earlier messages.'

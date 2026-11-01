@@ -431,7 +431,27 @@ function ChatSettingsSection({ contactId }: { contactId: Id<'contacts'> }) {
   const setRelationship = useMutation(api.chatSettings.setRelationship);
   const setCheckInCadence = useMutation(api.chatSettings.setCheckInCadence);
   const setMemoryEnabled = useMutation(api.contacts.setMemoryEnabled);
+  const setSystemPrompt = useMutation(api.chatSettings.setSystemPrompt);
+  const [promptText, setPromptText] = useState<string | null>(null);
+  const [savingPrompt, setSavingPrompt] = useState(false);
   const [savingIncomingMode, setSavingIncomingMode] = useState(false);
+
+  const currentPrompt = promptText !== null ? promptText : (settings?.systemPrompt ?? '');
+
+  const handleSavePrompt = async () => {
+    if (promptText === null) return;
+    setSavingPrompt(true);
+    try {
+      await setSystemPrompt({ contactId, systemPrompt: promptText.trim() });
+    } catch (error) {
+      showAlert({
+        title: 'Could not update system prompt',
+        message: error instanceof Error ? error.message : 'Please try again.',
+      });
+    } finally {
+      setSavingPrompt(false);
+    }
+  };
 
   const saveIncomingMode = async (mode: IncomingMessageMode) => {
     setSavingIncomingMode(true);
@@ -671,6 +691,52 @@ function ChatSettingsSection({ contactId }: { contactId: Id<'contacts'> }) {
             void setMemoryEnabled({ contactId, enabled: v });
           }}
         />
+      </View>
+
+      <View style={settingsStyles.fieldGroup}>
+        <ThemedText type="small" themeColor="textSecondary">
+          {settings.isGroup
+            ? 'Group Role & Behavior Prompt (optional)'
+            : 'Custom System Prompt & Role (optional)'}
+        </ThemedText>
+        <TextInput
+          value={currentPrompt}
+          onChangeText={setPromptText}
+          onBlur={handleSavePrompt}
+          placeholder={
+            settings.isGroup
+              ? 'e.g. I am a student in this class. Keep replies serious and academic. Never make jokes.'
+              : 'e.g. Speak casually like a close friend, avoid talking about work.'
+          }
+          placeholderTextColor={theme.textSecondary}
+          multiline
+          numberOfLines={3}
+          style={[
+            memoryStyles.input,
+            {
+              minHeight: 68,
+              color: theme.text,
+              borderColor: theme.border,
+              backgroundColor: theme.backgroundElement,
+              paddingTop: 10,
+              fontSize: 13,
+            },
+          ]}
+        />
+        {promptText !== null && promptText.trim() !== (settings.systemPrompt ?? '').trim() ? (
+          <Pressable
+            onPress={handleSavePrompt}
+            disabled={savingPrompt}
+            style={[
+              memoryStyles.doneVoiceBtn,
+              { backgroundColor: theme.primary, alignSelf: 'flex-end', marginTop: 4 },
+            ]}
+          >
+            <Text style={{ color: theme.primaryText, fontSize: 12, fontWeight: '700' }}>
+              {savingPrompt ? 'Saving...' : 'Save Prompt'}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <View style={settingsStyles.fieldGroup}>
@@ -1508,12 +1574,20 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
   const createGoal = useMutation(api.contactGoals.create);
   const enhanceDraft = useAction(api.contactGoals.enhanceDraft);
   const parseGoalVoice = useAction(api.contactGoals.parseGoalFromUtterance);
+  const chatSettings = useQuery(api.chatSettings.getChatSettings, { contactId });
 
   const [kind, setKind] = useState<GoalKind>('meeting');
   const [recurrence, setRecurrence] = useState<GoalRecurrence>('until_done');
   const [dayOfWeek, setDayOfWeek] = useState<number>(1); // Monday default
   const [onceTiming, setOnceTiming] = useState<'immediate' | 'scheduled'>('immediate');
   const [mode, setMode] = useState<GoalMode>('draft');
+  const [modeTouched, setModeTouched] = useState(false);
+
+  React.useEffect(() => {
+    if (!modeTouched && chatSettings?.aiMode === 'full_auto') {
+      setMode('auto');
+    }
+  }, [chatSettings?.aiMode, modeTouched]);
   const [title, setTitle] = useState('Find a time to meet');
   const [instructions, setInstructions] = useState(
     'Ask when they are available and follow up politely.',
@@ -2252,7 +2326,10 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
                 {GOAL_MODE_OPTIONS.map((opt) => (
                   <Pressable
                     key={opt.value}
-                    onPress={() => setMode(opt.value)}
+                    onPress={() => {
+                      setMode(opt.value);
+                      setModeTouched(true);
+                    }}
                     style={[
                       memoryStyles.typeChip,
                       {

@@ -9,18 +9,37 @@ export { synthesizeSpeech, TTS_MAX_CHARS } from './cloudflare';
 
 async function completeText(args: {
   purpose: 'text' | 'reply' | 'summary';
+  system?: string;
   messages: ModelMessage[];
   maxTokens: number;
   temperature: number;
 }): Promise<string> {
+  const selection = modelSelection(args.purpose);
+  // Reasoning models (e.g. DeepSeek-V4-Flash, GLM-5.3-Flash on Dahl) consume tokens
+  // for their internal thinking step (often 50-250 tokens). When calling Dahl,
+  // ensure a minimum of 600 tokens so reasoning does not exhaust the token budget.
+  const maxOutputTokens =
+    selection.provider === 'dahl' ? Math.max(args.maxTokens, 600) : args.maxTokens;
+
   const result = await sdkGenerateText({
-    model: languageModel(modelSelection(args.purpose)),
+    model: languageModel(selection),
+    system: args.system,
     messages: args.messages,
-    maxOutputTokens: args.maxTokens,
+    maxOutputTokens,
     temperature: args.temperature,
   });
-  if (!result.text.trim()) throw new Error('AI provider returned no text');
-  return result.text.trim();
+
+  let text = result.text.trim();
+  if (!text) {
+    // Some reasoning models return output in reasoningText if text is empty
+    const reasoning = (result as unknown as { reasoningText?: string }).reasoningText;
+    if (reasoning) text = reasoning.trim();
+  }
+  // Strip any <think>...</think> tags if leaked into the text
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+  if (!text) throw new Error('AI provider returned no text');
+  return text;
 }
 
 export type ImageArgs = { base64: string; mimeType?: string };

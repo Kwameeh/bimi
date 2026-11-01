@@ -279,6 +279,10 @@ export const decideAndDraft = internalAction({
       customTonePrompt = pref.customTone;
     }
 
+    const combinedCustomPrompt = [customTonePrompt, contact.systemPrompt]
+      .filter(Boolean)
+      .join('\n');
+
     // Generate reply text once.
     let replyText: string;
     try {
@@ -287,7 +291,7 @@ export const decideAndDraft = internalAction({
         history: context.history,
         latestIncoming: context.message.text,
         style: generatedStyle,
-        customTonePrompt,
+        customTonePrompt: combinedCustomPrompt || undefined,
         styleGuidance: replyStyle.guidance,
         memoryBlock,
       });
