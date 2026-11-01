@@ -12,9 +12,11 @@ import {
   isConfidentCompletion,
   keywordsForGoalKind,
   localWallClockNext,
+  localWallClockWeeklyNext,
   nextRunFor,
   nudgeDelayMs,
   parseGoalEnhancement,
+  parseGoalVoice,
   parseGoalAssessment,
   parseGoalTurn,
   parsePreferredTime,
@@ -279,6 +281,39 @@ describe('nextRunFor — clock recurrences (regression)', () => {
     expect(nextRunFor({ recurrence: 'weekly', preferredTime: '09:00', fromMs: JAN })).toBe(
       Date.UTC(2026, 0, 15, 9, 0) + WEEK_MS,
     );
+  });
+
+  test('weekly with dayOfWeek lands on the next matching day and time', () => {
+    // JAN is Thursday Jan 15 12:00 UTC (day 4).
+    // Target Monday (day 1) at 09:00 UTC -> Jan 19 09:00 UTC.
+    expect(
+      nextRunFor({
+        recurrence: 'weekly',
+        preferredTime: '09:00',
+        dayOfWeek: 1,
+        fromMs: JAN,
+      }),
+    ).toBe(Date.UTC(2026, 0, 19, 9, 0));
+
+    // Target Thursday (day 4) at 15:00 UTC -> today Jan 15 15:00 UTC (future today).
+    expect(
+      nextRunFor({
+        recurrence: 'weekly',
+        preferredTime: '15:00',
+        dayOfWeek: 4,
+        fromMs: JAN,
+      }),
+    ).toBe(Date.UTC(2026, 0, 15, 15, 0));
+
+    // Target Thursday (day 4) at 09:00 UTC -> past today, so rolls to next Thursday Jan 22 09:00 UTC.
+    expect(
+      nextRunFor({
+        recurrence: 'weekly',
+        preferredTime: '09:00',
+        dayOfWeek: 4,
+        fromMs: JAN,
+      }),
+    ).toBe(Date.UTC(2026, 0, 22, 9, 0));
   });
 
   test('the result is always strictly in the future', () => {
@@ -664,5 +699,47 @@ describe('parseGoalEnhancement', () => {
     expect(out.title.length).toBe(60);
     expect(out.instructions.length).toBe(600);
     expect(out.successCriteria.length).toBe(300);
+  });
+});
+
+describe('parseGoalVoice', () => {
+  test('parses full voice extraction JSON', () => {
+    const raw = JSON.stringify({
+      kind: 'check_in',
+      title: 'Church Attendance Check',
+      instructions: 'Ask how their Sunday was and warmly check if they went to church.',
+      recurrence: 'weekly',
+      dayOfWeek: 1,
+      preferredTime: '09:00',
+      successCriteria: 'They respond about their weekend and church.',
+    });
+    const parsed = parseGoalVoice(raw);
+    expect(parsed.kind).toBe('check_in');
+    expect(parsed.title).toBe('Church Attendance Check');
+    expect(parsed.instructions).toBe(
+      'Ask how their Sunday was and warmly check if they went to church.',
+    );
+    expect(parsed.recurrence).toBe('weekly');
+    expect(parsed.dayOfWeek).toBe(1);
+    expect(parsed.preferredTime).toBe('09:00');
+    expect(parsed.successCriteria).toBe('They respond about their weekend and church.');
+  });
+
+  test('safely falls back on malformed or partial output', () => {
+    const parsed = parseGoalVoice('not json at all');
+    expect(parsed.kind).toBe('check_in');
+    expect(parsed.recurrence).toBe('until_done');
+    expect(parsed.preferredTime).toBe('09:00');
+  });
+
+  test('clamps out-of-range interval and nudge hours', () => {
+    const raw = JSON.stringify({
+      recurrence: 'interval',
+      intervalHours: 9999,
+      nudgeHours: 1,
+    });
+    const parsed = parseGoalVoice(raw);
+    expect(parsed.intervalHours).toBe(168);
+    expect(parsed.nudgeHours).toBe(6);
   });
 });

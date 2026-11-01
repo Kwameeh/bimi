@@ -147,6 +147,37 @@ export function localWallClockNext(args: {
   return candidate;
 }
 
+export function localWallClockWeeklyNext(args: {
+  fromMs: number;
+  timezone?: string;
+  hours: number;
+  minutes: number;
+  dayOfWeek?: number;
+}): number {
+  const { fromMs, timezone, hours, minutes, dayOfWeek } = args;
+  if (typeof dayOfWeek !== 'number' || !Number.isFinite(dayOfWeek)) {
+    return localWallClockNext({ fromMs, timezone, hours, minutes, strideMs: WEEK_MS });
+  }
+
+  const offset = tzOffsetMinutes(fromMs, timezone);
+  const p = tzParts(fromMs, timezone);
+  const todayDay = new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay();
+  const targetDay = ((Math.floor(dayOfWeek) % 7) + 7) % 7;
+
+  let daysAhead = (targetDay - todayDay + 7) % 7;
+  let candidate = Date.UTC(p.year, p.month - 1, p.day + daysAhead, hours, minutes) - offset * 60_000;
+  if (candidate <= fromMs) {
+    candidate += WEEK_MS;
+  }
+
+  const candidateOffset = tzOffsetMinutes(candidate, timezone);
+  if (candidateOffset !== offset) {
+    candidate += (offset - candidateOffset) * 60_000;
+    while (candidate <= fromMs) candidate += WEEK_MS;
+  }
+  return candidate;
+}
+
 // --- Nudge backoff ----------------------------------------------------------
 
 /**
@@ -173,6 +204,7 @@ export function nextRunFor(args: {
   recurrence: GoalRecurrence;
   intervalHours?: number;
   preferredTime?: string;
+  dayOfWeek?: number;
   timezone?: string;
   unansweredCount?: number;
   nudgeHoursOverride?: number;
@@ -194,9 +226,30 @@ export function nextRunFor(args: {
 
   const preferred = parsePreferredTime(args.preferredTime);
   if (!preferred) {
-    if (args.recurrence === 'weekly') return args.fromMs + WEEK_MS;
+    if (args.recurrence === 'weekly') {
+      if (typeof args.dayOfWeek === 'number' && Number.isFinite(args.dayOfWeek)) {
+        return localWallClockWeeklyNext({
+          fromMs: args.fromMs,
+          timezone: args.timezone,
+          hours: 9,
+          minutes: 0,
+          dayOfWeek: args.dayOfWeek,
+        });
+      }
+      return args.fromMs + WEEK_MS;
+    }
     if (args.recurrence === 'daily') return args.fromMs + DAY_MS;
     return args.fromMs;
+  }
+
+  if (args.recurrence === 'weekly') {
+    return localWallClockWeeklyNext({
+      fromMs: args.fromMs,
+      timezone: args.timezone,
+      hours: preferred.hours,
+      minutes: preferred.minutes,
+      dayOfWeek: args.dayOfWeek,
+    });
   }
 
   return localWallClockNext({
@@ -204,7 +257,7 @@ export function nextRunFor(args: {
     timezone: args.timezone,
     hours: preferred.hours,
     minutes: preferred.minutes,
-    strideMs: args.recurrence === 'weekly' ? WEEK_MS : DAY_MS,
+    strideMs: DAY_MS,
   });
 }
 
@@ -536,4 +589,113 @@ export const COMPLETION_CONFIDENCE_FLOOR = 0.6;
 
 export function isConfidentCompletion(out: GoalTurnOutput): boolean {
   return out.completed && out.confidence >= COMPLETION_CONFIDENCE_FLOOR;
+}
+
+export type ParsedGoalVoice = {
+  kind: GoalKind;
+  title: string;
+  instructions: string;
+  recurrence: GoalRecurrence;
+  dayOfWeek?: number;
+  preferredTime?: string;
+  intervalHours?: number;
+  nudgeHours?: number;
+  successCriteria?: string;
+};
+
+export function parseGoalVoice(
+  raw: string,
+  fallback?: Partial<ParsedGoalVoice>,
+): ParsedGoalVoice {
+  const out: ParsedGoalVoice = {
+    kind: fallback?.kind ?? 'check_in',
+    title: fallback?.title ?? 'Check in',
+    instructions: fallback?.instructions ?? 'Check in warmly with them.',
+    recurrence: fallback?.recurrence ?? 'until_done',
+    dayOfWeek: fallback?.dayOfWeek,
+    preferredTime: fallback?.preferredTime ?? '09:00',
+    intervalHours: fallback?.intervalHours ?? 5,
+    nudgeHours: fallback?.nudgeHours ?? 24,
+    successCriteria: fallback?.successCriteria,
+  };
+
+  const takeStr = (value: unknown, max: number): string | null => {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim().slice(0, max);
+    return trimmed.length > 0 ? trimmed : null;
+  };
+
+  try {
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if (start < 0 || end <= start) {
+      console.warn('parseGoalVoice: no JSON object in output', {
+        rawPreview: raw.slice(0, 200),
+      });
+      return out;
+    }
+    const parsed = JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>;
+
+    // Kind
+    if (
+      parsed.kind === 'check_in' ||
+      parsed.kind === 'meeting' ||
+      parsed.kind === 'relationship' ||
+      parsed.kind === 'custom'
+    ) {
+      out.kind = parsed.kind;
+    }
+
+    // Recurrence
+    if (
+      parsed.recurrence === 'once' ||
+      parsed.recurrence === 'daily' ||
+      parsed.recurrence === 'weekly' ||
+      parsed.recurrence === 'interval' ||
+      parsed.recurrence === 'until_done'
+    ) {
+      out.recurrence = parsed.recurrence;
+    }
+
+    // Title & Instructions
+    out.title = takeStr(parsed.title, MAX_TITLE_CHARS) ?? out.title;
+    out.instructions = takeStr(parsed.instructions, MAX_INSTRUCTION_CHARS) ?? out.instructions;
+
+    // Success criteria
+    const criteria = takeStr(parsed.successCriteria, MAX_CRITERIA_CHARS);
+    if (criteria) out.successCriteria = criteria;
+
+    // Day of week (0=Sunday ... 6=Saturday)
+    if (typeof parsed.dayOfWeek === 'number' && Number.isFinite(parsed.dayOfWeek)) {
+      out.dayOfWeek = ((Math.floor(parsed.dayOfWeek) % 7) + 7) % 7;
+    }
+
+    // Preferred time (validate HH:mm)
+    if (typeof parsed.preferredTime === 'string') {
+      const match = /^(\d{1,2}):(\d{2})$/.exec(parsed.preferredTime.trim());
+      if (match) {
+        const h = Number(match[1]);
+        const m = Number(match[2]);
+        if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+          out.preferredTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+      }
+    }
+
+    // Interval hours
+    if (typeof parsed.intervalHours === 'number' && Number.isFinite(parsed.intervalHours)) {
+      out.intervalHours = clamp(Math.round(parsed.intervalHours), 1, 168);
+    }
+
+    // Nudge hours
+    if (typeof parsed.nudgeHours === 'number' && Number.isFinite(parsed.nudgeHours)) {
+      out.nudgeHours = clamp(Math.round(parsed.nudgeHours), MIN_NUDGE_HOURS, MAX_NUDGE_HOURS);
+    }
+  } catch (err) {
+    console.warn('parseGoalVoice: JSON parse failed', {
+      rawPreview: raw.slice(0, 200),
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+  return out;
 }

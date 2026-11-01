@@ -27,8 +27,10 @@ import {
   nextRunFor,
   parseGoalAssessment,
   parseGoalEnhancement,
+  parseGoalVoice,
   parseGoalTurn,
   type GoalAssessment,
+  type ParsedGoalVoice,
 } from './goalRules';
 import { assertBulkSize, bulkResult } from './bulkDelete';
 import { contactBypassesQuietHours, isInQuietHoursNow } from './quietHours';
@@ -139,6 +141,7 @@ export const create = mutation({
     instructions: v.string(),
     kind: kindValidator,
     recurrence: recurrenceValidator,
+    dayOfWeek: v.optional(v.number()),
     intervalHours: v.optional(v.number()),
     preferredTime: v.optional(v.string()),
     timezone: v.optional(v.string()),
@@ -168,6 +171,7 @@ export const create = mutation({
       instructions,
       kind: args.kind,
       recurrence: args.recurrence,
+      dayOfWeek: args.dayOfWeek,
       intervalHours: args.intervalHours,
       preferredTime: args.preferredTime,
       timezone: args.timezone,
@@ -183,6 +187,7 @@ export const create = mutation({
       // works if the opener below fails.
       nextRunAt: nextRunFor({
         recurrence: args.recurrence,
+        dayOfWeek: args.dayOfWeek,
         intervalHours: args.intervalHours,
         preferredTime: args.preferredTime,
         timezone: args.timezone,
@@ -239,6 +244,7 @@ export const updateStatus = mutation({
       }
       const nextRun = nextRunFor({
         recurrence: goal.recurrence,
+        dayOfWeek: goal.dayOfWeek,
         intervalHours: goal.intervalHours,
         preferredTime: goal.preferredTime,
         timezone: goal.timezone,
@@ -415,6 +421,129 @@ export const enhanceDraft = action({
       changedCriteria: enhanced.successCriteria !== fallback.successCriteria,
     });
     return enhanced;
+  },
+});
+
+const GOAL_VOICE_SCHEMA = {
+  type: 'object',
+  properties: {
+    kind: {
+      type: 'string',
+      enum: ['check_in', 'meeting', 'relationship', 'custom'],
+    },
+    title: { type: 'string' },
+    instructions: { type: 'string' },
+    recurrence: {
+      type: 'string',
+      enum: ['once', 'daily', 'weekly', 'interval', 'until_done'],
+    },
+    dayOfWeek: {
+      type: 'number',
+      description:
+        'Day of week: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday. Applicable if recurrence is weekly.',
+    },
+    preferredTime: {
+      type: 'string',
+      description: 'Preferred time in 24h format HH:mm (e.g. "09:00", "14:30").',
+    },
+    intervalHours: {
+      type: 'number',
+      description: 'Hours between executions if recurrence is interval.',
+    },
+    nudgeHours: {
+      type: 'number',
+      description: 'Hours between follow-ups / nudges if recurrence is until_done (default 24).',
+    },
+    successCriteria: {
+      type: 'string',
+      description: 'Observable completion condition (done when).',
+    },
+  },
+  required: ['kind', 'title', 'instructions', 'recurrence'],
+} as const;
+
+const GOAL_VOICE_PROMPT = `You are an AI assistant helping a user create a contact goal for a WhatsApp conversation from their spoken voice command.
+
+Output ONLY JSON matching the schema.
+
+Instructions:
+1. kind:
+   - "check_in": casual checking in, asking how they are doing, church attendance, catching up, seeing how their weekend/day was.
+   - "meeting": scheduling a call, meeting, lunch, appointment, finding a time to talk.
+   - "relationship": expressing romantic/personal interest, flirting, asking someone out naturally.
+   - "custom": other tasks, requests, project updates, specific deliverables.
+
+2. recurrence:
+   - "weekly": when user mentions "every Monday", "weekly", "every weekend", "on Sundays", etc.
+   - "daily": "every day", "daily", "each morning".
+   - "interval": "every 5 hours", "every 2 days".
+   - "once": a one-time message/check-in ("once", "tomorrow", "this afternoon", "next time").
+   - "until_done": an ongoing conversation goal to achieve an outcome before stopping ("until he replies", "until we agree on a date", "get him to send the file").
+
+3. dayOfWeek:
+   - If recurrence is weekly: set dayOfWeek as a number where 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday. (e.g. "every Monday" -> 1).
+
+4. preferredTime:
+   - 24h format "HH:mm". If user says "at 9 AM", use "09:00". "at 2 PM", use "14:00". If unspecified for daily/weekly/once, default to "09:00".
+
+5. title: 2-5 words, concise and clear name for this goal.
+
+6. instructions: A clear 1-3 sentence brief for an AI messaging agent on what to say and what tone to use. Second person ("Ask them...", "Check warmly..."). Never write literal quotes or coercive wording.
+
+7. successCriteria: Observable finish line condition ("They reply confirming whether they attended church", "They agree to a date and time", "They reply with the requested file").
+
+8. nudgeHours: If recurrence is "until_done" or open-ended, hours between follow-ups (default 24).`;
+
+export const parseGoalFromUtterance = action({
+  args: {
+    contactId: v.id('contacts'),
+    utterance: v.string(),
+  },
+  returns: v.object({
+    kind: kindValidator,
+    title: v.string(),
+    instructions: v.string(),
+    recurrence: recurrenceValidator,
+    dayOfWeek: v.optional(v.number()),
+    preferredTime: v.optional(v.string()),
+    intervalHours: v.optional(v.number()),
+    nudgeHours: v.optional(v.number()),
+    successCriteria: v.optional(v.string()),
+  }),
+  handler: async (ctx, args): Promise<ParsedGoalVoice> => {
+    const utterance = args.utterance.trim();
+    if (utterance.length === 0) {
+      throw new Error('Utterance is empty');
+    }
+
+    const contact = await ctx.runQuery(internal.contacts.getContactInternal, {
+      contactId: args.contactId,
+    });
+    if (!contact) throw new Error('Contact not found');
+    const profile = await ctx.runQuery(internal.contactMemory.getProfileInternal, {
+      contactId: args.contactId,
+    });
+
+    const userLines = [
+      `Contact: ${contactName(contact)}`,
+      `What the user said (spoken voice input):\n"${utterance}"`,
+      `What we know about this contact:\n${formatProfile(profile)}`,
+    ];
+
+    const { runJsonExtraction } = await import('./providers/aiSdk');
+    const raw = await runJsonExtraction({
+      system: GOAL_VOICE_PROMPT,
+      messages: [{ role: 'user', content: userLines.join('\n\n') }],
+      schema: GOAL_VOICE_SCHEMA,
+      temperature: 0.2,
+    });
+
+    const parsed = parseGoalVoice(raw, {
+      title: 'Voice Goal',
+      instructions: utterance,
+    });
+
+    return parsed;
   },
 });
 

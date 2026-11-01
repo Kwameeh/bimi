@@ -659,6 +659,7 @@ export default defineSchema({
     ),
     intervalHours: v.optional(v.number()),
     preferredTime: v.optional(v.string()),
+    dayOfWeek: v.optional(v.number()),
     timezone: v.optional(v.string()),
     successCriteria: v.optional(v.string()),
     mode: v.union(v.literal('draft'), v.literal('auto')),
