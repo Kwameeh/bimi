@@ -30,7 +30,7 @@ export async function runAssistantTurn<T extends ToolSet>(args: AssistantTurnArg
     system: args.system,
     messages: args.messages,
     tools: args.tools,
-    stopWhen: stepCountIs(args.maxSteps ?? 5),
+    stopWhen: stepCountIs(args.maxSteps ?? 10),
     temperature: args.temperature ?? 0.3,
   });
   return result;
@@ -52,7 +52,9 @@ export async function runJsonExtraction(args: {
   const selection = modelSelection('json');
   const model = languageModel(selection);
   const maxOutputTokens =
-    selection.provider === 'dahl' ? Math.max(args.maxTokens ?? 1024, 600) : args.maxTokens;
+    selection.provider === 'dahl'
+      ? Math.max(args.maxTokens ?? 2048, 1024)
+      : (args.maxTokens ?? 2048);
 
   try {
     const result = await generateObject({
@@ -91,7 +93,7 @@ export function streamAssistantTurn<T extends ToolSet>(args: AssistantTurnArgs<T
     messages: args.messages,
     tools: args.tools,
     toolChoice: 'auto',
-    stopWhen: stepCountIs(args.maxSteps ?? 8),
+    stopWhen: stepCountIs(args.maxSteps ?? 12),
     // Temperature 0 for deterministic tool calling, per AI SDK best practices.
     temperature: args.temperature ?? 0,
   });

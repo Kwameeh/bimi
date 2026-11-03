@@ -24,7 +24,7 @@ export const AGENT_CONFIDENCE_FLOOR = 0.6;
 const HISTORY_LIMIT = 30;
 const MEMORY_CHAR_BUDGET = 3000;
 /** Tool-call rounds before the model must answer with what it has. */
-const MAX_RESEARCH_STEPS = 4;
+const MAX_RESEARCH_STEPS = 8;
 
 export type AutoReplyContext = {
   message: Doc<'messages'>;

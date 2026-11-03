@@ -547,6 +547,18 @@ export const parseGoalFromUtterance = action({
   },
 });
 
+export const listActiveForContactInternal = internalQuery({
+  args: { contactId: v.id('contacts'), limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('contactGoals')
+      .withIndex('by_contact_and_status', (q) =>
+        q.eq('contactId', args.contactId).eq('status', 'active'),
+      )
+      .take(args.limit ?? 5);
+  },
+});
+
 export const listDueGoalsInternal = internalQuery({
   args: { nowMs: v.number(), limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
@@ -601,7 +613,14 @@ export const getRunContextInternal = internalQuery({
       pendingDrafts.find(
         (d) => d.goalId === goal._id || d.reason?.startsWith(`goal:${goal._id}:`) === true,
       ) ?? null;
-    const otherPendingDraft = pendingDrafts.find((d) => d._id !== ownPendingDraft?._id) ?? null;
+    const nowMs = Date.now();
+    const DRAFT_STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000;
+    const otherPendingDraft =
+      pendingDrafts.find(
+        (d) =>
+          d._id !== ownPendingDraft?._id &&
+          nowMs - d._creationTime < DRAFT_STALE_THRESHOLD_MS,
+      ) ?? null;
     const pref = await ctx.db
       .query('userPreferences')
       .withIndex('by_instance', (q) => q.eq('instance', goal.instance))

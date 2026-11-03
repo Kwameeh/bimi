@@ -16,10 +16,10 @@ async function completeText(args: {
 }): Promise<string> {
   const selection = modelSelection(args.purpose);
   // Reasoning models (e.g. DeepSeek-V4-Flash, GLM-5.3-Flash on Dahl) consume tokens
-  // for their internal thinking step (often 50-250 tokens). When calling Dahl,
-  // ensure a minimum of 600 tokens so reasoning does not exhaust the token budget.
+  // for their internal thinking step (often 50-250+ tokens). When calling Dahl,
+  // ensure a minimum of 1200 tokens so reasoning never starves text output.
   const maxOutputTokens =
-    selection.provider === 'dahl' ? Math.max(args.maxTokens, 600) : args.maxTokens;
+    selection.provider === 'dahl' ? Math.max(args.maxTokens, 1200) : args.maxTokens;
 
   const result = await sdkGenerateText({
     model: languageModel(selection),

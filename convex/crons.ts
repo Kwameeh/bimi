@@ -3,7 +3,12 @@ import { internal } from './_generated/api';
 
 const crons = cronJobs();
 
-crons.cron('daily summary', '0 7 * * *', internal.summaries.generateDailySummaryAll, {});
+crons.interval(
+  'daily summary',
+  { hours: 4 },
+  internal.summaries.generateDailySummaryAll,
+  {},
+);
 
 crons.cron('check-in scan', '0 9 * * *', internal.checkins.scanForCheckInsInternal, {});
 

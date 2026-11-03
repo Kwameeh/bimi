@@ -279,9 +279,20 @@ export const decideAndDraft = internalAction({
       customTonePrompt = pref.customTone;
     }
 
-    const combinedCustomPrompt = [customTonePrompt, contact.systemPrompt]
+    const activeGoals = await ctx.runQuery(internal.contactGoals.listActiveForContactInternal, {
+      contactId: contact._id,
+    });
+    const goalGuidance =
+      activeGoals.length > 0
+        ? `Active goals with ${context.contactName} (slide these into the reply or advance them naturally if appropriate):\n` +
+          activeGoals
+            .map((g) => `- [${g.kind}] ${g.title}${g.instructions ? `: ${g.instructions}` : ''}`)
+            .join('\n')
+        : undefined;
+
+    const combinedCustomPrompt = [customTonePrompt, contact.systemPrompt, goalGuidance]
       .filter(Boolean)
-      .join('\n');
+      .join('\n\n');
 
     // Generate reply text once.
     let replyText: string;
