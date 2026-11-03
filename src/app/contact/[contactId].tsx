@@ -1,6 +1,6 @@
 import { useAction, useMutation, useQuery } from 'convex/react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,9 +19,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAvoidingContainer } from '@/components/ui/keyboard-avoiding-container';
 
 import { Avatar } from '@/components/chat/avatar';
-import { AppIcon } from '@/components/ui/app-icon';
+import { DaySelector } from '@/components/goals/day-selector';
+import { TimeSelector } from '@/components/goals/time-selector';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { AppIcon } from '@/components/ui/app-icon';
 import { useAlert } from '@/components/ui/custom-alert-dialog';
 import {
   SelectButton,
@@ -33,6 +35,7 @@ import { Fonts, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { deleteInChunks, useSelection } from '@/hooks/use-selection';
 import { AI_MODE_OPTIONS } from '@/lib/ai-modes';
+import { useListener } from '@/lib/speech/use-listener';
 
 import { api } from '../../../convex/_generated/api';
 import type { Doc, Id } from '../../../convex/_generated/dataModel';
@@ -428,7 +431,27 @@ function ChatSettingsSection({ contactId }: { contactId: Id<'contacts'> }) {
   const setRelationship = useMutation(api.chatSettings.setRelationship);
   const setCheckInCadence = useMutation(api.chatSettings.setCheckInCadence);
   const setMemoryEnabled = useMutation(api.contacts.setMemoryEnabled);
+  const setSystemPrompt = useMutation(api.chatSettings.setSystemPrompt);
+  const [promptText, setPromptText] = useState<string | null>(null);
+  const [savingPrompt, setSavingPrompt] = useState(false);
   const [savingIncomingMode, setSavingIncomingMode] = useState(false);
+
+  const currentPrompt = promptText !== null ? promptText : (settings?.systemPrompt ?? '');
+
+  const handleSavePrompt = async () => {
+    if (promptText === null) return;
+    setSavingPrompt(true);
+    try {
+      await setSystemPrompt({ contactId, systemPrompt: promptText.trim() });
+    } catch (error) {
+      showAlert({
+        title: 'Could not update system prompt',
+        message: error instanceof Error ? error.message : 'Please try again.',
+      });
+    } finally {
+      setSavingPrompt(false);
+    }
+  };
 
   const saveIncomingMode = async (mode: IncomingMessageMode) => {
     setSavingIncomingMode(true);
@@ -668,6 +691,52 @@ function ChatSettingsSection({ contactId }: { contactId: Id<'contacts'> }) {
             void setMemoryEnabled({ contactId, enabled: v });
           }}
         />
+      </View>
+
+      <View style={settingsStyles.fieldGroup}>
+        <ThemedText type="small" themeColor="textSecondary">
+          {settings.isGroup
+            ? 'Group Role & Behavior Prompt (optional)'
+            : 'Custom System Prompt & Role (optional)'}
+        </ThemedText>
+        <TextInput
+          value={currentPrompt}
+          onChangeText={setPromptText}
+          onBlur={handleSavePrompt}
+          placeholder={
+            settings.isGroup
+              ? 'e.g. I am a student in this class. Keep replies serious and academic. Never make jokes.'
+              : 'e.g. Speak casually like a close friend, avoid talking about work.'
+          }
+          placeholderTextColor={theme.textSecondary}
+          multiline
+          numberOfLines={3}
+          style={[
+            memoryStyles.input,
+            {
+              minHeight: 68,
+              color: theme.text,
+              borderColor: theme.border,
+              backgroundColor: theme.backgroundElement,
+              paddingTop: 10,
+              fontSize: 13,
+            },
+          ]}
+        />
+        {promptText !== null && promptText.trim() !== (settings.systemPrompt ?? '').trim() ? (
+          <Pressable
+            onPress={handleSavePrompt}
+            disabled={savingPrompt}
+            style={[
+              memoryStyles.doneVoiceBtn,
+              { backgroundColor: theme.primary, alignSelf: 'flex-end', marginTop: 4 },
+            ]}
+          >
+            <Text style={{ color: theme.primaryText, fontSize: 12, fontWeight: '700' }}>
+              {savingPrompt ? 'Saving...' : 'Save Prompt'}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
 
       <View style={settingsStyles.fieldGroup}>
@@ -1100,6 +1169,7 @@ function formatRelativeFuture(value?: number): string {
 function goalMetaLine(goal: {
   kind: string;
   recurrence: string;
+  dayOfWeek?: number;
   nextRunAt?: number;
   unansweredCount?: number;
   turnsUsed?: number;
@@ -1108,7 +1178,12 @@ function goalMetaLine(goal: {
 }): string {
   const kind = goal.kind.replace('_', ' ');
   if (goal.recurrence !== 'until_done') {
-    return `${kind} • ${goal.recurrence} • next ${formatGoalTime(goal.nextRunAt)}`;
+    const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayStr =
+      goal.recurrence === 'weekly' && typeof goal.dayOfWeek === 'number'
+        ? ` (${DAYS[goal.dayOfWeek]}s)`
+        : '';
+    return `${kind} • ${goal.recurrence}${dayStr} • next ${formatGoalTime(goal.nextRunAt)}`;
   }
   const parts = [kind, 'until done'];
   // How much of the goal's lifetime message budget has been used.
@@ -1498,9 +1573,21 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
   const theme = useTheme();
   const createGoal = useMutation(api.contactGoals.create);
   const enhanceDraft = useAction(api.contactGoals.enhanceDraft);
+  const parseGoalVoice = useAction(api.contactGoals.parseGoalFromUtterance);
+  const chatSettings = useQuery(api.chatSettings.getChatSettings, { contactId });
+
   const [kind, setKind] = useState<GoalKind>('meeting');
   const [recurrence, setRecurrence] = useState<GoalRecurrence>('until_done');
+  const [dayOfWeek, setDayOfWeek] = useState<number>(1); // Monday default
+  const [onceTiming, setOnceTiming] = useState<'immediate' | 'scheduled'>('immediate');
   const [mode, setMode] = useState<GoalMode>('draft');
+  const [modeTouched, setModeTouched] = useState(false);
+
+  React.useEffect(() => {
+    if (!modeTouched && chatSettings?.aiMode === 'full_auto') {
+      setMode('auto');
+    }
+  }, [chatSettings?.aiMode, modeTouched]);
   const [title, setTitle] = useState('Find a time to meet');
   const [instructions, setInstructions] = useState(
     'Ask when they are available and follow up politely.',
@@ -1512,8 +1599,132 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
   const [busy, setBusy] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [enhanced, setEnhanced] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [voiceUtterance, setVoiceUtterance] = useState<string | null>(null);
+
+  const speechBufferRef = useRef<string[]>([]);
+  const [accumulatedSpeech, setAccumulatedSpeech] = useState('');
+  const pressStartTimeRef = useRef<number>(0);
+  const [isRecording, setIsRecording] = useState(false);
 
   const openEnded = recurrence === 'until_done';
+
+  const handleSpeechFinal = useCallback(
+    async (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      setVoiceBusy(true);
+      try {
+        const res = await parseGoalVoice({ contactId, utterance: trimmed });
+        setKind(res.kind);
+        setTitle(res.title);
+        setInstructions(res.instructions);
+        setRecurrence(res.recurrence);
+        if (typeof res.dayOfWeek === 'number') {
+          setDayOfWeek(res.dayOfWeek);
+        }
+        if (res.preferredTime) {
+          setPreferredTime(res.preferredTime);
+        }
+        if (res.recurrence === 'once') {
+          setOnceTiming(res.preferredTime ? 'scheduled' : 'immediate');
+        }
+        if (typeof res.nudgeHours === 'number') {
+          setNudgeHours(String(res.nudgeHours));
+        }
+        if (typeof res.intervalHours === 'number') {
+          setIntervalHours(String(res.intervalHours));
+        }
+        if (res.successCriteria) {
+          setSuccessCriteria(res.successCriteria);
+        }
+        setVoiceUtterance(trimmed);
+        setEnhanced(true);
+      } catch (err) {
+        Alert.alert('AI Goal setup failed', err instanceof Error ? err.message : String(err));
+      } finally {
+        setVoiceBusy(false);
+      }
+    },
+    [contactId, parseGoalVoice],
+  );
+
+  const listener = useListener({
+    onFinal: (text) => {
+      const trimmed = text.trim();
+      if (trimmed.length > 0) {
+        speechBufferRef.current.push(trimmed);
+        setAccumulatedSpeech(speechBufferRef.current.join(' '));
+      }
+    },
+  });
+
+  const startRecording = async () => {
+    if (voiceBusy || busy) return;
+    speechBufferRef.current = [];
+    setAccumulatedSpeech('');
+    setIsRecording(true);
+    try {
+      await listener.start({ continuous: true });
+    } catch (err) {
+      console.warn('start recording failed', err);
+    }
+  };
+
+  const finishRecording = async () => {
+    setIsRecording(false);
+    listener.stop();
+
+    const parts = [...speechBufferRef.current];
+    const partial = listener.partial.trim();
+    if (partial.length > 0 && !parts.includes(partial)) {
+      parts.push(partial);
+    }
+    const fullText = parts.join(' ').trim();
+    speechBufferRef.current = [];
+    setAccumulatedSpeech('');
+
+    if (fullText.length > 0) {
+      await handleSpeechFinal(fullText);
+    }
+  };
+
+  const cancelRecording = () => {
+    setIsRecording(false);
+    speechBufferRef.current = [];
+    setAccumulatedSpeech('');
+    listener.abort();
+  };
+
+  const onMicPressIn = () => {
+    pressStartTimeRef.current = Date.now();
+    if (!listener.listening && !isRecording) {
+      void startRecording();
+    }
+  };
+
+  const onMicPressOut = () => {
+    const pressDuration = Date.now() - pressStartTimeRef.current;
+    if (pressDuration > 600) {
+      void finishRecording();
+    }
+  };
+
+  const onMicPress = () => {
+    const pressDuration = Date.now() - pressStartTimeRef.current;
+    if (pressDuration <= 600) {
+      if (listener.listening || isRecording) {
+        void finishRecording();
+      } else {
+        void startRecording();
+      }
+    }
+  };
+
+  const handleClose = () => {
+    cancelRecording();
+    onClose();
+  };
 
   const onEnhance = async () => {
     if (enhancing || busy) return;
@@ -1530,8 +1741,6 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
         title,
         successCriteria,
       });
-      // Everything lands in the normal fields, still editable — this is a
-      // suggestion the user accepts by saving, not a decision made for them.
       setTitle(result.title);
       setInstructions(result.instructions);
       setSuccessCriteria(result.successCriteria);
@@ -1543,7 +1752,6 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
     }
   };
 
-  // Picking a kind is an event, not something to synchronise in an effect.
   const pickKind = (next: GoalKind) => {
     setKind(next);
     const preset = GOAL_KIND_PRESETS[next];
@@ -1551,7 +1759,6 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
     setTitle(preset.title);
     setInstructions(preset.instructions);
     setSuccessCriteria(preset.successCriteria);
-    // The preset just overwrote the enhanced text, so the badge would be a lie.
     setEnhanced(false);
   };
 
@@ -1563,25 +1770,25 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
     }
     setBusy(true);
     try {
+      const isOnceImmediate = recurrence === 'once' && onceTiming === 'immediate';
       await createGoal({
         contactId,
         title: title.trim(),
         instructions: instructions.trim(),
         kind,
         recurrence,
-        // For an open-ended goal intervalHours is the base nudge cadence used
-        // when the contact goes quiet; for `interval` it is the fixed period.
+        dayOfWeek: recurrence === 'weekly' ? dayOfWeek : undefined,
         intervalHours: openEnded
           ? Math.max(6, Number(nudgeHours) || 24)
           : recurrence === 'interval'
             ? Math.max(1, Number(intervalHours) || 5)
             : undefined,
-        preferredTime: openEnded ? undefined : preferredTime.trim() || undefined,
+        preferredTime: openEnded || isOnceImmediate ? undefined : preferredTime.trim() || undefined,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         successCriteria: successCriteria.trim() || undefined,
         mode,
       });
-      onClose();
+      handleClose();
     } catch (err) {
       Alert.alert('Save failed', err instanceof Error ? err.message : String(err));
     } finally {
@@ -1590,9 +1797,9 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
   };
 
   return (
-    <Modal transparent visible animationType="slide" onRequestClose={onClose}>
+    <Modal transparent visible animationType="slide" onRequestClose={handleClose}>
       <KeyboardAvoidingContainer style={{ flex: 1 }}>
-        <Pressable style={memoryStyles.backdrop} onPress={onClose}>
+        <Pressable style={memoryStyles.backdrop} onPress={handleClose}>
           <Pressable
             style={[
               memoryStyles.sheet,
@@ -1603,6 +1810,127 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <View style={memoryStyles.grabber} />
               <ThemedText type="smallBold">Add contact goal</ThemedText>
+
+              {/* Voice-to-Goal AI card */}
+              <View
+                style={[
+                  memoryStyles.voiceCard,
+                  {
+                    borderColor:
+                      listener.listening || isRecording ? theme.primary : theme.border,
+                    backgroundColor:
+                      listener.listening || isRecording
+                        ? theme.backgroundSelected
+                        : theme.backgroundElement,
+                  },
+                ]}
+              >
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <Pressable
+                      onPressIn={onMicPressIn}
+                      onPressOut={onMicPressOut}
+                      onPress={onMicPress}
+                      disabled={voiceBusy || busy}
+                      style={[
+                        memoryStyles.voiceMicBtn,
+                        {
+                          backgroundColor:
+                            listener.listening || isRecording
+                              ? theme.primary
+                              : theme.background,
+                          borderColor:
+                            listener.listening || isRecording ? theme.primary : theme.border,
+                        },
+                      ]}
+                    >
+                      <AppIcon
+                        name={listener.listening || isRecording ? 'stop' : 'mic'}
+                        size={18}
+                        tintColor={
+                          listener.listening || isRecording
+                            ? theme.primaryText
+                            : theme.primary
+                        }
+                      />
+                    </Pressable>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: theme.text }}>
+                        {listener.listening || isRecording
+                          ? 'Listening... (Tap Done or Release)'
+                          : voiceBusy
+                            ? 'Configuring goal with AI...'
+                            : 'Speak your goal'}
+                      </Text>
+                      <Text
+                        style={{ fontSize: 11, color: theme.textSecondary, marginTop: 1 }}
+                        numberOfLines={2}
+                      >
+                        {listener.listening || isRecording
+                          ? [accumulatedSpeech, listener.partial.trim()]
+                              .filter(Boolean)
+                              .join(' ') || 'Speak freely... tap Done when finished'
+                          : voiceBusy
+                            ? 'Extracting title, schedule, and criteria...'
+                            : 'Click to record or hold & speak'}
+                      </Text>
+                    </View>
+                  </View>
+                  {voiceBusy ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : listener.listening || isRecording ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Pressable
+                        onPress={cancelRecording}
+                        style={[
+                          memoryStyles.cancelVoiceBtn,
+                          { borderColor: theme.border, backgroundColor: theme.background },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: theme.textSecondary,
+                            fontSize: 12,
+                            fontWeight: '600',
+                          }}
+                        >
+                          Cancel
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => void finishRecording()}
+                        style={[memoryStyles.doneVoiceBtn, { backgroundColor: theme.primary }]}
+                      >
+                        <Text style={{ color: theme.primaryText, fontSize: 12, fontWeight: '700' }}>
+                          Done ✓
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+
+              {voiceUtterance && !listener.listening && !isRecording && !voiceBusy ? (
+                <View
+                  style={[
+                    memoryStyles.voiceBadge,
+                    { backgroundColor: theme.backgroundElement, borderColor: theme.aiAccent },
+                  ]}
+                >
+                  <Text style={{ fontSize: 12, color: theme.aiAccent, fontWeight: '600' }}>
+                    ✦ Configured by AI from: &ldquo;{voiceUtterance}&rdquo;
+                  </Text>
+                  <Text style={{ fontSize: 11, color: theme.textSecondary, marginTop: 2 }}>
+                    Review or adjust any fields below before saving.
+                  </Text>
+                </View>
+              ) : null}
 
               <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Type</Text>
               <View style={memoryStyles.typeGrid}>
@@ -1744,9 +2072,6 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
                     <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
                       Done when
                     </Text>
-                    {/* Same call as the instruction's button: the finish line is
-                    judged against the instruction, so rewriting one without the
-                    other is how they drift apart. */}
                     <Pressable
                       onPress={() => void onEnhance()}
                       disabled={enhancing || busy || instructions.trim().length === 0}
@@ -1794,8 +2119,42 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
                   </ThemedText>
 
                   <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
-                    If they go quiet, nudge every (hours)
+                    If they go quiet, nudge every
                   </Text>
+                  <View style={memoryStyles.presetChipRow}>
+                    {[
+                      { label: '12h', val: '12' },
+                      { label: '24h (1 day)', val: '24' },
+                      { label: '48h (2 days)', val: '48' },
+                      { label: '72h (3 days)', val: '72' },
+                    ].map((p) => (
+                      <Pressable
+                        key={p.val}
+                        onPress={() => setNudgeHours(p.val)}
+                        style={[
+                          memoryStyles.nudgeChip,
+                          {
+                            borderColor: theme.border,
+                            backgroundColor: theme.backgroundElement,
+                          },
+                          nudgeHours === p.val && {
+                            backgroundColor: theme.primary,
+                            borderColor: theme.primary,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: '600',
+                            color: nudgeHours === p.val ? theme.primaryText : theme.text,
+                          }}
+                        >
+                          {p.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
                   <TextInput
                     value={nudgeHours}
                     onChangeText={setNudgeHours}
@@ -1823,6 +2182,41 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
                   <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
                     Interval hours
                   </Text>
+                  <View style={memoryStyles.presetChipRow}>
+                    {[
+                      { label: '2h', val: '2' },
+                      { label: '4h', val: '4' },
+                      { label: '8h', val: '8' },
+                      { label: '12h', val: '12' },
+                      { label: '24h', val: '24' },
+                    ].map((p) => (
+                      <Pressable
+                        key={p.val}
+                        onPress={() => setIntervalHours(p.val)}
+                        style={[
+                          memoryStyles.nudgeChip,
+                          {
+                            borderColor: theme.border,
+                            backgroundColor: theme.backgroundElement,
+                          },
+                          intervalHours === p.val && {
+                            backgroundColor: theme.primary,
+                            borderColor: theme.primary,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            fontWeight: '600',
+                            color: intervalHours === p.val ? theme.primaryText : theme.text,
+                          }}
+                        >
+                          {p.label}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
                   <TextInput
                     value={intervalHours}
                     onChangeText={setIntervalHours}
@@ -1840,24 +2234,88 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
                     ]}
                   />
                 </>
-              ) : (
+              ) : recurrence === 'weekly' ? (
                 <>
-                  <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>Time</Text>
-                  <TextInput
-                    value={preferredTime}
-                    onChangeText={setPreferredTime}
-                    placeholder="09:00"
-                    placeholderTextColor={theme.textSecondary}
-                    style={[
-                      memoryStyles.input,
-                      {
-                        minHeight: 46,
-                        color: theme.text,
-                        borderColor: theme.border,
-                        backgroundColor: theme.backgroundElement,
-                      },
-                    ]}
-                  />
+                  <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
+                    Day of the week
+                  </Text>
+                  <DaySelector value={dayOfWeek} onChange={setDayOfWeek} />
+
+                  <Text
+                    style={[memoryStyles.label, { color: theme.textSecondary, marginTop: 12 }]}
+                  >
+                    Time
+                  </Text>
+                  <TimeSelector value={preferredTime} onChange={setPreferredTime} />
+                </>
+              ) : recurrence === 'once' ? (
+                <>
+                  <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
+                    When to run
+                  </Text>
+                  <View style={memoryStyles.presetChipRow}>
+                    <Pressable
+                      onPress={() => setOnceTiming('immediate')}
+                      style={[
+                        memoryStyles.nudgeChip,
+                        {
+                          borderColor: theme.border,
+                          backgroundColor: theme.backgroundElement,
+                        },
+                        onceTiming === 'immediate' && {
+                          backgroundColor: theme.primary,
+                          borderColor: theme.primary,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: '600',
+                          color: onceTiming === 'immediate' ? theme.primaryText : theme.text,
+                        }}
+                      >
+                        Immediate (Now)
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setOnceTiming('scheduled')}
+                      style={[
+                        memoryStyles.nudgeChip,
+                        {
+                          borderColor: theme.border,
+                          backgroundColor: theme.backgroundElement,
+                        },
+                        onceTiming === 'scheduled' && {
+                          backgroundColor: theme.primary,
+                          borderColor: theme.primary,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: '600',
+                          color: onceTiming === 'scheduled' ? theme.primaryText : theme.text,
+                        }}
+                      >
+                        Scheduled Time
+                      </Text>
+                    </Pressable>
+                  </View>
+                  {onceTiming === 'scheduled' ? (
+                    <View style={{ marginTop: 8 }}>
+                      <TimeSelector value={preferredTime} onChange={setPreferredTime} />
+                    </View>
+                  ) : null}
+                </>
+              ) : (
+                /* daily */
+                <>
+                  <Text style={[memoryStyles.label, { color: theme.textSecondary }]}>
+                    Daily Time
+                  </Text>
+                  <TimeSelector value={preferredTime} onChange={setPreferredTime} />
                 </>
               )}
 
@@ -1868,7 +2326,10 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
                 {GOAL_MODE_OPTIONS.map((opt) => (
                   <Pressable
                     key={opt.value}
-                    onPress={() => setMode(opt.value)}
+                    onPress={() => {
+                      setMode(opt.value);
+                      setModeTouched(true);
+                    }}
                     style={[
                       memoryStyles.typeChip,
                       {
@@ -1899,7 +2360,7 @@ function AddGoalModal({ contactId, onClose }: { contactId: Id<'contacts'>; onClo
 
               <View style={memoryStyles.actions}>
                 <Pressable
-                  onPress={onClose}
+                  onPress={handleClose}
                   style={[memoryStyles.bigBtn, { borderColor: theme.border }]}
                 >
                   <Text style={{ color: theme.text, fontWeight: '600' }}>Cancel</Text>
@@ -2265,6 +2726,51 @@ const memoryStyles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  voiceCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  voiceMicBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  doneVoiceBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  cancelVoiceBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  voiceBadge: {
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  presetChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  nudgeChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
   },
 });
 

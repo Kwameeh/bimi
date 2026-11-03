@@ -280,7 +280,7 @@ export async function streamAssistantIntoThread<T extends ToolSet>(
       system: args.system,
       messages: args.conversation,
       tools: args.tools,
-      maxSteps: args.maxSteps ?? 6,
+      maxSteps: args.maxSteps ?? 10,
       modelId: args.modelId ?? null,
     });
 

@@ -103,10 +103,13 @@ describe('the full-auto floor', () => {
     expectDraft('the invoice is still outstanding');
   });
 
-  test('groups always go through a human', () => {
-    const decision = decide({ text: 'what time are we meeting', isGroup: true });
-    expect(decision.mode).toBe('draft_for_approval');
-    expect(decision.reason).toBe('group_chat_safety');
+  test('groups draft in semi_auto/manual but auto-reply in full_auto', () => {
+    const semiDecision = decide({ text: 'what time are we meeting', isGroup: true, aiMode: 'semi_auto' });
+    expect(semiDecision.mode).toBe('draft_for_approval');
+    expect(semiDecision.reason).toBe('group_chat_safety');
+
+    const fullAutoDecision = decide({ text: 'what time are we meeting', isGroup: true, aiMode: 'full_auto' });
+    expect(fullAutoDecision.mode).toBe('auto_agent');
   });
 
   test('quiet hours still hold everything back', () => {

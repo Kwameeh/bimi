@@ -100,6 +100,7 @@ export default defineSchema({
     priority: v.optional(priorityValidator),
     muted: v.optional(v.boolean()),
     aiMode: v.optional(aiModeValidator),
+    systemPrompt: v.optional(v.string()),
     incomingMessageMode: v.optional(incomingMessageModeValidator),
     // Timestamp of the newest message that automatic AI may consume. Unlike
     // lastMessageAt, save-only messages do not advance this checkpoint.
@@ -659,6 +660,7 @@ export default defineSchema({
     ),
     intervalHours: v.optional(v.number()),
     preferredTime: v.optional(v.string()),
+    dayOfWeek: v.optional(v.number()),
     timezone: v.optional(v.string()),
     successCriteria: v.optional(v.string()),
     mode: v.union(v.literal('draft'), v.literal('auto')),

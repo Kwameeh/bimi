@@ -30,7 +30,7 @@ export async function runAssistantTurn<T extends ToolSet>(args: AssistantTurnArg
     system: args.system,
     messages: args.messages,
     tools: args.tools,
-    stopWhen: stepCountIs(args.maxSteps ?? 5),
+    stopWhen: stepCountIs(args.maxSteps ?? 10),
     temperature: args.temperature ?? 0.3,
   });
   return result;
@@ -49,7 +49,13 @@ export async function runJsonExtraction(args: {
   temperature?: number;
   maxTokens?: number;
 }): Promise<string> {
-  const model = languageModel(modelSelection('json'));
+  const selection = modelSelection('json');
+  const model = languageModel(selection);
+  const maxOutputTokens =
+    selection.provider === 'dahl'
+      ? Math.max(args.maxTokens ?? 2048, 1024)
+      : (args.maxTokens ?? 2048);
+
   try {
     const result = await generateObject({
       model,
@@ -57,27 +63,27 @@ export async function runJsonExtraction(args: {
       messages: args.messages,
       schema: jsonSchema(args.schema),
       temperature: args.temperature ?? 0.2,
-      maxOutputTokens: args.maxTokens,
+      maxOutputTokens,
     });
     return JSON.stringify(result.object);
   } catch (err) {
-    console.warn('[aiSdk] generateObject failed, falling back to text mode', {
-      error: err instanceof Error ? err.message : String(err),
-    });
+    // Expected on providers that lack native json_schema support (like Dahl with DeepSeek)
   }
   const result = await generateText({
     model,
     system: `${args.system}\nReturn only JSON matching this schema: ${JSON.stringify(args.schema)}`,
     messages: args.messages,
     temperature: args.temperature ?? 0.2,
-    maxOutputTokens: args.maxTokens,
+    maxOutputTokens,
   });
   // Some reasoning models put output in reasoningText instead of text.
-  return (
+  let text =
     (result.text && result.text.length > 0
       ? result.text
-      : (result as unknown as { reasoningText?: string }).reasoningText) ?? ''
-  );
+      : (result as unknown as { reasoningText?: string }).reasoningText) ?? '';
+  // Strip any <think>...</think> if present
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  return text;
 }
 
 export function streamAssistantTurn<T extends ToolSet>(args: AssistantTurnArgs<T>) {
@@ -87,7 +93,7 @@ export function streamAssistantTurn<T extends ToolSet>(args: AssistantTurnArgs<T
     messages: args.messages,
     tools: args.tools,
     toolChoice: 'auto',
-    stopWhen: stepCountIs(args.maxSteps ?? 8),
+    stopWhen: stepCountIs(args.maxSteps ?? 12),
     // Temperature 0 for deterministic tool calling, per AI SDK best practices.
     temperature: args.temperature ?? 0,
   });

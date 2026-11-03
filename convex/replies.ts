@@ -279,6 +279,21 @@ export const decideAndDraft = internalAction({
       customTonePrompt = pref.customTone;
     }
 
+    const activeGoals = await ctx.runQuery(internal.contactGoals.listActiveForContactInternal, {
+      contactId: contact._id,
+    });
+    const goalGuidance =
+      activeGoals.length > 0
+        ? `Active goals with ${context.contactName} (slide these into the reply or advance them naturally if appropriate):\n` +
+          activeGoals
+            .map((g) => `- [${g.kind}] ${g.title}${g.instructions ? `: ${g.instructions}` : ''}`)
+            .join('\n')
+        : undefined;
+
+    const combinedCustomPrompt = [customTonePrompt, contact.systemPrompt, goalGuidance]
+      .filter(Boolean)
+      .join('\n\n');
+
     // Generate reply text once.
     let replyText: string;
     try {
@@ -287,7 +302,7 @@ export const decideAndDraft = internalAction({
         history: context.history,
         latestIncoming: context.message.text,
         style: generatedStyle,
-        customTonePrompt,
+        customTonePrompt: combinedCustomPrompt || undefined,
         styleGuidance: replyStyle.guidance,
         memoryBlock,
       });

@@ -271,7 +271,10 @@ export async function sendText(args: SendTextArgs): Promise<SendTextResult> {
     instance: args.instance,
     remoteJid: args.to,
   });
-  const number = resolvedJid.endsWith('@lid') ? resolvedJid : extractNumber(resolvedJid);
+  const number =
+    resolvedJid.endsWith('@lid') || resolvedJid.endsWith('@g.us')
+      ? resolvedJid
+      : extractNumber(resolvedJid);
   if (!number) throw new Error(`Evolution sendText: could not derive number from "${args.to}"`);
 
   const url = `${baseUrl.replace(/\/$/, '')}/message/sendText/${encodeURIComponent(args.instance)}`;

@@ -46,7 +46,14 @@ function getMessagePreview(payload: unknown) {
     return null;
   }
 
-  const data = isRecord(payload.data) ? payload.data : undefined;
+  const rawData = payload.data;
+  const data = Array.isArray(rawData)
+    ? isRecord(rawData[0])
+      ? rawData[0]
+      : undefined
+    : isRecord(rawData)
+      ? rawData
+      : undefined;
   const key = isRecord(data?.key) ? data.key : undefined;
   const message = isRecord(data?.message) ? data.message : undefined;
   const imageMessage = isRecord(message?.imageMessage) ? message.imageMessage : undefined;
@@ -229,6 +236,9 @@ function planIngest(preview: ReturnType<typeof getMessagePreview>):
     return { skipped: 'missing_messageId' };
   if (typeof preview.messageType !== 'string' || !preview.messageType)
     return { skipped: 'missing_messageType' };
+  if (preview.remoteJid === 'status@broadcast') {
+    return { skipped: 'status_broadcast' };
+  }
 
   const isGroup = preview.remoteJid.endsWith('@g.us');
   const base: Omit<IngestArgs, 'text' | 'status'> = {
@@ -661,7 +671,7 @@ http.route({
       );
     }
 
-    if (event !== 'messages.upsert') {
+    if (event !== 'messages.upsert' && event !== 'send.message') {
       return new Response(
         JSON.stringify({
           ok: true,

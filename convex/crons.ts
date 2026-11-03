@@ -3,7 +3,12 @@ import { internal } from './_generated/api';
 
 const crons = cronJobs();
 
-crons.cron('daily summary', '0 7 * * *', internal.summaries.generateDailySummaryAll, {});
+crons.interval(
+  'daily summary',
+  { hours: 4 },
+  internal.summaries.generateDailySummaryAll,
+  {},
+);
 
 crons.cron('check-in scan', '0 9 * * *', internal.checkins.scanForCheckInsInternal, {});
 
@@ -16,7 +21,7 @@ crons.interval(
   {},
 );
 
-crons.interval('contact goals', { hours: 1 }, internal.contactGoals.runDueGoalsInternal, {});
+crons.interval('contact goals', { minutes: 5 }, internal.contactGoals.runDueGoalsInternal, {});
 
 // Profile-picture URLs from WhatsApp are signed and rotate, so cached ones are
 // re-verified on a rolling basis rather than trusted indefinitely.
