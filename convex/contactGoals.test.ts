@@ -306,10 +306,23 @@ describe('claiming', () => {
     expect(result.leaseToken).not.toBe('stale');
   });
 
-  test('contacts with no open-ended goal report none', async () => {
+  test('an active clock-scheduled goal is claimed on inbound when no open-ended goal exists', async () => {
     const t = setup();
     const contactId = await seedContact(t);
-    await seedGoal(t, contactId, { recurrence: 'daily', preferredTime: '09:00' });
+    const goalId = await seedGoal(t, contactId, { recurrence: 'daily', preferredTime: '09:00' });
+    const result = await t.mutation(internal.contactGoals.onInboundForContactInternal, {
+      contactId,
+      nowMs: Date.now(),
+    });
+    expect(result.kind).toBe('claimed');
+    expect(result.leaseToken).toBeTruthy();
+    expect((await getGoal(t, goalId))?.turnLockToken).toBe(result.leaseToken);
+  });
+
+  test('contacts with no active goal report none', async () => {
+    const t = setup();
+    const contactId = await seedContact(t);
+    await seedGoal(t, contactId, { status: 'paused', recurrence: 'daily', preferredTime: '09:00' });
     const result = await t.mutation(internal.contactGoals.onInboundForContactInternal, {
       contactId,
       nowMs: Date.now(),
