@@ -698,6 +698,40 @@ export const claimGoalTurnInternal = internalMutation({
   },
 });
 
+function isEligibleOnInbound(goal: Doc<'contactGoals'>, nowMs: number): boolean {
+  if (goal.status !== 'active') return false;
+
+  // 1. Open-ended goals work the conversation until done.
+  if (goal.recurrence === 'until_done') return true;
+
+  // 2. A once goal with a scheduled future time that hasn't fired yet must wait for its time.
+  // Immediate once goals (without a preferredTime) can participate.
+  if (goal.recurrence === 'once') {
+    if (goal.preferredTime && goal.lastGoalMessageAt === undefined && goal.nextRunAt > nowMs) {
+      return false;
+    }
+    return true;
+  }
+
+  // 3. Clock recurring goals (daily, weekly, interval):
+  // If it has never run and its scheduled time is in the future, wait for its scheduled time.
+  if (goal.lastGoalMessageAt === undefined && goal.nextRunAt > nowMs) {
+    return false;
+  }
+
+  // If this cycle has already been completed, sleep until the next scheduled run arrives.
+  if (
+    typeof goal.completedAt === 'number' &&
+    typeof goal.lastGoalMessageAt === 'number' &&
+    goal.completedAt >= goal.lastGoalMessageAt &&
+    goal.nextRunAt > nowMs
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * Called from replies.decideAndDraft on every inbound message. Claims the
  * oldest active goal so its strategist can decide whether the goal should
@@ -716,16 +750,19 @@ export const onInboundForContactInternal = internalMutation({
       .take(20);
     if (active.length === 0) return { kind: 'none' };
 
+    const eligible = active.filter((g) => isEligibleOnInbound(g, args.nowMs));
+    if (eligible.length === 0) return { kind: 'none' };
+
     // Oldest first, prioritizing open-ended, then 'once', then recurring clock goals (weekly/daily/interval).
     // An active goal with a contact should be able to chip into live conversations!
     const candidate =
-      active
+      eligible
         .filter((g) => g.recurrence === 'until_done')
         .sort((a, b) => a.createdAt - b.createdAt)[0] ??
-      active
+      eligible
         .filter((g) => g.recurrence === 'once')
         .sort((a, b) => a.createdAt - b.createdAt)[0] ??
-      active.sort((a, b) => a.createdAt - b.createdAt)[0];
+      eligible.sort((a, b) => a.createdAt - b.createdAt)[0];
     if (!candidate) return { kind: 'none' };
     return await tryClaim(ctx, candidate, args.nowMs);
   },
@@ -844,6 +881,7 @@ export const recordGoalTurnInternal = internalMutation({
         args.completed === true && goal.recurrence !== 'until_done' ? 0 : unansweredCount;
       if (args.completed === true && goal.recurrence !== 'until_done') {
         patch.unansweredCount = 0;
+        patch.completedAt = now;
       }
 
       patch.nextRunAt = nextRunFor({

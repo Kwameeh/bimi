@@ -306,17 +306,57 @@ describe('claiming', () => {
     expect(result.leaseToken).not.toBe('stale');
   });
 
-  test('an active clock-scheduled goal is claimed on inbound when no open-ended goal exists', async () => {
+  test('an active clock-scheduled goal that has engaged is claimed on inbound when no open-ended goal exists', async () => {
     const t = setup();
     const contactId = await seedContact(t);
-    const goalId = await seedGoal(t, contactId, { recurrence: 'daily', preferredTime: '09:00' });
+    const now = Date.now();
+    const goalId = await seedGoal(t, contactId, {
+      recurrence: 'daily',
+      preferredTime: '09:00',
+      lastGoalMessageAt: now - 3600_000,
+    });
     const result = await t.mutation(internal.contactGoals.onInboundForContactInternal, {
       contactId,
-      nowMs: Date.now(),
+      nowMs: now,
     });
     expect(result.kind).toBe('claimed');
     expect(result.leaseToken).toBeTruthy();
     expect((await getGoal(t, goalId))?.turnLockToken).toBe(result.leaseToken);
+  });
+
+  test('a future clock-scheduled goal that has not run yet does not fire on inbound', async () => {
+    const t = setup();
+    const contactId = await seedContact(t);
+    const now = Date.now();
+    await seedGoal(t, contactId, {
+      recurrence: 'weekly',
+      dayOfWeek: 5,
+      preferredTime: '15:00',
+      nextRunAt: now + 86400_000,
+    });
+    const result = await t.mutation(internal.contactGoals.onInboundForContactInternal, {
+      contactId,
+      nowMs: now,
+    });
+    expect(result.kind).toBe('none');
+  });
+
+  test('a recurring clock goal completed for the current cycle sleeps until nextRunAt', async () => {
+    const t = setup();
+    const contactId = await seedContact(t);
+    const now = Date.now();
+    await seedGoal(t, contactId, {
+      recurrence: 'weekly',
+      dayOfWeek: 2,
+      lastGoalMessageAt: now - 7200_000,
+      completedAt: now - 3600_000,
+      nextRunAt: now + 86400_000 * 5,
+    });
+    const result = await t.mutation(internal.contactGoals.onInboundForContactInternal, {
+      contactId,
+      nowMs: now,
+    });
+    expect(result.kind).toBe('none');
   });
 
   test('contacts with no active goal report none', async () => {
