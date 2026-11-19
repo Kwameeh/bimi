@@ -18,18 +18,23 @@ import {
   GOAL_MAX_AGE_MS,
   GOAL_MAX_TURNS,
   GOAL_TURN_LEASE_MS,
+  HOUR_MS,
   RELATIONSHIP_MAX_TURNS,
   RELATIONSHIP_STALL_CAP,
   STALL_CAP,
+  calculateInitialRun,
+  currentWallClock,
   evaluateGoalBudget,
   evaluateGoalGate,
   goalOwnsReply,
   isConfidentCompletion,
   nextRunFor,
+  normalizePreferredTimeInput,
   parseGoalAssessment,
   parseGoalEnhancement,
   parseGoalVoice,
   parseGoalTurn,
+  parsePreferredTime,
   type GoalAssessment,
   type ParsedGoalVoice,
 } from './goalRules';
@@ -108,6 +113,11 @@ function messageTimestampMs(timestamp: number | undefined): number | null {
   return timestamp > 1e12 ? timestamp : timestamp * 1000;
 }
 
+export function getEnvInstance(): string | undefined {
+  const env = process.env.BIMI_INSTANCE || process.env.EXPO_PUBLIC_BIMI_INSTANCE;
+  return env && env.trim().length > 0 ? env.trim() : undefined;
+}
+
 function newLeaseToken(nowMs: number): string {
   try {
     return crypto.randomUUID();
@@ -157,55 +167,69 @@ export const create = mutation({
     if (!title) throw new Error('Title is required');
     if (!instructions) throw new Error('Instructions are required');
 
-    const now = Date.now();
-    const openEnded = args.recurrence === 'until_done';
-    const isOnceImmediate = args.recurrence === 'once' && !args.preferredTime;
-    const shouldStartNow = openEnded || isOnceImmediate;
-    // Claim the first turn inline (we're already in a transaction) so the
-    // opener we schedule below owns it and the hourly cron cannot race it.
-    const leaseToken = shouldStartNow ? newLeaseToken(now) : undefined;
+    const effectiveInstance = getEnvInstance() || contact.instance;
 
-    const nextRun = nextRunFor({
+    // Timezone: prefer user-supplied -> user preferences -> UTC fallback
+    const pref = await ctx.db
+      .query('userPreferences')
+      .withIndex('by_instance', (q) => q.eq('instance', effectiveInstance))
+      .unique();
+    const effectiveTimezone = args.timezone?.trim() || pref?.quietHoursTimezone || 'UTC';
+
+    const now = Date.now();
+    const wall = currentWallClock(now, effectiveTimezone);
+
+    // Normalize preferred time (e.g. "9am" -> "09:00", "Every 24 hours" -> fallback to wall clock)
+    let normalizedPreferredTime = normalizePreferredTimeInput(args.preferredTime);
+    // If daily or weekly without an explicit valid preferredTime, default to "this time" (current wall clock)
+    if (!normalizedPreferredTime && (args.recurrence === 'daily' || args.recurrence === 'weekly')) {
+      normalizedPreferredTime = wall.hhMm;
+    }
+
+    // Default dayOfWeek for weekly to current day of week if omitted
+    const effectiveDayOfWeek =
+      typeof args.dayOfWeek === 'number'
+        ? ((Math.floor(args.dayOfWeek) % 7) + 7) % 7
+        : args.recurrence === 'weekly'
+          ? wall.dayOfWeek
+          : undefined;
+
+    const { nextRunAt, shouldStartNow } = calculateInitialRun({
       recurrence: args.recurrence,
-      dayOfWeek: args.dayOfWeek,
+      dayOfWeek: effectiveDayOfWeek,
       intervalHours: args.intervalHours,
-      preferredTime: args.preferredTime,
-      timezone: args.timezone,
-      unansweredCount: 0,
-      fromMs: now - 1000,
+      preferredTime: normalizedPreferredTime,
+      timezone: effectiveTimezone,
+      nowMs: now,
     });
 
+    const leaseToken = shouldStartNow ? newLeaseToken(now) : undefined;
+    const openEnded = args.recurrence === 'until_done';
+
     const goalId = await ctx.db.insert('contactGoals', {
-      instance: contact.instance,
+      instance: effectiveInstance,
       contactId: args.contactId,
       title,
       instructions,
       kind: args.kind,
       recurrence: args.recurrence,
-      dayOfWeek: args.dayOfWeek,
+      dayOfWeek: effectiveDayOfWeek,
       intervalHours: args.intervalHours,
-      preferredTime: args.preferredTime,
-      timezone: args.timezone,
+      preferredTime: normalizedPreferredTime,
+      timezone: effectiveTimezone,
       successCriteria: args.successCriteria?.trim() || undefined,
       mode: args.mode ?? 'draft',
       status: 'active',
       unansweredCount: 0,
       turnsUsed: 0,
-      // Only open-ended goals need a deadline; a clock-scheduled goal runs on
-      // the cadence the user chose until the user ends it.
       expiresAt: openEnded ? now + GOAL_MAX_AGE_MS : undefined,
-      // For until_done this only arms the silence timer, so the goal still
-      // works if the opener below fails.
-      nextRunAt: nextRun,
+      nextRunAt,
       turnLockUntil: shouldStartNow ? now + GOAL_TURN_LEASE_MS : undefined,
       turnLockToken: leaseToken,
       createdAt: now,
       updatedAt: now,
     });
 
-    // An open-ended or immediate once goal should start the conversation now, not up to an hour
-    // later on the next cron tick. The opener passes the same gates, so an auto
-    // goal created during quiet hours correctly yields a draft.
     if (shouldStartNow && leaseToken) {
       await ctx.scheduler.runAfter(0, internal.contactGoals.runGoalTurnInternal, {
         goalId,
@@ -624,12 +648,17 @@ export const getRunContextInternal = internalQuery({
           d._id !== ownPendingDraft?._id &&
           nowMs - d._creationTime < DRAFT_STALE_THRESHOLD_MS,
       ) ?? null;
+    const effectiveInstance = getEnvInstance() || contact.instance || goal.instance;
     const pref = await ctx.db
       .query('userPreferences')
-      .withIndex('by_instance', (q) => q.eq('instance', goal.instance))
+      .withIndex('by_instance', (q) => q.eq('instance', effectiveInstance))
       .unique();
     const triggerMessage = args.triggerMessageId ? await ctx.db.get(args.triggerMessageId) : null;
-    if (triggerMessage?.processingModeAtIngest === 'manual_only') return null;
+    // If the message was ingested in manual_only mode treat this as a nudge
+    // turn rather than bailing out entirely — bailing leaves the inbound
+    // unanswered because decideAndDraft already handed off to the goal.
+    const effectiveTriggerMessage =
+      triggerMessage?.processingModeAtIngest === 'manual_only' ? null : triggerMessage;
     const recentMessages = await listAutomaticMessagesForContact(ctx, {
       contactId: goal.contactId,
       order: 'desc',
@@ -644,7 +673,7 @@ export const getRunContextInternal = internalQuery({
       ownPendingDraft,
       otherPendingDraft,
       pref,
-      triggerMessage,
+      triggerMessage: effectiveTriggerMessage,
       lastInboundAtMs: lastInbound ? messageTimestampMs(lastInbound.timestamp) : null,
       recentMessages: recentMessages.slice().reverse(),
     };
@@ -852,10 +881,7 @@ export const recordGoalTurnInternal = internalMutation({
     } else if (
       (args.completed === true &&
         (goal.recurrence === 'until_done' || goal.recurrence === 'once')) ||
-      // A `once` goal is done after it has run — but "run" has to mean it
-      // actually produced something. Marking it done on a failed model call
-      // retired the goal without ever sending the one message it existed for.
-      (goal.recurrence === 'once' && args.outcome !== 'failed' && args.outcome !== 'handed_off')
+      (goal.recurrence === 'once' && EMITTING_OUTCOMES.has(args.outcome))
     ) {
       patch.status = 'done';
       patch.completedAt = now;
@@ -884,16 +910,23 @@ export const recordGoalTurnInternal = internalMutation({
         patch.completedAt = now;
       }
 
-      patch.nextRunAt = nextRunFor({
-        recurrence: goal.recurrence,
-        dayOfWeek: goal.dayOfWeek,
-        intervalHours: goal.intervalHours,
-        preferredTime: goal.preferredTime,
-        timezone: goal.timezone,
-        unansweredCount: nextUnanswered,
-        nudgeHoursOverride: args.nudgeHoursOverride,
-        fromMs: now,
-      });
+      // If deferred (e.g. another draft pending review) or failed, retry in 1 hour
+      // rather than skipping an entire day, week, or interval!
+      if (args.outcome === 'deferred' || args.outcome === 'failed') {
+        const retryHours = args.nudgeHoursOverride ?? 1;
+        patch.nextRunAt = now + retryHours * HOUR_MS;
+      } else {
+        patch.nextRunAt = nextRunFor({
+          recurrence: goal.recurrence,
+          dayOfWeek: goal.dayOfWeek,
+          intervalHours: goal.intervalHours,
+          preferredTime: goal.preferredTime,
+          timezone: goal.timezone,
+          unansweredCount: nextUnanswered,
+          nudgeHoursOverride: args.nudgeHoursOverride,
+          fromMs: now,
+        });
+      }
       patch.strategyDeferredUntil = patch.nextRunAt;
     }
     await ctx.db.patch(args.goalId, patch);
@@ -1166,8 +1199,10 @@ export const runGoalTurnInternal = internalAction({
           (goal.lastGoalMessageAt === undefined ||
             context.lastInboundAtMs > goal.lastGoalMessageAt));
       const name = contactName(contact);
+      // Always route through the environment instance if set, otherwise contact/goal instance.
+      const effectiveInstance = getEnvInstance() || contact.instance || goal.instance;
       const replyStyle = await ctx.runQuery(internal.replyStyle.getForCallInternal, {
-        instance: goal.instance,
+        instance: effectiveInstance,
         contactId: goal.contactId,
       });
       const recent = context.recentMessages
@@ -1436,7 +1471,7 @@ export const runGoalTurnInternal = internalAction({
         try {
           const { sendText } = await import('./providers/evolution');
           const result = await sendText({
-            instance: goal.instance,
+            instance: effectiveInstance,
             to: contact.remoteJid,
             text: parsed.text,
             quoted: context.triggerMessage
@@ -1450,7 +1485,7 @@ export const runGoalTurnInternal = internalAction({
             const sentMessageId: Id<'messages'> = await ctx.runMutation(
               internal.messages.recordOutgoing,
               {
-                instance: goal.instance,
+                instance: effectiveInstance,
                 remoteJid: contact.remoteJid,
                 contactId: contact._id,
                 messageId: result.messageId,
@@ -1506,7 +1541,7 @@ export const runGoalTurnInternal = internalAction({
       }
 
       const draftId: Id<'drafts'> = await ctx.runMutation(internal.drafts.insertDraftInternal, {
-        instance: goal.instance,
+        instance: effectiveInstance,
         contactId: goal.contactId,
         sourceMessageId: args.triggerMessageId,
         text: parsed.text,
@@ -1622,5 +1657,51 @@ export const clearStaleDraftsInternal = internalMutation({
     if (drafts.length > 0) {
       await refreshChatState(ctx, args.contactId);
     }
+  },
+});
+
+/**
+ * One-time repair mutation to align existing goals with active environment instance,
+ * fix corrupted preferredTime values (like "Every 24 hours"), and fill in missing dayOfWeek.
+ */
+export const repairExistingGoalsInternal = internalMutation({
+  args: {},
+  returns: v.object({
+    updated: v.number(),
+    instancesFixed: v.number(),
+    timesFixed: v.number(),
+  }),
+  handler: async (ctx) => {
+    const goals = await ctx.db.query('contactGoals').take(100);
+    const activeInstance = getEnvInstance() || 'kwameeh';
+    let updated = 0;
+    let instancesFixed = 0;
+    let timesFixed = 0;
+
+    for (const goal of goals) {
+      const patch: Record<string, unknown> = {};
+      if (goal.instance !== activeInstance) {
+        patch.instance = activeInstance;
+        instancesFixed++;
+      }
+      if (
+        goal.preferredTime === 'Every 24 hours' ||
+        (goal.preferredTime && !parsePreferredTime(goal.preferredTime))
+      ) {
+        patch.preferredTime = '09:00';
+        timesFixed++;
+      }
+      if (goal.recurrence === 'weekly' && typeof goal.dayOfWeek !== 'number') {
+        const wall = currentWallClock(goal.createdAt, goal.timezone || 'UTC');
+        patch.dayOfWeek = wall.dayOfWeek;
+      }
+      if (Object.keys(patch).length > 0) {
+        patch.updatedAt = Date.now();
+        await ctx.db.patch(goal._id, patch);
+        updated++;
+      }
+    }
+
+    return { updated, instancesFixed, timesFixed };
   },
 });

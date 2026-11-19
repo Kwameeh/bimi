@@ -858,6 +858,10 @@ export const resolveConfirmation = action({
             | 'interval'
             | 'until_done',
           intervalHours: typeof args2.intervalHours === 'number' ? args2.intervalHours : undefined,
+          dayOfWeek: typeof args2.dayOfWeek === 'number' ? args2.dayOfWeek : undefined,
+          preferredTime:
+            typeof args2.preferredTime === 'string' ? args2.preferredTime : undefined,
+          timezone: typeof args2.timezone === 'string' ? args2.timezone : undefined,
           successCriteria:
             typeof args2.successCriteria === 'string' ? args2.successCriteria : undefined,
           mode: args2.mode === 'auto' ? 'auto' : 'draft',

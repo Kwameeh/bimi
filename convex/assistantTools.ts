@@ -1047,6 +1047,25 @@ export function buildAssistantActionTools(ctx: ActionCtx, args: ToolBuildArgs): 
           .describe(
             "Hours between attempts. Required when recurrence is 'interval', otherwise null.",
           ),
+        preferredTime: z
+          .string()
+          .nullable()
+          .describe(
+            'Preferred time of day to send in 24h or AM/PM format (e.g. "09:00", "14:30", "9am", "2pm").',
+          ),
+        dayOfWeek: z
+          .number()
+          .int()
+          .min(0)
+          .max(6)
+          .nullable()
+          .describe(
+            'Day of week for weekly goals: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday.',
+          ),
+        timezone: z
+          .string()
+          .nullable()
+          .describe('Timezone (e.g. "Africa/Accra", "America/New_York").'),
         successCriteria: z
           .string()
           .max(300)

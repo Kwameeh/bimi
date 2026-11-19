@@ -71,6 +71,55 @@ export function parsePreferredTime(value?: string): { hours: number; minutes: nu
   return { hours, minutes };
 }
 
+/**
+ * Normalizes user/assistant time input (e.g. "9am", "9:00 AM", "14:30", "9")
+ * into a strict "HH:mm" 24h format for storage.
+ */
+export function normalizePreferredTimeInput(value?: string): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+
+  // 1. Strict 24h format "HH:mm"
+  const strict = parsePreferredTime(trimmed);
+  if (strict) {
+    return `${String(strict.hours).padStart(2, '0')}:${String(strict.minutes).padStart(2, '0')}`;
+  }
+
+  // 2. 12h format with AM/PM: e.g. "9am", "9:30pm", "9:00 AM"
+  const matchAmPm = /^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i.exec(trimmed);
+  if (matchAmPm) {
+    let hours = Number(matchAmPm[1]);
+    const minutes = matchAmPm[2] ? Number(matchAmPm[2]) : 0;
+    const isPm = matchAmPm[3].toLowerCase() === 'pm';
+    if (hours >= 1 && hours <= 12 && minutes >= 0 && minutes <= 59) {
+      if (isPm && hours !== 12) hours += 12;
+      if (!isPm && hours === 12) hours = 0;
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+  }
+
+  // 3. Single bare hour: "9" -> "09:00", "14" -> "14:00"
+  const matchHour = /^(\d{1,2})$/.exec(trimmed);
+  if (matchHour) {
+    const hours = Number(matchHour[1]);
+    if (hours >= 0 && hours <= 23) {
+      return `${String(hours).padStart(2, '0')}:00`;
+    }
+  }
+
+  return undefined;
+}
+
+export function currentWallClock(
+  atMs: number,
+  tz: string | undefined | null,
+): { dayOfWeek: number; hours: number; minutes: number; hhMm: string } {
+  const p = tzParts(atMs, tz);
+  const dayOfWeek = new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay();
+  const hhMm = `${String(p.hour).padStart(2, '0')}:${String(p.minute).padStart(2, '0')}`;
+  return { dayOfWeek, hours: p.hour, minutes: p.minute, hhMm };
+}
+
 // --- Timezone-aware wall-clock scheduling -----------------------------------
 // The Convex runtime's local time is UTC, so `new Date(ms).setHours(9, 0)` puts
 // a "09:00 daily" goal at 09:00 UTC regardless of the timezone the client
@@ -259,6 +308,141 @@ export function nextRunFor(args: {
     minutes: preferred.minutes,
     strideMs: DAY_MS,
   });
+}
+
+/**
+ * Calculates the initial nextRunAt and whether the goal should execute its opener
+ * immediately when created.
+ *
+ * - until_done: runs opener immediately, nextRunAt arms the silence timer.
+ * - once without preferredTime: runs opener immediately.
+ * - once with preferredTime: runs immediately if within 30m of the target time; otherwise scheduled.
+ * - interval: runs opener immediately so user gets immediate execution, then runs every N hours.
+ * - daily: if preferred time is within 30 minutes of now today (e.g. user says "at this time"),
+ *   run opener immediately! Otherwise schedules for today (if in future) or tomorrow.
+ * - weekly: if today is target day of week AND within 30 minutes of preferred time, run opener immediately!
+ *   Otherwise schedules for the next occurrence.
+ */
+export function calculateInitialRun(args: {
+  recurrence: GoalRecurrence;
+  intervalHours?: number;
+  preferredTime?: string;
+  dayOfWeek?: number;
+  timezone?: string;
+  nowMs: number;
+}): { nextRunAt: number; shouldStartNow: boolean } {
+  const { recurrence, intervalHours, preferredTime, dayOfWeek, timezone, nowMs } = args;
+
+  if (recurrence === 'until_done') {
+    return {
+      nextRunAt: nextRunFor({
+        recurrence,
+        intervalHours,
+        preferredTime,
+        dayOfWeek,
+        timezone,
+        unansweredCount: 0,
+        fromMs: nowMs,
+      }),
+      shouldStartNow: true,
+    };
+  }
+
+  if (recurrence === 'interval') {
+    return {
+      nextRunAt: nowMs,
+      shouldStartNow: true,
+    };
+  }
+
+  const preferred = parsePreferredTime(preferredTime);
+
+  if (recurrence === 'once') {
+    if (!preferred) {
+      return { nextRunAt: nowMs, shouldStartNow: true };
+    }
+    const nextRun = nextRunFor({
+      recurrence,
+      preferredTime,
+      timezone,
+      fromMs: nowMs - 1000,
+    });
+    const deltaMs = nextRun - nowMs;
+    const isClose = Math.abs(deltaMs) <= 30 * 60 * 1000;
+    return {
+      nextRunAt: isClose ? nowMs : nextRun,
+      shouldStartNow: isClose,
+    };
+  }
+
+  if (recurrence === 'daily') {
+    if (!preferred) {
+      return {
+        nextRunAt: nowMs,
+        shouldStartNow: true,
+      };
+    }
+    const wall = currentWallClock(nowMs, timezone);
+    const targetMinutesToday = preferred.hours * 60 + preferred.minutes;
+    const currentMinutesToday = wall.hours * 60 + wall.minutes;
+    const diffMinutes = Math.abs(currentMinutesToday - targetMinutesToday);
+
+    if (diffMinutes <= 30) {
+      return {
+        nextRunAt: nowMs,
+        shouldStartNow: true,
+      };
+    }
+
+    const nextRun = nextRunFor({
+      recurrence,
+      preferredTime,
+      timezone,
+      fromMs: nowMs - 1000,
+    });
+    return { nextRunAt: nextRun, shouldStartNow: false };
+  }
+
+  if (recurrence === 'weekly') {
+    const wall = currentWallClock(nowMs, timezone);
+    const targetDay =
+      typeof dayOfWeek === 'number' ? ((Math.floor(dayOfWeek) % 7) + 7) % 7 : wall.dayOfWeek;
+
+    if (!preferred) {
+      if (wall.dayOfWeek === targetDay) {
+        return { nextRunAt: nowMs, shouldStartNow: true };
+      }
+      const nextRun = nextRunFor({
+        recurrence,
+        dayOfWeek: targetDay,
+        timezone,
+        fromMs: nowMs - 1000,
+      });
+      return { nextRunAt: nextRun, shouldStartNow: false };
+    }
+
+    const targetMinutes = preferred.hours * 60 + preferred.minutes;
+    const currentMinutes = wall.hours * 60 + wall.minutes;
+    const diffMinutes = Math.abs(currentMinutes - targetMinutes);
+
+    if (wall.dayOfWeek === targetDay && diffMinutes <= 30) {
+      return {
+        nextRunAt: nowMs,
+        shouldStartNow: true,
+      };
+    }
+
+    const nextRun = nextRunFor({
+      recurrence,
+      dayOfWeek: targetDay,
+      preferredTime,
+      timezone,
+      fromMs: nowMs - 1000,
+    });
+    return { nextRunAt: nextRun, shouldStartNow: false };
+  }
+
+  return { nextRunAt: nowMs, shouldStartNow: false };
 }
 
 // --- Budget -----------------------------------------------------------------
