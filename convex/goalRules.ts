@@ -33,10 +33,10 @@ export const GOAL_TURN_LEASE_MS = 120_000;
 /**
  * A goal reply has to answer the contact *and* advance the goal, so it runs
  * longer than the 2-8 word inbound auto-replies AUTO_REPLY_MAX_CHARS was tuned
- * for. At 240 nearly every substantive goal message would be downgraded to a
- * draft and auto mode would look broken while appearing to work.
+ * for. At 320 chars, complete, natural two-sentence conversational check-ins fit
+ * comfortably without truncation or downgrading to draft.
  */
-export const GOAL_AUTO_REPLY_MAX_CHARS = 240;
+export const GOAL_AUTO_REPLY_MAX_CHARS = 320;
 
 export const DEFAULT_NUDGE_HOURS = 24;
 const MIN_NUDGE_HOURS = 6;

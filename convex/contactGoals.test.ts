@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import schema from './schema';
 import { api, internal } from './_generated/api';
 import type { Doc, Id } from './_generated/dataModel';
-import { GOAL_MAX_TURNS } from './goalRules';
+import { GOAL_AUTO_REPLY_MAX_CHARS, GOAL_MAX_TURNS } from './goalRules';
 
 const modules = import.meta.glob('./**/*.ts');
 
@@ -865,8 +865,8 @@ describe('auto-send gates fall back to a draft, never a silent skip', () => {
 
   test('a goal reply that stays long after one rewrite is held for review', async () => {
     const t = setup();
-    const text = `Hey! ${'Really hoping we can find a slot that works for both of us. '.repeat(4)}`;
-    expect(text.length).toBeGreaterThan(240);
+    const text = `Hey! ${'Really hoping we can find a slot that works for both of us. '.repeat(6)}`;
+    expect(text.length).toBeGreaterThan(GOAL_AUTO_REPLY_MAX_CHARS);
     mockTurn({ text });
     const contactId = await seedContact(t);
     const goalId = await seedGoal(t, contactId);
